@@ -1384,7 +1384,7 @@ export default function App() {
             const currYear = new Date().getFullYear();
             
             (statsArray || []).filter(s => !targetRegionId || s.regionId === targetRegionId).forEach(s => {
-                (s.logs || []).filter(log => log.type === 'survey').forEach(log => {
+                (s.logs || []).filter(log => log.type === 'survey' || log.type === 'quick_sale').forEach(log => {
                      const d = new Date(log.timestamp);
                      if (d.getMonth() === currMonth && d.getFullYear() === currYear) {
                          salesHours += Number(log.hours || 0);

@@ -1771,16 +1771,16 @@ export default function App() {
                                                 <h3 className="text-xs font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Alueiden Vertailu</h3>
                                                 <div className="space-y-4">
                                                     {(Array.isArray(regionStats) ? regionStats : []).sort((a,b) => {
-                                                        const aR = getPreviousMonthRealizedTotal(marketingPlans, a.id);
-                                                        const aT = getPreviousMonthTarget(marketingPlans, a.id);
-                                                        const bR = getPreviousMonthRealizedTotal(marketingPlans, b.id);
-                                                        const bT = getPreviousMonthTarget(marketingPlans, b.id);
+                                                        const aR = getCurrentMonthSalesHours(allUserStats, a.id);
+                                                        const aT = getCurrentMonthTarget(marketingPlans, a.id);
+                                                        const bR = getCurrentMonthSalesHours(allUserStats, b.id);
+                                                        const bT = getCurrentMonthTarget(marketingPlans, b.id);
                                                         return (bR / (bT || 1)) - (aR / (aT || 1));
                                                     }).map(rs => {
-                                                        const rTavoite = getPreviousMonthTarget(marketingPlans, rs.id);
-                                                        const rToteutuma = getPreviousMonthRealizedTotal(marketingPlans, rs.id);
+                                                        const rTavoite = getCurrentMonthTarget(marketingPlans, rs.id);
+                                                        const rToteutuma = getCurrentMonthSalesHours(allUserStats, rs.id);
                                                         const pacePct = Math.min(100, Math.round((rToteutuma / (rTavoite || 1)) * 100));
-                                                        const isPaceGood = rToteutuma >= (rTavoite * 0.8);
+                                                        const isPaceGood = rToteutuma >= (rTavoite * 0.5);
                                                         
                                                         const rNps = rs.npsCount > 0 ? (rs.npsSum / rs.npsCount).toFixed(1) : '-';
                                                         const npsColor = rNps >= 9 ? 'text-[#2f855a]' : rNps <= 6 && rNps !== '-' ? 'text-[#9b2c2c]' : 'text-stone-500';
@@ -1797,11 +1797,11 @@ export default function App() {
                                                                 </div>
                                                                 <div className="grid grid-cols-2 gap-3 mb-4">
                                                                     <div className="bg-stone-50 p-3 rounded-xl text-center border border-stone-100">
-                                                                        <p className="text-[9px] font-bold uppercase tracking-wider text-stone-400 mb-0.5">Toteutuma</p>
+                                                                        <p className="text-[9px] font-bold uppercase tracking-wider text-stone-400 mb-0.5">{currentMonth?.name} Toteutuma</p>
                                                                         <p className="font-black text-stone-800 text-lg leading-none">{rToteutuma}h</p>
                                                                     </div>
                                                                     <div className="bg-[#fdf2f2] p-3 rounded-xl text-center border border-[#fde8e8]">
-                                                                        <p className="text-[9px] font-bold uppercase tracking-wider text-[#9b2c2c] mb-0.5">Tavoite</p>
+                                                                        <p className="text-[9px] font-bold uppercase tracking-wider text-[#9b2c2c] mb-0.5">{currentMonth?.name} Tavoite</p>
                                                                         <p className="font-black text-[#9b2c2c] text-lg leading-none">{rTavoite}h</p>
                                                                     </div>
                                                                 </div>

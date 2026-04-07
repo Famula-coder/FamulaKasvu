@@ -888,8 +888,8 @@ export default function App() {
                                 <div>
                                     <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Mitä roolia haet?</label>
                                     <select name="roleSelect" required className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#2f855a]">
-                                        <option value="myyja">Myyjä (Asiakaskohtaamiset)</option>
-                                        <option value="admin">Aluevetäjä (Alueen hallinta)</option>
+                                        <option value="myyja">Myyjä</option>
+                                        <option value="admin">Aluevetäjä</option>
                                     </select>
                                 </div>
                                 <button type="submit" className="w-full bg-[#22543d] text-white rounded-2xl py-4 font-bold hover:bg-[#132e21] transition-all flex items-center justify-center shadow-lg active:scale-95 mt-4">
@@ -1054,8 +1054,8 @@ export default function App() {
                                         </select>
                                     )}
                                     <select name="inviteRole" required className="flex-1 border border-stone-200 rounded-xl px-3 py-2.5 text-sm font-bold text-stone-700 outline-none focus:border-[#2f855a]">
-                                        <option value="myyja">Myyjä (Tarjotin ja työlista)</option>
-                                        <option value="admin">Aluevetäjä (Alueen hallinta)</option>
+                                        <option value="myyja">Myyjä</option>
+                                        <option value="admin">Aluevetäjä</option>
                                     </select>
                                 </div>
                                 <button type="submit" className="w-full bg-[#2f855a] text-white py-3 rounded-xl font-bold shadow-sm hover:bg-[#22543d] transition active:scale-95">Luo työntekijän profiili ennakkoon</button>
@@ -1285,7 +1285,7 @@ export default function App() {
                             
                             {plan.evaluation && (
                                 <div className="bg-[#f0fdf4] border border-[#dcfce7] rounded-xl p-3">
-                                    <h4 className="text-[10px] uppercase text-[#2f855a] font-black mb-1">Edellisen Q Arvio</h4>
+                                    <h4 className="text-[10px] uppercase text-[#2f855a] font-black mb-1">MUISTIO</h4>
                                     <p className="text-xs text-stone-700 whitespace-pre-wrap">{plan.evaluation}</p>
                                 </div>
                             )}
@@ -1315,8 +1315,8 @@ export default function App() {
                                 </div>
                                 
                                 <div className="bg-white p-4 rounded-2xl border border-stone-200">
-                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-2">Edellisen kvartaalin arviointi</label>
-                                    <textarea value={editingMarketingPlan.evaluation} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, evaluation: e.target.value})} placeholder="Miten edellinen kvartaali meni? Mikä toimi, mikä ei?" className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm font-medium h-24 outline-none"></textarea>
+                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-2">MUISTIO</label>
+                                    <textarea value={editingMarketingPlan.evaluation} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, evaluation: e.target.value})} placeholder="Vapaa muistio..." className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm font-medium h-24 outline-none"></textarea>
                                 </div>
 
                                 <div className="bg-white p-4 rounded-2xl border border-stone-200">

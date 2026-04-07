@@ -841,7 +841,14 @@ export default function App() {
                                 Hakemuksesi alueelle <b>{activeRegions.find(r=>r.id===authSession?.regionId)?.name}</b> on lähetetty! 
                                 Pääset sisään työpöydälle heti kun ohjaaja on kuitannut roolisi aktiiviseksi.
                             </p>
-                            <button onClick={()=>window.location.reload()} className="mt-8 text-[#9b2c2c] font-bold text-sm underline">Päivitä sivu</button>
+                            <div className="flex flex-col items-center gap-3 mt-8">
+                                <button onClick={()=>window.location.reload()} className="bg-stone-900 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-stone-800 active:scale-95 transition-all w-full">Päivitä sivu</button>
+                                <button onClick={() => {
+                                    import('firebase/firestore').then(({ deleteDoc, doc }) => {
+                                        deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', fbUser.uid));
+                                    });
+                                }} className="text-[#9b2c2c] font-bold text-xs uppercase tracking-wider hover:opacity-70 transition-opacity">Peruuta ja muuta hakemusta</button>
+                            </div>
                         </div>
                     ) : (
                         <div className="animate-fade-in">

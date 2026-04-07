@@ -250,6 +250,8 @@ export default function App() {
                         let status = 'pending';
                         let hasData = false;
                         
+                        let dbStatus = null;
+                        
                         if (userDocSnap && userDocSnap.exists()) {
                             hasData = true;
                             const d = userDocSnap.data();
@@ -257,15 +259,17 @@ export default function App() {
                             if (d.regionId) regionId = d.regionId;
                             if (d.name) name = d.name;
                             if (d.status) status = d.status;
+                            if (d.status) dbStatus = d.status;
                         }
 
                         // Hardcoded override
                         if (u.email && SUPER_ADMINS.includes(u.email.toLowerCase())) {
                             role = 'superadmin';
                             status = 'active';
+                            dbStatus = 'active';
                         }
                         
-                        setAuthSession({ name, role, regionId, realRole: role, realRegionId: regionId, status, email: u.email, hasData });
+                        setAuthSession({ name, role, regionId, realRole: role, realRegionId: regionId, status, email: u.email, hasData, dbStatus });
                         
                         if (status === 'active') {
                             setCurrentView(prev => prev === 'pending_access' || prev === 'simulator_login' ? 'portal' : prev);
@@ -338,9 +342,9 @@ export default function App() {
         return () => { unsubTools(); unsubStats(); unsubPriv(); unsubMarketing(); };
     }, [authSession, fbUser]);
 
-    // Ensure my stats doc exists initially
+    // Ensure my stats doc exists initially, but only if user is already fully logged in (active)
     useEffect(() => {
-        if (authSession && fbUser && allUserStats) {
+        if (authSession && fbUser && allUserStats && authSession.status === 'active') {
             const exists = allUserStats.find(s => s.id === fbUser.uid);
             if (!exists && allUserStats.length >= 0) { 
                 syncMyStats({ hours: 0, customers: 0, npsSum: 0, npsCount: 0, myTasks: [] });
@@ -820,7 +824,7 @@ export default function App() {
     };
 
     const renderPendingAccess = () => {
-        const isAlreadyApplied = authSession?.status === 'pending' && authSession?.hasData;
+        const isAlreadyApplied = authSession?.dbStatus === 'pending';
         return (
             <div className="min-h-screen bg-[#e7e5e4] flex flex-col items-center justify-center p-4">
                 <div className="bg-[#f5f5f4] p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md relative overflow-hidden border border-stone-200">
@@ -887,7 +891,7 @@ export default function App() {
         // Collect users to display depending on role
         const statsSource = authSession?.role === 'superadmin' ? (allGlobalStats?.length > 0 ? allGlobalStats : allUserStats) : allUserStats;
         const usersToManage = (Array.isArray(statsSource) ? statsSource : []).filter(u => {
-            if (!u.status || u.status === 'pending' || u.status === 'active') {
+            if (u.status === 'pending' || u.status === 'active') {
                 if (isSuperAdmin) return true;
                 if (isAdmin && !isSuperAdmin) return u.regionId === authSession.regionId && (u.role === 'myyja' || u.requestedRole === 'myyja');
                 return false;

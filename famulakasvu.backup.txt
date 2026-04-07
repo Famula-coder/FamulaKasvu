@@ -1,0 +1,1126 @@
+import React, { useState, useEffect } from 'react';
+import { Home, TrendingUp, Briefcase, StickyNote, X, CheckCircle, Clock, UserPlus, List, ChevronLeft, ChevronRight, ChevronDown, Lightbulb, CalendarCheck, Pen, Check, Trash2, PlusCircle, Coins, ListTodo, Rocket, Paintbrush, Utensils, HeartPulse, Shirt, TreePine, Coffee, Leaf, Smartphone, Star, Headset, Quote, LogOut, Plus, MessageCircle, UserCheck, ArrowRight, ThumbsUp, Activity, HeartHandshake, ShoppingBag, Shield, HelpCircle, AlertTriangle, Calendar, Sparkles, Minus, Send, Loader2, User, Settings, Target, DownloadCloud, Heart } from 'lucide-react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getFirestore, doc, setDoc, onSnapshot, collection } from 'firebase/firestore';
+
+// --- FIREBASE INIT ---
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'famula-app';
+
+// --- HELPER: GENERATE UNIQUE ID ---
+const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+
+// --- CONSTANTS & CSV DATA TEMPLATES ---
+const REGIONS = [
+    { id: 'oulu', name: 'Famula Oulu' },
+    { id: 'lappeenranta', name: 'Famula Lappeenranta' },
+    { id: 'uusimaa', name: 'Famula Uusimaa' },
+    { id: 'kuopio', name: 'Famula Kuopio' },
+    { id: 'keskisuomi', name: 'Famula Keski-Suomi' }
+];
+
+const DEFAULT_TRAY_TASKS = [
+    { id: generateId(), text: "LeadDesk-soitot (Uusasiakashankinta): 250 kpl / vko" },
+    { id: generateId(), text: "Kaupan repäisymainokset (Paikallinen näkyvyys): 5 kpl / vko" },
+    { id: generateId(), text: "Asiakastyytyväisyyskysely asiakaskäynneillä" },
+    { id: generateId(), text: "Asiakaskäynnit (Luottamuksen rakentaminen): 3-4 kpl / vko" },
+    { id: generateId(), text: "Sidosryhmätapaamiset (Palveluohjaajat jne): 1 kpl / vko" },
+    { id: generateId(), text: "Digi- ja lehtimainonnan konversioiden optimointi: 1 kerta / vko" }
+];
+
+const GROWTH_TEMPLATES = [
+    { id: '0_perustus', name: "Yleinen: 0. Perustus (0–100 h)", tasks: ["LeadDesk-soitot: 250 kpl / vko", "Kaupan repäisymainokset: 5 kpl / vko", "Asiakaskäynnit: 3-4 kpl / vko", "Sidosryhmätapaamiset (palveluohjaajat): 1 kpl / vko", "Digi- ja lehtimainonnan optimointi: 1 kerta / vko"] },
+    { id: '1_ensimmaiset', name: "Yleinen: 1. Ensimmäiset työntekijät (100–250 h)", tasks: ["LeadDesk-soitot: 350 kpl / vko", "Kaupan repäisymainokset: 5 kpl / vko", "Asiakaskäynnit: 4-5 kpl / vko", "Sidosryhmätapaamiset (sote-ammattilaiset): 1-2 kpl / vko", "Rekrytointivalmius / Tiimin ohjaus: 2 h / vko"] },
+    { id: '2_kuoppa', name: "Yleinen: 2. Kuoppa ja osa-aikainen vetäjä (250–360 h)", tasks: ["LeadDesk-soitot: 450 kpl / vko", "Kaupan repäisymainokset: 5 kpl / vko", "Asiakaskäynnit: 4-5 kpl / vko", "Sidosryhmätapaamiset (lääkärit, apteekit): 1-2 kpl / vko", "Omaisviestintä ja lisämyynti nykyasiakkaille", "Rekrytointi ja tiimin hallinta: Säännöllisesti"] },
+    { id: '3_skaalautuminen', name: "Yleinen: 3. Skaalautuminen (Yli 426 h)", tasks: ["LeadDesk-soitot (Ammattisoittajat): 550 kpl / vko", "Kaupan repäisymainokset: 10 kpl / vko", "Asiakaskäynnit: 5-6 kpl / vko", "Sidosryhmätapaamiset (Vaikuttajat): 2 kpl / vko"] },
+    { id: 'uusimaa_1', name: "Uusimaa: Kuukausi 1 (Koneen käynnistys)", tasks: ["LeadDesk-soitot (Uudet kontaktit): 300 kpl / vko", "Kaupan repäisymainokset (Nopea näkyvyys): 10 kpl / vko", "Asiakaskäynnit: 4 kpl / vko", "Sidosryhmätapaamiset (Palveluohjaajat): 2 kpl / vko", "Pyydä suosituksia kaikilta uusilta asiakkailta"] },
+    { id: 'oulu_1', name: "Oulu: Kuukausi 1 (Tekemisen meininki)", tasks: ["LeadDesk-soittorutiini ehdottomaksi: 250 kpl / vko", "Kaupan repäisymainokset: 5 kpl / vko", "Asiakaskäynnit: 3-4 kpl / vko", "Sidosryhmätapaamiset (Palveluohjaajat): 1 kpl / vko", "Asiakastyytyväisyys-app heti aktiiviseen käyttöön"] },
+    { id: 'lpr_1', name: "Lappeenranta: Kuukausi 1 (Tehon lisäys)", tasks: ["LeadDesk-soitot: 350 kpl / vko (Volyymin nosto)", "Kaupan repäisymainokset: 5 kpl / vko", "Asiakaskäynnit: 4-5 kpl / vko", "Sidosryhmätapaamiset (Sote-ammattilaiset): 1 kpl / vko"] },
+    { id: 'jkl_1', name: "Keski-Suomi: Kuukausi 1 (Kuopan selätys)", tasks: ["LeadDesk-soitot (Poistuman kattaminen): 450 kpl / vko", "Kaupan repäisymainokset: 5 kpl / vko", "Asiakaskäynnit: 4-5 kpl / vko", "Sidosryhmätapaamiset (Lääkärit, apteekit): 1-2 kpl / vko", "Omaisviestintä ja lisämyynti nykyasiakkaille"] }
+];
+
+const FALLBACK_PRODUCTS = [
+    { id: 10, title: "Famula Startti", icon: "Rocket", content: "1h kartoitus + 3h palvelua.", pitch: "Riskitön tapa kokeilla." },
+    { id: 1, title: "Kodin Suursiivous", icon: "Paintbrush", content: "Ikkunat, verhot, matot.", pitch: "Säästäkää selkäänne." }
+];
+
+const FALLBACK_SCRIPTS = [
+    { id: "leaddesk", title: "LeadDesk - Myyntispiikki", content: "Hei, täällä [Nimi] Famulasta...\nMiten on päivä sujunut?" }
+];
+
+const SURVEY_ITEMS = [
+    { id: 1, type: "emoji", title: "1. KOHTAAMINEN", negative: "Kohtaaminen ei ole ollut kunnioittavaa", positive: "Kohtaaminen on ollut kunnioittavaa ja olen tullut kuulluksi", speech_negative: "kohtaaminen ei ole ollut mielestäsi kunnioittavaa", speech_positive: "kohtaaminen on ollut kunnioittavaa ja olet tullut kuulluksi" },
+    { id: 2, type: "emoji", title: "2. SISÄLTÖ", negative: "Käynnin sisältö ei ole vastannut tarpeitani", positive: "Käyntien sisältö on vastannut tarpeitani", speech_negative: "käyntien sisältö ei ole vastannut tarpeitasi", speech_positive: "käyntien sisältö vastaa tarpeitasi hyvin" },
+    { id: 3, type: "emoji", title: "3. TOIMINTATAVAT", negative: "Toimintatapa ei sopinut minulle", positive: "Työntekijän tapa työskennellä on ollut tilanteeseen sopiva", speech_negative: "työskentelytapa ei ole sopinut sinulle parhaalla mahdollisella tavalla", speech_positive: "työntekijän tapa työskennellä on ollut tilanteeseen sopiva" },
+    { id: 4, type: "nps", title: "4. SUOSITTELU", negative: "En suosittelisi (1)", positive: "Suosittelisin varmasti (10)", speech_negative: "et olisi valmis suosittelemaan palvelua", speech_positive: "suosittelisit meitä todennäköisesti ystävillesi" }
+];
+
+const EMOJI_SCALE = [
+    { value: 1, emoji: "😞", label: "Huono", color: "bg-red-100 border-red-300 ring-red-400" },
+    { value: 2, emoji: "🙁", label: "Välttävä", color: "bg-orange-100 border-orange-300 ring-orange-400" },
+    { value: 3, emoji: "😐", label: "Neutraali", color: "bg-[#fdf2f2] border-[#fde8e8] ring-[#9b2c2c]" },
+    { value: 4, emoji: "🙂", label: "Hyvä", color: "bg-[#dcfce7] border-[#2f855a] ring-[#2f855a]" },
+    { value: 5, emoji: "☀️", label: "Erinomainen", color: "bg-[#f0fdf4] border-[#22543d] ring-[#22543d]" }
+];
+
+const SERVICE_NEEDS = [
+    { id: 'home', title: "Kodin askareet & Ravinto", icon: "Home", prompt: "Esim. Jaksatko hoitaa kotia ja ruoan laitto onnistuu.", subServices: ["Kevyt ylläpitosiivous", "Ruoanlaitto kotona"] },
+    { id: 'errands', title: "Asiointi & Liikkuminen", icon: "ShoppingBag", prompt: "Esim. Pääsetkö käymään kaupassa, apteekissa ja lääkärissä.", subServices: ["Kauppa-asiointi", "Lääkärisaattaja"] },
+    { id: 'safety', title: "Turvallisuus & Seura", icon: "Shield", prompt: "Esim. Tunnetko olosi turvalliseksi ja sinulla on riittävästi juttuseuraa.", subServices: ["Turvakartoitus", "Avainpalvelu"] },
+    { id: 'wellbeing', title: "Virkistys & Hyvinvointi", icon: "Heart", prompt: "Tunnetko itsesi virkeäksi ja päivissä on iloa.", subServices: ["Ulkoiluseura", "Kiireetön kahvittelu"] }
+];
+
+const NAME_DAYS = { "1.1": "Uudenvuodenpäivä", "4.2": "Armi, Ronja", "24.2": "Matti", "28.2": "Onni" };
+const FALLBACK_MONTHS = [ { name: "Tammikuu", theme: "Kulttuuria sisätiloissa", tip: "Museot ja teatterit" }, { name: "Helmikuu", theme: "Ystävänpäivä & Leivonta", tip: "Perehdytys ja Startti" }, { name: "Maaliskuu", theme: "Kodin turvallisuus", tip: "Mattojen puistelu" }, { name: "Huhtikuu", theme: "Digiapu", tip: "Videopuhelut" }, { name: "Toukokuu", theme: "Äitienpäivä", tip: "Ikkunanpesut" }, { name: "Kesäkuu", theme: "Ulkoilu", tip: "Torikahvit" }, { name: "Heinäkuu", theme: "Kesäretket", tip: "Puistokävelyt" }, { name: "Elokuu", theme: "Marjastus", tip: "Torilta marjat" }, { name: "Syyskuu", theme: "Syyssiivous", tip: "Pimenevät illat" }, { name: "Lokakuu", theme: "Lukeminen", tip: "Valokuvat" }, { name: "Marraskuu", theme: "Isänpäivä", tip: "Talvivaatteet" }, { name: "Joulukuu", theme: "Jouluvalmistelut", tip: "Joulukortit" } ];
+
+function getWeekNumber(d) {
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+    var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    return Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+}
+
+function getTodayInfo() {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('fi-FI', { weekday: 'long', day: 'numeric', month: 'numeric' });
+    const dayMonthKey = `${now.getDate()}.${now.getMonth() + 1}`;
+    return { dateStr: dateStr.charAt(0).toUpperCase() + dateStr.slice(1), nameDay: NAME_DAYS[dayMonthKey] || "Päivän sankarit", weekNum: getWeekNumber(now), monthIdx: now.getMonth() };
+}
+
+const getIconByName = (name, props) => {
+    const icons = { Rocket, Paintbrush, Utensils, HeartPulse, Shirt, TreePine, Coffee, Leaf, Smartphone, Star, Headset, Home, ShoppingBag, Shield, Heart };
+    const IconComponent = icons[name] || Star;
+    return <IconComponent {...props} />;
+};
+
+// --- MAIN APP COMPONENT ---
+export default function App() {
+    // Auth & Identity State
+    const [fbUser, setFbUser] = useState(null);
+    const [authSession, setAuthSession] = useState(null); // Simulator session
+    const [isAuthenticating, setIsAuthenticating] = useState(true);
+
+    // View State
+    const [currentView, setCurrentView] = useState('simulator_login'); 
+    const [currentTab, setCurrentTab] = useState('dashboard');
+    const [toast, setToast] = useState({ message: '', type: 'success', visible: false });
+
+    // Global / Region Data State
+    const [publicData, setPublicData] = useState({ products: FALLBACK_PRODUCTS, scripts: FALLBACK_SCRIPTS, masterTray: DEFAULT_TRAY_TASKS });
+    const [allUserStats, setAllUserStats] = useState([]); 
+    
+    // Personal User Data State
+    const [userMemos, setUserMemos] = useState([]);
+    const [myTasks, setMyTasks] = useState([]); // Seller's personal weekly list
+    const [userCustomTray, setUserCustomTray] = useState([]); // Seller's custom tray items
+    const [userHiddenMasterTasks, setUserHiddenMasterTasks] = useState([]); // Hidden global tray items
+
+    // UI Modals & Inputs
+    const [modals, setModals] = useState({ sales: false, adminPlan: false, editTask: false, editTrayTask: false, newTrayTask: false });
+    const [customSalesHours, setCustomSalesHours] = useState("");
+    const [editingPlanTasks, setEditingPlanTasks] = useState([]); 
+    const [expandedProductId, setExpandedProductId] = useState(null);
+    const [isEditMode, setIsEditMode] = useState(false);
+    
+    // Task Editing States
+    const [editingTaskIdx, setEditingTaskIdx] = useState(null);
+    const [editingTaskText, setEditingTaskText] = useState("");
+    const [editingTrayTask, setEditingTrayTask] = useState({ id: '', text: '', isMaster: false });
+    const [newTrayTaskText, setNewTrayTaskText] = useState("");
+
+    // Survey State
+    const [surveyState, setSurveyState] = useState({
+        step: 'login', worker: '', clientInitials: '', sessionId: '', answers: {}, serviceRatings: {}, proposalStatus: 'none', planHours: 0, oneOffHours: 0, salesNote: '', calculatedBonus: '0.00', isSubmitting: false
+    });
+
+    const isAdmin = authSession?.role === 'admin' || authSession?.role === 'superadmin';
+    const isSuperAdmin = authSession?.role === 'superadmin';
+
+    // Unified Tray Computation
+    const masterTray = publicData.masterTray || DEFAULT_TRAY_TASKS;
+    const unifiedTray = [
+        ...masterTray.filter(t => !userHiddenMasterTasks.includes(t.id)).map(t => ({...t, isMaster: true})),
+        ...(userCustomTray || []).map(t => ({...t, isMaster: false}))
+    ];
+
+    // 1. Initial Auth setup
+    useEffect(() => {
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.error("Auth init error:", err);
+            }
+        };
+        initAuth();
+
+        const unsub = onAuthStateChanged(auth, (u) => {
+            setFbUser(u);
+            if (u) setIsAuthenticating(false);
+        });
+        return unsub;
+    }, []);
+
+    // 2. Fetch Data based on Simulator Session
+    useEffect(() => {
+        if (!authSession || !fbUser) return;
+
+        const regionId = authSession.regionId;
+
+        // Fetch Global Tools & Master Tray
+        const toolsRef = doc(db, 'artifacts', appId, 'public', 'data', 'globalData', 'main');
+        const unsubTools = onSnapshot(toolsRef, (docSnap) => {
+            if (docSnap.exists()) setPublicData(docSnap.data());
+        }, (err) => console.error("Global data snap error:", err));
+
+        // Fetch All Users Stats for the Region
+        const statsRef = collection(db, 'artifacts', appId, 'public', 'data', 'user_stats');
+        const unsubStats = onSnapshot(statsRef, (snap) => {
+            const stats = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(s => s.regionId === regionId);
+            setAllUserStats(stats);
+            
+            const myStatDoc = stats.find(s => s.id === fbUser.uid);
+            if (myStatDoc && myStatDoc.myTasks) {
+                setMyTasks(myStatDoc.myTasks);
+            } else {
+                setMyTasks([]);
+            }
+        }, (err) => console.error("Stats snap error:", err));
+
+        // Fetch Personal Data (Memos, Custom Tray, Hidden Master Tasks)
+        const privRef = doc(db, 'artifacts', appId, 'users', fbUser.uid, 'privateData', 'main');
+        const unsubPriv = onSnapshot(privRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                setUserMemos(data.memos || []);
+                setUserCustomTray(data.customTray || []);
+                setUserHiddenMasterTasks(data.hiddenMasterTasks || []);
+            }
+        }, (err) => console.error("Private snap error:", err));
+
+        return () => { unsubTools(); unsubStats(); unsubPriv(); };
+    }, [authSession, fbUser]);
+
+    // Ensure my stats doc exists initially
+    useEffect(() => {
+        if (authSession && fbUser && allUserStats) {
+            const exists = allUserStats.find(s => s.id === fbUser.uid);
+            if (!exists && allUserStats.length >= 0) { 
+                syncMyStats({ hours: 0, customers: 0, npsSum: 0, npsCount: 0, myTasks: [] });
+            }
+        }
+    }, [authSession, fbUser, allUserStats]);
+
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type, visible: true });
+        setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
+    };
+
+    const handleSimulatorLogin = (e) => {
+        e.preventDefault();
+        const name = e.target.elements.nameInput.value;
+        const regionId = e.target.elements.regionSelect.value;
+        const role = e.target.elements.roleSelect.value;
+        if (!name || !regionId || !role) return;
+        
+        setAuthSession({ name, role, regionId });
+        setCurrentView('portal');
+        showToast(`Tervetuloa ${name}!`);
+    };
+
+    const handleLogout = () => {
+        setAuthSession(null);
+        setCurrentView('simulator_login');
+    };
+
+    // --- DATA ACTIONS ---
+    
+    const syncMyStats = async (updates) => {
+        if (!authSession || !fbUser) return;
+        const currentMyStat = allUserStats.find(s => s.id === fbUser.uid) || { hours: 0, customers: 0, npsSum: 0, npsCount: 0, myTasks: [] };
+        const merged = { ...currentMyStat, name: authSession.name, regionId: authSession.regionId, ...updates };
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', fbUser.uid), merged);
+    };
+
+    const updatePrivateDoc = async (updates) => {
+        if (!fbUser) return;
+        await setDoc(doc(db, 'artifacts', appId, 'users', fbUser.uid, 'privateData', 'main'), updates, { merge: true });
+    };
+
+    // MY DESKTOP TASKS (Home)
+    const toggleMyTaskCheck = (taskId) => {
+        const updatedTasks = myTasks.map(t => t.id === taskId ? { ...t, done: !t.done } : t);
+        syncMyStats({ myTasks: updatedTasks });
+    };
+
+    const deleteMyTask = (taskId) => {
+        const updatedTasks = myTasks.filter(t => t.id !== taskId);
+        syncMyStats({ myTasks: updatedTasks });
+    };
+
+    const saveEditedMyTask = () => {
+        if (editingTaskText.trim() === '') return;
+        const updatedTasks = myTasks.map(t => t.id === editingTaskIdx ? { ...t, text: editingTaskText } : t);
+        syncMyStats({ myTasks: updatedTasks });
+        setModals(prev => ({ ...prev, editTask: false }));
+        setEditingTaskIdx(null);
+        setEditingTaskText("");
+    };
+
+    const pickTaskToHome = (text) => {
+        const newTasks = [{ id: generateId(), text: text, done: false }];
+        syncMyStats({ myTasks: [...myTasks, ...newTasks] });
+        showToast("Siirretty etusivulle!");
+    };
+
+    // TRAY MANAGEMENT (Tools Page)
+    const saveEditedTrayTask = async () => {
+        if (editingTrayTask.text.trim() === '') return;
+        
+        if (editingTrayTask.isMaster) {
+            // Hide the master task and create a custom copy
+            await updatePrivateDoc({
+                hiddenMasterTasks: [...userHiddenMasterTasks, editingTrayTask.id],
+                customTray: [...userCustomTray, { id: generateId(), text: editingTrayTask.text }]
+            });
+        } else {
+            // Just update the custom task
+            await updatePrivateDoc({
+                customTray: userCustomTray.map(t => t.id === editingTrayTask.id ? { ...t, text: editingTrayTask.text } : t)
+            });
+        }
+        setModals(prev => ({ ...prev, editTrayTask: false }));
+        showToast("Tavoite muokattu onnistuneesti!");
+    };
+
+    const deleteTrayTask = async (id, isMaster) => {
+        if (isMaster) {
+            await updatePrivateDoc({ hiddenMasterTasks: [...userHiddenMasterTasks, id] });
+        } else {
+            await updatePrivateDoc({ customTray: userCustomTray.filter(t => t.id !== id) });
+        }
+        showToast("Tavoite poistettu tarjottimelta.");
+    };
+
+    const saveNewTrayTask = async () => {
+        if (newTrayTaskText.trim() === '') return;
+        await updatePrivateDoc({
+            customTray: [...userCustomTray, { id: generateId(), text: newTrayTaskText.trim() }]
+        });
+        setNewTrayTaskText("");
+        setModals(prev => ({ ...prev, newTrayTask: false }));
+        showToast("Uusi tavoite lisätty tarjottimelle!");
+    };
+
+    // SUPER ADMIN TRAY (Master Library)
+    const openAdminTrayModal = () => {
+        setEditingPlanTasks(publicData.masterTray || DEFAULT_TRAY_TASKS);
+        setModals(prev => ({ ...prev, adminPlan: true }));
+    };
+
+    const updatePlanTask = (taskId, val) => {
+        setEditingPlanTasks(prev => prev.map(t => t.id === taskId ? { ...t, text: val } : t));
+    };
+
+    const removePlanTask = (taskId) => {
+        setEditingPlanTasks(prev => prev.filter(t => t.id !== taskId));
+    };
+
+    const addPlanTask = () => {
+        setEditingPlanTasks(prev => [...prev, { id: generateId(), text: 'Uusi valtakunnallinen tavoite' }]);
+    };
+
+    const applyGrowthTemplate = (templateId) => {
+        const t = GROWTH_TEMPLATES.find(x => x.id === templateId);
+        if (t) {
+            setEditingPlanTasks(t.tasks.map(text => ({ id: generateId(), text })));
+        }
+    };
+
+    const saveAdminPlan = async () => {
+        const cleanedTasks = editingPlanTasks.filter(t => t.text && t.text.trim() !== '');
+        const newData = { ...publicData, masterTray: cleanedTasks };
+        setPublicData(newData);
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'globalData', 'main'), newData, { merge: true });
+        setModals(prev => ({ ...prev, adminPlan: false }));
+        showToast("Valtakunnallinen tarjotin päivitetty!");
+    };
+
+    // MEMOS (Private)
+    const addMemo = async (e) => {
+        e.preventDefault();
+        const text = e.target.elements.memoInput.value;
+        if (text.trim() && fbUser) {
+            const newMemos = [{ id: Date.now(), text, date: new Date().toLocaleDateString('fi-FI') }, ...userMemos];
+            await updatePrivateDoc({ memos: newMemos });
+            e.target.reset();
+            showToast("Muistio tallennettu");
+        }
+    };
+    
+    const deleteMemo = async (id) => {
+        if (!fbUser) return;
+        const newMemos = userMemos.filter(m => m.id !== id);
+        await updatePrivateDoc({ memos: newMemos });
+    };
+
+    // GLOBAL TOOLS (Products & Scripts)
+    const updatePublicDataProps = async (updates) => {
+        if (!authSession || (authSession.role !== 'admin' && authSession.role !== 'superadmin')) return;
+        const newData = { ...publicData, ...updates };
+        setPublicData(newData);
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'globalData', 'main'), newData, { merge: true });
+    };
+
+    const updateProductField = (id, field, val) => updatePublicDataProps({ products: (publicData.products || []).map(p => p.id === id ? { ...p, [field]: val } : p) });
+    const deleteProduct = (id) => { updatePublicDataProps({ products: (publicData.products || []).filter(p => p.id !== id) }); showToast("Toimintakortti poistettu"); };
+    const addNewProduct = () => {
+        const newProduct = { id: Date.now(), title: "Uusi Tuote", icon: "Star", content: "Muokkaa sisältöä...", pitch: "Myyntilause..." };
+        updatePublicDataProps({ products: [...(publicData.products || []), newProduct] });
+        setExpandedProductId(newProduct.id);
+        showToast("Uusi kortti lisätty");
+    };
+
+    // SALES & SURVEY
+    const handleRecordSale = (hours) => {
+        if (!fbUser) return;
+        const myStat = allUserStats.find(s => s.id === fbUser.uid) || { hours: 0, customers: 0, npsSum: 0, npsCount: 0, myTasks: [] };
+        syncMyStats({ hours: myStat.hours + hours });
+        showToast(`Kirjattu: ${hours}h lisämyyntiä`);
+        setModals(prev => ({ ...prev, sales: false }));
+    };
+
+    const handleRecordQuickCustomer = () => {
+        if (!fbUser) return;
+        const myStat = allUserStats.find(s => s.id === fbUser.uid) || { hours: 0, customers: 0, npsSum: 0, npsCount: 0, myTasks: [] };
+        syncMyStats({ customers: myStat.customers + 1 });
+        showToast("1 Uusi asiakas kirjattu!");
+    };
+
+    const submitSurvey = async () => {
+        setSurveyState(prev => ({ ...prev, isSubmitting: true }));
+        const totalHours = surveyState.planHours + surveyState.oneOffHours;
+        const totalBonus = ((Math.min(surveyState.planHours, 2) * 39.95) + (surveyState.oneOffHours * 5.00)).toFixed(2);
+        
+        if (fbUser) {
+            const myStat = allUserStats.find(s => s.id === fbUser.uid) || { hours: 0, customers: 0, npsSum: 0, npsCount: 0, myTasks: [] };
+            const npsVal = surveyState.answers['4'] || 0;
+            
+            await syncMyStats({
+                hours: myStat.hours + totalHours,
+                customers: surveyState.proposalStatus === 'sold' ? myStat.customers + 1 : myStat.customers,
+                npsSum: myStat.npsSum + npsVal,
+                npsCount: myStat.npsCount + (npsVal > 0 ? 1 : 0)
+            });
+        }
+
+        setTimeout(() => setSurveyState(prev => ({ ...prev, step: 'success', calculatedBonus: totalBonus, isSubmitting: false })), 800);
+    };
+
+    // --- RENDER VIEWS ---
+    if (isAuthenticating) return <div className="min-h-screen bg-[#e7e5e4] flex items-center justify-center"><Loader2 className="animate-spin text-[#9b2c2c] w-12 h-12"/></div>;
+
+    const renderSimulatorLogin = () => (
+        <div className="min-h-screen bg-[#e7e5e4] flex flex-col items-center justify-center p-4">
+            <form onSubmit={handleSimulatorLogin} className="bg-[#f5f5f4] p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md relative overflow-hidden border border-stone-200">
+                <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#9b2c2c] to-[#2f855a]"></div>
+                <h1 className="text-4xl font-black text-stone-900 mb-2 mt-4 tracking-tighter">Famula Simulaattori</h1>
+                <p className="text-stone-500 mb-8 text-sm font-medium tracking-wide">Testaa ohjelmaa valitsemalla roolisi.</p>
+                
+                <div className="space-y-4 mb-8 text-left">
+                    <div>
+                        <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Nimesi</label>
+                        <input type="text" name="nameInput" required placeholder="Esim. Matti Myyjä" className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#2f855a]" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Alueyhtiö</label>
+                        <select name="regionSelect" required className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#2f855a]">
+                            <option value="">-- Valitse alue --</option>
+                            {REGIONS.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Rooli</label>
+                        <select name="roleSelect" required className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#2f855a]">
+                            <option value="user">Myyjä (Peruskäyttäjä)</option>
+                            <option value="admin">Aluevetäjä (Alueen Admin)</option>
+                            <option value="superadmin">Super Admin (Pääkäyttäjä)</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" className="w-full bg-[#22543d] text-white rounded-2xl py-4 font-bold hover:bg-[#132e21] transition-all flex items-center justify-center shadow-lg active:scale-95">
+                    Kirjaudu Testitilaan <ArrowRight className="ml-2 w-5 h-5"/>
+                </button>
+            </form>
+        </div>
+    );
+
+    const renderPortal = () => (
+        <div className="min-h-screen bg-[#e7e5e4] flex flex-col items-center p-0 sm:p-4 text-stone-800">
+            {isSuperAdmin && (
+                <div className="w-full max-w-md bg-stone-900 text-white p-3 flex items-center justify-between z-50 shadow-md">
+                    <span className="text-xs font-bold text-stone-400 uppercase tracking-widest"><Settings className="w-3 h-3 inline mr-1"/> Super Admin Ohjaus</span>
+                    <select value={authSession.regionId} onChange={e => setAuthSession({...authSession, regionId: e.target.value})} className="bg-stone-800 text-white text-sm font-bold p-1.5 rounded outline-none border border-stone-700">
+                        {REGIONS.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                    </select>
+                </div>
+            )}
+            
+            <div className="w-full max-w-md bg-[#f5f5f4] min-h-screen sm:min-h-[800px] sm:rounded-[2.5rem] overflow-hidden relative flex flex-col shadow-2xl">
+                <header className="bg-gradient-to-br from-[#771d1d] to-[#9b2c2c] pt-12 pb-10 px-8 rounded-b-[3rem] shadow-lg relative z-10">
+                    <button onClick={handleLogout} className="absolute top-4 right-4 text-white/70 hover:text-white p-2"><LogOut size={20} /></button>
+                    <div className="flex justify-between items-center mb-2">
+                        <div>
+                            <h2 className="text-[#fde8e8] text-sm font-medium tracking-widest uppercase mb-1">Palvelut</h2>
+                            <h1 className="text-white text-4xl font-bold tracking-tight">Famula</h1>
+                            <div className="mt-2 space-x-2">
+                                <span className="inline-block px-2 py-1 bg-white/20 rounded text-xs text-white uppercase tracking-wider">{authSession.role === 'admin' ? 'Aluevetäjä' : authSession.role === 'superadmin' ? 'Super Admin' : 'Myyjä'}</span>
+                                <span className="inline-block px-2 py-1 bg-black/20 rounded text-xs text-white uppercase tracking-wider">{authSession.name}</span>
+                            </div>
+                        </div>
+                        <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20">
+                            <Home className="h-6 w-6 text-white" />
+                        </div>
+                    </div>
+                    <p className="text-[#fde8e8] text-opacity-90 mt-2 text-sm">Valitse työkalu alta aloittaaksesi.</p>
+                </header>
+
+                <main className="flex-1 px-6 -mt-6 relative z-20 space-y-5 pb-8">
+                    <div onClick={() => setCurrentView('manager')} className="block group relative cursor-pointer">
+                        <div className="absolute inset-0 bg-[#771d1d] rounded-2xl transform translate-y-2 opacity-20 blur transition duration-300 group-hover:translate-y-3 group-hover:opacity-30"></div>
+                        <div className="relative bg-white rounded-2xl p-6 border-l-[6px] border-[#9b2c2c] shadow-sm transition transform group-hover:-translate-y-1 active:scale-[0.98]">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <span className="inline-block bg-[#fdf2f2] text-[#771d1d] text-xs font-bold px-2 py-1 rounded uppercase tracking-wide mb-2">Työkalu</span>
+                                    <h3 className="text-xl font-bold text-stone-900 leading-tight mb-1">Myynnin suunnittelu</h3>
+                                    <p className="text-sm text-stone-500">Hallitse omaa työpöytääsi ja katso tuloksia.</p>
+                                </div>
+                                <div className="bg-[#fdf2f2] p-3 rounded-full text-[#9b2c2c]"><Briefcase className="h-6 w-6" /></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div onClick={() => {setSurveyState(prev=>({...prev, step: 'login', company: REGIONS.find(r=>r.id===authSession.regionId)?.name || 'Famula', worker: authSession.name})); setCurrentView('survey');}} className="block group relative cursor-pointer">
+                        <div className="absolute inset-0 bg-[#22543d] rounded-2xl transform translate-y-2 opacity-10 blur transition duration-300 group-hover:translate-y-3 group-hover:opacity-20"></div>
+                        <div className="relative bg-white rounded-2xl p-6 border-l-[6px] border-[#2f855a] shadow-sm transition transform group-hover:-translate-y-1 active:scale-[0.98]">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <span className="inline-block bg-[#f0fdf4] text-[#22543d] text-xs font-bold px-2 py-1 rounded uppercase tracking-wide mb-2">Asiakastyö</span>
+                                    <h3 className="text-lg font-bold text-stone-900 leading-tight mb-1">Asiakastyytyväisyys</h3>
+                                    <p className="text-sm text-stone-500">Kartoita tarpeet ja kerää palautetta kentällä.</p>
+                                </div>
+                                <div className="bg-[#f0fdf4] p-3 rounded-full text-[#2f855a]"><ListTodo className="h-6 w-6" /></div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    );
+
+    const renderManager = () => {
+        const todayInfo = getTodayInfo();
+        const currentMonthIdx = todayInfo.monthIdx;
+        const currentMonth = FALLBACK_MONTHS[currentMonthIdx];
+        
+        // Calculate Reports
+        let totalRegionHours = 0;
+        let totalRegionCustomers = 0;
+        allUserStats.forEach(s => {
+            totalRegionHours += Number(s.hours || 0);
+            totalRegionCustomers += Number(s.customers || 0);
+        });
+
+        const myStat = allUserStats.find(s => s.id === fbUser?.uid) || { hours: 0, customers: 0, myTasks: [] };
+        const myHours = myStat.hours || 0;
+        const myCustomers = myStat.customers || 0;
+
+        return (
+            <div className="min-h-screen bg-[#e7e5e4] font-sans pb-[90px] relative">
+                <div className="max-w-[480px] mx-auto bg-[#f5f5f4] min-h-screen shadow-lg relative">
+                    <div className="bg-white px-4 py-3 flex justify-between items-center border-b border-stone-200 shadow-sm relative z-20">
+                        <button onClick={() => setCurrentView('portal')} className="text-stone-500 hover:text-[#9b2c2c] flex items-center text-sm font-bold transition-colors"><ChevronLeft className="h-4 w-4 mr-1"/> Portaaliin</button>
+                        <span className="text-xs bg-stone-100 text-stone-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider">{REGIONS.find(r=>r.id===authSession.regionId)?.name}</span>
+                    </div>
+
+                    <div className="p-4 relative z-10">
+                        {currentTab === 'dashboard' && (
+                            <div className="animate-fade-in">
+                                <header className="flex justify-between items-center mb-6 mt-2 px-1">
+                                    <div>
+                                        <h1 className="text-xl font-bold text-stone-900 tracking-tight">{todayInfo.dateStr}</h1>
+                                        <p className="text-stone-500 text-xs font-medium">Oma Työpöytäsi</p>
+                                    </div>
+                                </header>
+
+                                <div className="bg-gradient-to-br from-[#771d1d] to-[#9b2c2c] text-white rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden">
+                                    <div className="relative z-10">
+                                        <div className="flex items-center opacity-90 mb-2">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider border border-white/30 px-2 py-0.5 rounded">Kuukauden Teema</span>
+                                        </div>
+                                        <h2 className="text-2xl font-bold mb-3 leading-tight">{currentMonth.theme}</h2>
+                                        <div className="flex items-start bg-white/10 p-3 rounded-xl backdrop-blur-sm border border-white/20">
+                                            <Lightbulb className="mt-0.5 mr-2 text-[#fde8e8] h-4 w-4 shrink-0" />
+                                            <p className="text-sm font-medium leading-relaxed">{currentMonth.tip}</p>
+                                        </div>
+                                    </div>
+                                    <CalendarCheck className="absolute -right-6 -bottom-6 w-32 h-32 text-white opacity-5 pointer-events-none" />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 mb-6">
+                                    <button onClick={handleRecordQuickCustomer} className="flex flex-col items-center justify-center bg-white p-4 rounded-2xl border border-stone-200 shadow-sm active:scale-95 transition hover:shadow-md group h-24">
+                                        <div className="w-10 h-10 rounded-full bg-[#f0fdf4] text-[#2f855a] flex items-center justify-center mb-2"><UserPlus size={18} /></div>
+                                        <span className="text-[10px] font-bold text-stone-600 uppercase text-center leading-tight">Uusi<br/>Asiakas</span>
+                                    </button>
+                                    <button onClick={() => setModals(prev => ({...prev, sales: true}))} className="flex flex-col items-center justify-center bg-white p-4 rounded-2xl border border-stone-200 shadow-sm active:scale-95 transition hover:shadow-md group h-24">
+                                        <div className="w-10 h-10 rounded-full bg-[#fdf2f2] text-[#9b2c2c] flex items-center justify-center mb-2"><Clock size={18} /></div>
+                                        <span className="text-[10px] font-bold text-stone-600 uppercase text-center leading-tight">Lisä-<br/>myynti</span>
+                                    </button>
+                                </div>
+
+                                {/* MY DESKTOP (PERSONAL TASKS) */}
+                                <div className="bg-stone-50 rounded-[2rem] p-2 border border-stone-200 shadow-sm">
+                                    <div className="text-center pt-4 pb-2">
+                                        <h3 className="font-extrabold text-stone-900 text-lg">Oma Työlista</h3>
+                                        <p className="text-[10px] text-[#2f855a] font-bold uppercase tracking-widest mt-1">Viikon valitut tavoitteet</p>
+                                    </div>
+                                    <div className="mb-2 min-h-[100px] px-2 py-2 space-y-3">
+                                        {myTasks.length === 0 ? (
+                                            <div className="text-center py-6 bg-white rounded-2xl border border-stone-200">
+                                                <p className="text-stone-400 text-sm font-medium mb-3">Työpöytäsi on tyhjä.</p>
+                                                <button onClick={() => setCurrentTab('tools')} className="bg-[#2f855a] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm hover:bg-[#22543d] transition-colors inline-flex items-center">
+                                                    <DownloadCloud className="w-4 h-4 mr-2"/> Siirry tarjottimelle
+                                                </button>
+                                            </div>
+                                        ) : myTasks.map((t) => (
+                                            <div key={t.id} className="flex items-center p-4 bg-white rounded-2xl border border-stone-200 shadow-sm group">
+                                                <div className={`w-6 h-6 border-2 rounded-lg flex items-center justify-center mr-4 transition-colors shrink-0 cursor-pointer ${t.done ? 'bg-[#2f855a] border-[#2f855a]' : 'border-stone-300 bg-stone-50 hover:border-[#2f855a]/50'}`} onClick={() => toggleMyTaskCheck(t.id)}>
+                                                    {t.done && <Check className="text-white h-3 w-3" />}
+                                                </div>
+                                                <span className={`text-sm font-medium leading-snug flex-1 ${t.done ? 'line-through text-stone-400' : 'text-stone-800'}`}>{t.text}</span>
+                                                <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={()=>{setEditingTaskIdx(t.id); setEditingTaskText(t.text); setModals(prev=>({...prev, editTask: true}))}} className="p-2 text-stone-400 hover:text-blue-600 bg-stone-50 rounded-lg"><Pen size={14}/></button>
+                                                    <button onClick={()=>deleteMyTask(t.id)} className="p-2 text-stone-400 hover:text-red-600 bg-stone-50 rounded-lg"><Trash2 size={14}/></button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {currentTab === 'reports' && (
+                            <div className="animate-fade-in">
+                                <header className="mb-6 mt-2 px-1">
+                                    <h2 className="text-2xl font-black text-stone-900">Raportit</h2>
+                                    <p className="text-sm text-stone-500 font-medium mt-1">{isAdmin ? 'Koko alueen yhdistetty data' : 'Omat tuloksesi'}</p>
+                                </header>
+                                
+                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6">
+                                    <h3 className="text-sm font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">{isAdmin ? 'Alueen Tuloskortti' : 'Oma Tuloskortti'}</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="text-center p-5 bg-[#f0fdf4] rounded-2xl border border-[#dcfce7]">
+                                            <p className="text-[10px] font-bold text-[#2f855a] uppercase mb-1 tracking-wider">Uudet Asiakkaat</p>
+                                            <p className="text-4xl font-black text-stone-900">{isAdmin ? totalRegionCustomers : myCustomers}</p>
+                                        </div>
+                                        <div className="text-center p-5 bg-[#fdf2f2] rounded-2xl border border-[#fde8e8]">
+                                            <p className="text-[10px] font-bold text-[#9b2c2c] uppercase mb-1 tracking-wider">Myydyt Tunnit</p>
+                                            <p className="text-4xl font-black text-stone-900">{isAdmin ? totalRegionHours : myHours}<span className="text-base font-bold text-stone-500 ml-1">h</span></p>
+                                        </div>
+                                    </div>
+                                    {!isAdmin && (
+                                        <div className="bg-gradient-to-br from-[#22543d] to-[#2f855a] text-white p-6 rounded-2xl shadow-lg mt-2 relative overflow-hidden">
+                                            <div className="relative z-10">
+                                                <p className="text-[10px] font-bold text-[#dcfce7] uppercase mb-2 tracking-wider">Oma Arvioitu Bonus</p>
+                                                <div className="flex items-baseline">
+                                                    <span className="text-5xl font-black">{(myHours * 39.95).toFixed(2)}</span>
+                                                    <span className="text-xl font-bold ml-2 opacity-80">€</span>
+                                                </div>
+                                            </div>
+                                            <Coins className="absolute -right-4 -bottom-4 w-28 h-28 opacity-10" />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* ADMIN TIIMI-RAPORTTI */}
+                                {isAdmin && (
+                                    <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6">
+                                        <h3 className="text-sm font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Tiimin Tilanne</h3>
+                                        <div className="space-y-4">
+                                            {allUserStats.length === 0 ? <p className="text-sm text-stone-400 text-center">Ei dataa tiimistä.</p> : 
+                                            allUserStats.map(stat => {
+                                                const uTasks = stat.myTasks || [];
+                                                const doneTasks = uTasks.filter(t => t.done).length;
+                                                const avgNps = stat.npsCount > 0 ? (stat.npsSum / stat.npsCount).toFixed(1) : '-';
+                                                
+                                                return (
+                                                <div key={stat.id} className="bg-stone-50 p-4 rounded-2xl border border-stone-200 flex justify-between items-center">
+                                                    <div>
+                                                        <p className="font-bold text-stone-900 text-sm mb-1">{stat.name || 'Nimetön'}</p>
+                                                        <div className="flex gap-3 text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                                                            <span><Clock className="inline w-3 h-3 mb-0.5 text-[#9b2c2c]"/> {stat.hours || 0}h</span>
+                                                            <span><CheckCircle className="inline w-3 h-3 mb-0.5 text-[#2f855a]"/> {doneTasks}/{uTasks.length}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400 mb-1">NPS</p>
+                                                        <div className={`font-black text-lg ${avgNps >= 9 ? 'text-[#2f855a]' : avgNps <= 6 && avgNps !== '-' ? 'text-[#9b2c2c]' : 'text-stone-700'}`}>
+                                                            {avgNps}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )})}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {currentTab === 'tools' && (
+                            <div className="animate-fade-in">
+                                <header className="mb-4 mt-2 px-1 flex justify-between items-center">
+                                    <h2 className="text-2xl font-black text-stone-900">Työkalut & Tarjotin</h2>
+                                    {isSuperAdmin && (
+                                        <button onClick={openAdminTrayModal} className="bg-white border border-stone-200 text-[#9b2c2c] text-xs font-bold px-3 py-2 rounded-xl shadow-sm flex items-center hover:bg-stone-50 transition-colors">
+                                            <Target className="w-3.5 h-3.5 mr-1.5"/> Master-tarjotin
+                                        </button>
+                                    )}
+                                </header>
+
+                                {/* OMA TARJOTIN (Unified Tray) */}
+                                <div className="bg-stone-50 rounded-[2rem] p-4 border border-stone-200 shadow-sm mb-6">
+                                    <div className="mb-4 text-center">
+                                        <h3 className="font-extrabold text-stone-900 text-lg">Myynnin Tarjotin</h3>
+                                        <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest mt-1">Valitse tai luo tavoitteita</p>
+                                    </div>
+
+                                    <div className="space-y-3 mb-4">
+                                        {unifiedTray.length === 0 ? <p className="text-sm text-stone-500 text-center">Tarjotin on tyhjä.</p> : unifiedTray.map(t => (
+                                            <div key={t.id} className="flex items-start p-4 bg-white rounded-2xl border border-stone-200 shadow-sm group">
+                                                <div className="flex-1 pr-3">
+                                                    <p className="text-sm font-bold text-stone-800 leading-snug mb-3">{t.text}</p>
+                                                    <button onClick={() => pickTaskToHome(t.text)} className="text-xs font-bold text-[#2f855a] bg-[#f0fdf4] px-3 py-1.5 rounded-lg border border-[#dcfce7] hover:bg-[#dcfce7] transition-colors inline-flex items-center">
+                                                        <DownloadCloud className="w-3.5 h-3.5 mr-1.5"/> Poimi etusivulle
+                                                    </button>
+                                                </div>
+                                                <div className="flex flex-col gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => { setEditingTrayTask({ id: t.id, text: t.text, isMaster: t.isMaster }); setModals(prev => ({...prev, editTrayTask: true})) }} className="p-2 text-stone-400 hover:text-blue-600 bg-stone-50 rounded-lg"><Pen size={14}/></button>
+                                                    <button onClick={() => deleteTrayTask(t.id, t.isMaster)} className="p-2 text-stone-400 hover:text-red-600 bg-stone-50 rounded-lg"><Trash2 size={14}/></button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button onClick={() => setModals(prev => ({...prev, newTrayTask: true}))} className="w-full py-3 border-2 border-dashed border-[#2f855a]/30 text-[#2f855a] font-bold rounded-xl text-sm flex items-center justify-center hover:bg-[#f0fdf4] transition-colors">
+                                        <Plus size={16} className="mr-1"/> Lisää oma tavoite tarjottimelle
+                                    </button>
+                                </div>
+                                
+                                <div className="flex justify-between items-center mb-4 mt-8 px-1 border-t border-stone-200 pt-6">
+                                    <h3 className="text-lg font-black text-stone-900">Myyntimateriaalit</h3>
+                                    {isSuperAdmin && (
+                                        <button onClick={() => setIsEditMode(!isEditMode)} className={`w-8 h-8 rounded-full border border-stone-300 flex items-center justify-center text-stone-500 ${isEditMode ? 'bg-[#9b2c2c] text-white border-transparent shadow-md' : 'bg-white'}`}>
+                                            {isEditMode ? <Check size={14} /> : <Pen size={14} />}
+                                        </button>
+                                    )}
+                                </div>
+                                
+                                {isSuperAdmin && !isEditMode && <p className="text-xs text-stone-500 text-center mb-4">Työkalut ovat valtakunnallisia. Vain Super Admin voi muokata näitä.</p>}
+                                
+                                {publicData.scripts && publicData.scripts.length > 0 && (
+                                    <div className="bg-white rounded-2xl overflow-hidden mb-4 border border-[#fde8e8] shadow-sm">
+                                        <div onClick={() => !isEditMode && setExpandedProductId(expandedProductId === 'leaddesk' ? null : 'leaddesk')} className="bg-[#fdf2f2] p-4 flex justify-between items-center cursor-pointer select-none">
+                                            <div className="flex items-center">
+                                                <div className="w-8 h-8 rounded-full bg-[#9b2c2c] text-white flex items-center justify-center mr-3"><Headset size={16}/></div>
+                                                <span className="font-bold text-sm uppercase text-[#771d1d]">{publicData.scripts[0].title}</span>
+                                            </div>
+                                            {!isEditMode && <ChevronDown size={16} className={`text-[#9b2c2c] transition-transform ${expandedProductId === 'leaddesk' ? 'rotate-180' : ''}`} />}
+                                        </div>
+                                        <div className={`${expandedProductId === 'leaddesk' || isEditMode ? 'block' : 'hidden'} p-4 bg-white border-t border-[#fde8e8]`}>
+                                            {isEditMode ? (
+                                                <textarea className="w-full p-3 border border-stone-200 rounded-xl h-64 text-sm focus:border-[#9b2c2c] outline-none" value={publicData.scripts[0].content} onChange={(e) => updatePublicData({ scripts: [{...publicData.scripts[0], content: e.target.value}] })} />
+                                            ) : (
+                                                <div className="prose text-sm text-stone-700 whitespace-pre-line leading-relaxed">{publicData.scripts[0].content}</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {(publicData.products || []).map(p => (
+                                    <div key={p.id} className="bg-white rounded-2xl overflow-hidden mb-3 border border-stone-200 relative group shadow-sm">
+                                        {isEditMode && <button onClick={() => deleteProduct(p.id)} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-[#fdf2f2] text-[#9b2c2c] flex items-center justify-center z-20"><Trash2 size={14}/></button>}
+                                        <div onClick={() => !isEditMode && setExpandedProductId(expandedProductId === p.id ? null : p.id)} className="bg-stone-50 p-4 flex justify-between items-center cursor-pointer select-none">
+                                            <div className="flex items-center w-full">
+                                                <div className="w-8 h-8 rounded-full bg-white border border-stone-200 text-[#22543d] flex items-center justify-center mr-3 shrink-0 shadow-sm">
+                                                    {getIconByName(p.icon, { size: 16 })}
+                                                </div>
+                                                {isEditMode ? 
+                                                    <input type="text" className="font-bold text-sm uppercase bg-transparent border-b border-dashed border-stone-400 w-full mr-10 focus:outline-none focus:border-[#9b2c2c]" value={p.title} onChange={(e) => updateProductField(p.id, 'title', e.target.value)} onClick={e => e.stopPropagation()} />
+                                                : <span className="font-bold text-sm uppercase text-stone-800">{p.title}</span>}
+                                            </div>
+                                            {!isEditMode && <ChevronDown size={16} className={`text-stone-400 transition-transform ${expandedProductId === p.id ? 'rotate-180' : ''}`} />}
+                                        </div>
+                                        <div className={`${expandedProductId === p.id || isEditMode ? 'block' : 'hidden'} p-4 bg-white border-t border-stone-100`}>
+                                            {isEditMode ? (
+                                                <>
+                                                    <label className="text-xs font-bold text-stone-500 uppercase mb-1 block">Sisältö</label>
+                                                    <textarea className="w-full p-3 border border-stone-200 rounded-xl mb-3 text-sm focus:border-[#9b2c2c] outline-none" rows="3" value={p.content} onChange={(e) => updateProductField(p.id, 'content', e.target.value)}></textarea>
+                                                    <label className="text-xs font-bold text-stone-500 uppercase mb-1 block">Myyntilause</label>
+                                                    <textarea className="w-full p-3 border border-stone-200 rounded-xl bg-stone-50 text-sm focus:border-[#9b2c2c] outline-none" rows="2" value={p.pitch} onChange={(e) => updateProductField(p.id, 'pitch', e.target.value)}></textarea>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <p className="text-sm text-stone-600 mb-3 leading-relaxed">{p.content}</p>
+                                                    <div className="bg-[#f0fdf4] p-4 rounded-xl border border-[#dcfce7] text-sm italic text-[#22543d] relative">
+                                                        <Quote className="absolute top-3 left-3 text-[#2f855a] h-5 w-5 opacity-40" />
+                                                        <span className="relative z-10 pl-6 block font-medium">"{p.pitch}"</span>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {isEditMode && (
+                                    <button onClick={addNewProduct} className="w-full border-2 border-dashed border-[#9b2c2c] text-[#9b2c2c] font-bold py-4 rounded-2xl hover:bg-[#fdf2f2] transition-colors flex items-center justify-center mt-4 mb-8">
+                                        <PlusCircle className="mr-2 h-5 w-5" /> Lisää uusi toimintakortti
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
+                        {currentTab === 'memo' && (
+                            <div className="animate-fade-in">
+                                <header className="mb-4 mt-2 px-1"><h2 className="text-2xl font-black text-stone-900">Oma Muistio</h2></header>
+                                <form onSubmit={addMemo} className="mb-6 relative">
+                                    <textarea name="memoInput" className="w-full p-4 pr-14 bg-white border border-stone-200 rounded-2xl focus:border-[#2f855a] outline-none h-32 resize-none shadow-sm text-stone-800 font-medium" placeholder="Kirjoita uusi muistiinpano..."></textarea>
+                                    <button type="submit" className="absolute right-3 bottom-3 bg-[#2f855a] w-10 h-10 rounded-xl flex items-center justify-center shadow-md hover:bg-[#22543d] transition-colors"><Plus className="text-white h-5 w-5" /></button>
+                                </form>
+                                <div>
+                                    {(!userMemos || userMemos.length === 0) ? <p className="text-center text-stone-400 text-sm py-4">Ei muistiinpanoja.</p> :
+                                        userMemos.map(m => (
+                                            <div key={m.id} className="bg-white p-5 rounded-2xl border border-stone-200 mb-3 relative shadow-sm">
+                                                <p className="text-stone-800 whitespace-pre-wrap text-sm leading-relaxed font-medium">{m.text}</p>
+                                                <span className="text-[10px] text-stone-400 block mt-3 font-black uppercase tracking-widest">{m.date}</span>
+                                                <button onClick={() => deleteMemo(m.id)} className="absolute top-3 right-3 text-stone-300 hover:text-[#9b2c2c] transition-colors"><Trash2 size={16}/></button>
+                                            </div>
+                                        ))
+                                    }
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* MODALS */}
+                    
+                    {/* Admin - Aseta Tarjotin */}
+                    {modals.adminPlan && (
+                        <div className="fixed inset-0 z-[60] flex items-end justify-center">
+                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setModals(prev => ({ ...prev, adminPlan: false }))}></div>
+                            <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20 h-[85vh] overflow-y-auto">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-xl font-black text-stone-900">Valtakunnallinen Tarjotin</h3>
+                                    <button onClick={() => setModals(prev => ({ ...prev, adminPlan: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
+                                </div>
+                                <div className="mb-6">
+                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-2">Lataa Tavoitekirjastosta</label>
+                                    <select onChange={e => applyGrowthTemplate(e.target.value)} className="w-full p-4 bg-white border border-stone-300 rounded-2xl font-bold text-stone-800 outline-none focus:border-[#9b2c2c] shadow-sm">
+                                        <option value="">-- Valitse Kasvun Porras / Pohja --</option>
+                                        {GROWTH_TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="space-y-3 mb-6">
+                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-2">Muokkaa Tarjotinta (Kaikki näkevät nämä)</label>
+                                    {editingPlanTasks.map((task) => (
+                                        <div key={task.id} className="flex gap-2">
+                                            <input type="text" value={task.text} onChange={e => updatePlanTask(task.id, e.target.value)} className="flex-1 p-4 bg-white border border-stone-200 rounded-2xl text-sm font-bold text-stone-800 shadow-sm focus:border-[#9b2c2c] outline-none" />
+                                            <button onClick={() => removePlanTask(task.id)} className="w-14 bg-[#fdf2f2] text-[#9b2c2c] rounded-2xl flex items-center justify-center hover:bg-[#fde8e8] transition-colors"><Trash2 size={18}/></button>
+                                        </div>
+                                    ))}
+                                    <button onClick={addPlanTask} className="w-full py-4 border-2 border-dashed border-stone-300 text-stone-500 font-bold rounded-2xl text-sm flex items-center justify-center hover:bg-white transition-colors"><Plus size={18} className="mr-1"/> Lisää Rivi</button>
+                                </div>
+                                <button onClick={saveAdminPlan} className="w-full bg-[#9b2c2c] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Tallenna & Julkaise Tarjotin</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Edit Tray Task (Personal overrides) */}
+                    {modals.editTrayTask && (
+                        <div className="fixed inset-0 z-[70] flex items-end justify-center">
+                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setModals(prev => ({ ...prev, editTrayTask: false }))}></div>
+                            <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-xl font-black text-stone-900">Muokkaa Tavoitetta</h3>
+                                    <button onClick={() => setModals(prev => ({ ...prev, editTrayTask: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
+                                </div>
+                                <textarea value={editingTrayTask.text} onChange={e => setEditingTrayTask(prev => ({...prev, text: e.target.value}))} className="w-full p-4 bg-white border border-stone-200 focus:border-[#2f855a] rounded-2xl outline-none mb-6 h-32 shadow-sm font-bold text-stone-800"></textarea>
+                                <button onClick={saveEditedTrayTask} className="w-full bg-[#2f855a] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Tallenna Tarjottimelle</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* New Tray Task */}
+                    {modals.newTrayTask && (
+                        <div className="fixed inset-0 z-[70] flex items-end justify-center">
+                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setModals(prev => ({ ...prev, newTrayTask: false }))}></div>
+                            <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-xl font-black text-stone-900">Lisää Oma Tavoite</h3>
+                                    <button onClick={() => setModals(prev => ({ ...prev, newTrayTask: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
+                                </div>
+                                <textarea value={newTrayTaskText} onChange={e => setNewTrayTaskText(e.target.value)} placeholder="Mitä haluat saavuttaa?" className="w-full p-4 bg-white border border-stone-200 focus:border-[#2f855a] rounded-2xl outline-none mb-6 h-32 shadow-sm font-bold text-stone-800"></textarea>
+                                <button onClick={saveNewTrayTask} className="w-full bg-[#2f855a] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Lisää Tarjottimelle</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Myyjä - Edit Oma Tehtävä (Desktop) */}
+                    {modals.editTask && (
+                        <div className="fixed inset-0 z-[70] flex items-end justify-center">
+                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setModals(prev => ({ ...prev, editTask: false }))}></div>
+                            <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-xl font-black text-stone-900">Muokkaa Tehtävää</h3>
+                                    <button onClick={() => setModals(prev => ({ ...prev, editTask: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
+                                </div>
+                                <textarea value={editingTaskText} onChange={e=>setEditingTaskText(e.target.value)} className="w-full p-4 bg-white border border-stone-200 focus:border-[#2f855a] rounded-2xl outline-none mb-6 h-32 shadow-sm font-bold text-stone-800"></textarea>
+                                <button onClick={saveEditedMyTask} className="w-full bg-[#2f855a] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Tallenna Muutos</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {modals.sales && (
+                        <div className="fixed inset-0 z-[60] flex items-end justify-center">
+                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setModals(prev => ({ ...prev, sales: false }))}></div>
+                            <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
+                                <h3 className="text-xl font-black text-center text-stone-900 mb-2">Kirjaa lisämyynti</h3>
+                                <p className="text-center text-stone-500 text-sm font-medium mb-6">Valitse tuntimäärä:</p>
+                                <div className="grid grid-cols-4 gap-3 mb-6">
+                                    {[1, 2, 4, 8].map(h => (
+                                        <button key={h} onClick={() => handleRecordSale(h)} className={`aspect-square rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${h===8 ? 'border-[#9b2c2c] bg-[#fdf2f2] shadow-sm' : 'border-stone-200 bg-white hover:border-[#9b2c2c]'}`}>
+                                            <span className={`text-2xl font-black ${h===8?'text-[#9b2c2c]':'text-stone-700'}`}>{h}</span>
+                                            <span className={`text-xs font-bold ${h===8?'text-[#771d1d]':'text-stone-400'}`}>h</span>
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="relative">
+                                    <input type="number" value={customSalesHours} onChange={e=>setCustomSalesHours(e.target.value)} placeholder="Muu määrä..." className="w-full p-4 bg-white border border-stone-200 rounded-2xl text-center font-bold text-stone-700 mb-4 shadow-sm focus:border-[#9b2c2c] outline-none" />
+                                </div>
+                                <button onClick={() => customSalesHours > 0 && handleRecordSale(parseFloat(customSalesHours))} className="w-full bg-stone-900 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Kirjaa muu määrä</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* BOTTOM NAV */}
+                    <div className="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto flex justify-between px-2 py-3 z-40 bg-[#f5f5f4]/95 backdrop-blur-md border-t border-stone-200">
+                        <button onClick={() => setCurrentTab('dashboard')} className={`flex flex-col items-center justify-center w-1/4 transition-colors ${currentTab==='dashboard'?'text-[#9b2c2c]':'text-stone-400'}`}><Home className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider">Koti</span></button>
+                        <button onClick={() => setCurrentTab('reports')} className={`flex flex-col items-center justify-center w-1/4 transition-colors ${currentTab==='reports'?'text-[#9b2c2c]':'text-stone-400'}`}><TrendingUp className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider">Raportit</span></button>
+                        <button onClick={() => setCurrentTab('tools')} className={`flex flex-col items-center justify-center w-1/4 transition-colors ${currentTab==='tools'?'text-[#9b2c2c]':'text-stone-400'}`}><Briefcase className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider">Työkalut</span></button>
+                        <button onClick={() => setCurrentTab('memo')} className={`flex flex-col items-center justify-center w-1/4 transition-colors ${currentTab==='memo'?'text-[#9b2c2c]':'text-stone-400'}`}><StickyNote className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider">Muistio</span></button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderSurveyApp = () => {
+        const { step, company, worker, clientInitials, answers, serviceRatings, planHours, oneOffHours, calculatedBonus } = surveyState;
+        const updateState = (updates) => setSurveyState(prev => ({ ...prev, ...updates }));
+        const goToStep = (newStep) => updateState({ step: newStep });
+        const isSurveyComplete = Object.keys(answers || {}).length === SURVEY_ITEMS.length;
+
+        const renderSurveyCustomer = () => (
+            <div className="px-4 pt-6 space-y-6 animate-fade-in pb-12">
+                <div className="text-center mb-4"><h2 className="text-2xl font-extrabold text-stone-900">Miten onnistuimme?</h2><p className="text-stone-600 font-medium mt-1">Anna arvio ja paina sopivinta vaihtoehtoa.</p></div>
+                <div className="space-y-6">
+                    {SURVEY_ITEMS.map(item => {
+                        const val = (answers || {})[item.id] || 0;
+                        return (
+                            <div key={item.id} className="bg-white rounded-[2rem] shadow-sm border border-stone-200 overflow-hidden">
+                                <div className="bg-stone-50 px-5 py-3 border-b border-stone-100"><h3 className="text-sm font-black text-stone-700 uppercase tracking-widest">{item.title}</h3></div>
+                                <div className="p-5">
+                                    <div className="mb-4">
+                                        <p className="text-lg font-medium text-stone-800 leading-snug text-center mb-2">{item.title === '4. SUOSITTELU' ? 'Kuinka todennäköisesti suosittelisit palvelua ystävällesi?' : item.positive}</p>
+                                        {item.type !== 'nps' && <div className="flex justify-between gap-4 text-xs text-stone-400 font-medium px-1"><span>{item.negative}</span><span>Täysin samaa mieltä</span></div>}
+                                    </div>
+                                    {item.type === 'nps' ? (
+                                        <div className="w-full pt-4 pb-2 px-1">
+                                            <div className="flex justify-between text-xs text-stone-400 font-bold px-1 mb-2"><span>1 (Ei)</span><span>10 (Kyllä)</span></div>
+                                            <input type="range" min="1" max="10" step="1" value={val || 5} className="w-full h-4 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-[#9b2c2c] z-20" onChange={(e) => updateState({ answers: { ...(answers || {}), [item.id]: parseInt(e.target.value) } })} style={{ opacity: val === 0 ? 0.5 : 1 }} />
+                                            <div className="text-center mt-4 h-8"><span className={`text-4xl font-black ${val === 0 ? 'text-stone-300' : 'text-[#9b2c2c]'}`}>{val === 0 ? '?' : val}</span></div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex justify-between items-center gap-1">
+                                            {EMOJI_SCALE.map(scale => {
+                                                const isSel = scale.value === val;
+                                                return <button key={scale.value} onClick={() => updateState({ answers: { ...(answers || {}), [item.id]: scale.value } })} className={`relative flex flex-col items-center justify-center w-12 h-14 sm:w-14 sm:h-16 rounded-2xl transition-all duration-200 border ${isSel ? `scale-110 -translate-y-1 z-10 shadow-lg ${scale.color} ring-2 ring-offset-2 ring-stone-400` : 'bg-stone-50 opacity-70 grayscale hover:grayscale-0 hover:opacity-100 hover:bg-white border-transparent'}`}><span className="text-3xl sm:text-4xl select-none filter drop-shadow-sm">{scale.emoji}</span></button>
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+                <div className="pt-4">
+                    <button onClick={() => goToStep('worker')} disabled={!isSurveyComplete} className={`w-full py-4 rounded-2xl font-bold text-xl shadow-xl flex items-center justify-center gap-3 transition-all ${isSurveyComplete ? 'bg-[#9b2c2c] text-white hover:bg-[#771d1d] active:scale-95' : 'bg-stone-200 text-stone-400 cursor-not-allowed'}`}>Jatka <ArrowRight className="w-6 h-6" /></button>
+                    {!isSurveyComplete && <p className="text-center text-[#9b2c2c] font-bold mt-3">Vastaathan kaikkiin kohtiin.</p>}
+                </div>
+            </div>
+        );
+
+        const renderSurveyWorker = () => {
+            const coach = getCoachSummary(answers);
+            if(!coach) return null;
+            const highNeeds = [], mediumNeeds = [];
+            SERVICE_NEEDS.forEach(item => { const r = (serviceRatings || {})[item.id] || 0; if(r >= 4) highNeeds.push(item); else if (r === 3) mediumNeeds.push(item); });
+
+            return (
+                <div className="px-4 pt-6 space-y-8 animate-fade-in pb-12">
+                    <div>
+                        <h2 className="text-xl font-extrabold text-stone-800 mb-4 flex items-center gap-2"><Activity className="text-[#22543d]"/> Palautteen analyysi</h2>
+                        <div className={`rounded-[2rem] border p-6 shadow-sm ${coach.summaryColor}`}>
+                            <h3 className="font-black text-sm uppercase tracking-widest mb-3 border-b border-black/10 pb-2 opacity-90">{coach.summaryTitle}</h3>
+                            <div className="bg-white/80 rounded-xl p-5 border border-black/5 relative mt-5 shadow-sm">
+                                <div className="absolute -top-3 left-4 bg-stone-800 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">Sano esimerkiksi näin</div>
+                                <p className="text-stone-800 font-medium italic mt-1 leading-relaxed" dangerouslySetInnerHTML={{__html: `"${coach.scriptText}"`}}></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="flex flex-col gap-1 mb-2">
+                            <div className="flex items-center gap-2"><HeartHandshake className="text-stone-500 w-6 h-6"/><h3 className="text-base font-black text-stone-700 uppercase tracking-widest">Hyvinvointikartoitus</h3></div>
+                            <div className="ml-1 bg-[#fdf2f2] border border-[#fde8e8] p-5 rounded-2xl relative mt-4 shadow-sm">
+                                <div className="absolute -top-3 left-4 bg-[#9b2c2c] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Avausrepliikki</div>
+                                <p className="text-lg font-bold text-[#771d1d] leading-snug">"Sopiiko, että kartoitetaan tämän hetken palvelun tarvetta ja riittävyyttä?"</p>
+                            </div>
+                        </div>
+                        <div className="space-y-4 pt-2">
+                            {SERVICE_NEEDS.map(item => {
+                                const r = (serviceRatings || {})[item.id] || 0;
+                                return (
+                                    <div key={item.id} className="rounded-2xl border bg-white border-stone-200 p-5 shadow-sm">
+                                        <div className="flex items-start gap-3 mb-3"><div className="bg-stone-50 p-3 rounded-full border border-stone-100 shrink-0 text-[#22543d]">{getIconByName(item.icon, {className: "w-6 h-6"})}</div><div><h4 className="font-bold text-stone-800 text-base">{item.title}</h4><p className="text-xs text-stone-500 mt-1 italic leading-snug">{item.prompt}</p></div></div>
+                                        <div className="w-full px-1 pt-2">
+                                            <div className="flex items-center gap-3"><span className="text-xs font-bold text-stone-400 w-4">1</span><input type="range" min="1" max="5" step="1" value={r || 1} className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-[#2f855a]" onChange={e => updateState({ serviceRatings: { ...(serviceRatings || {}), [item.id]: parseInt(e.target.value) } })} style={{ opacity: r === 0 ? 0.5 : 1 }} /><span className="text-xs font-bold text-stone-400 w-4">5</span></div>
+                                            <div className="flex justify-between text-[10px] text-stone-400 px-1 mt-1 font-medium"><span>Ei tarvetta</span><span>Toivoisin tukea</span></div>
+                                            <div className="text-center font-bold text-[#2f855a] text-xl mt-1 h-6">{r > 0 ? r : <span className="text-stone-300 text-sm font-normal">Arvioi vetämällä</span>}</div>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                        <div className="mt-6">
+                            <div className={`rounded-[2rem] border ${highNeeds.length > 0 ? 'bg-[#f0fdf4] border-[#dcfce7] ring-1 ring-[#2f855a]/30' : mediumNeeds.length > 0 ? 'bg-[#fdf2f2] border-[#fde8e8]' : 'bg-stone-100 border-stone-200'} p-6 shadow-sm transition-all`}>
+                                {highNeeds.length > 0 ? (
+                                    <>
+                                        <div className="flex items-center gap-2 mb-3 text-[#22543d] font-black text-sm uppercase tracking-wider"><Lightbulb className="w-5 h-5"/> 💡 Hyvinvointia tukeva ehdotus</div>
+                                        <p className="text-stone-800 text-base mb-3 leading-relaxed font-medium italic">"Huomasin, että toivoisit tukea alueilla <strong>{highNeeds.map(i=>i.title).join(" ja ")}</strong>. Meillä on siihen ratkaisu, joka helpottaisi arkeasi. Miltä kuulostaisi, jos kokeilisimme tätä?"</p>
+                                        <div className="bg-white/80 p-4 rounded-xl border border-[#dcfce7] mb-5 shadow-sm">
+                                            <p className="text-xs font-bold text-[#2f855a] uppercase mb-1">Tarjoa esimerkiksi näitä:</p>
+                                            {highNeeds.map(item => item.subServices ? <div key={item.id}><strong className="block text-stone-800 mt-2 text-xs uppercase tracking-wide">{item.title}:</strong><ul className="list-disc pl-5 mt-1 text-stone-600 text-sm">{item.subServices.map((s, idx)=><li key={idx}>{s}</li>)}</ul></div> : null)}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-white cursor-pointer transition-colors"><input type="radio" checked={surveyState.proposalStatus === 'none'} onChange={() => updateState({proposalStatus: 'none'})} className="w-5 h-5 text-stone-600" /><span className="text-sm text-stone-700 font-medium">Ei kiitos</span></label>
+                                            <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-white cursor-pointer transition-colors"><input type="radio" checked={surveyState.proposalStatus === 'interested'} onChange={() => updateState({proposalStatus: 'interested'})} className="w-5 h-5 text-[#9b2c2c]" /><span className="text-sm text-stone-800 font-bold">Kiinnostui (Soittakaa myöhemmin)</span></label>
+                                            <div className="flex items-center justify-between p-3 rounded-xl bg-[#dcfce7] border border-[#2f855a]/30 shadow-sm"><label className="flex items-center gap-3 cursor-pointer flex-1"><input type="radio" checked={surveyState.proposalStatus === 'sold'} onChange={() => updateState({proposalStatus: 'sold'})} className="w-5 h-5 text-[#2f855a] accent-[#2f855a]" /><span className="text-base font-black text-[#22543d]">Myyty!</span></label></div>
+                                        </div>
+                                    </>
+                                ) : mediumNeeds.length > 0 ? (
+                                    <><div className="flex items-center gap-2 mb-2 text-[#9b2c2c] font-black text-xs uppercase tracking-wider"><HelpCircle className="w-5 h-5"/> Kartoita tarkemmin</div><p className="text-sm text-stone-800 font-medium">Asiakkaalla on heräävää kiinnostusta alueilla: <strong>{mediumNeeds.map(i=>i.title).join(", ")}</strong>. Kysy tarkentavia kysymyksiä.</p></>
+                                ) : <p className="text-sm font-medium text-stone-500 text-center py-2">Arki sujuu hyvin / ei tarvetta lisätuelle.</p>}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={`bg-white rounded-[2rem] shadow-xl border border-stone-200 overflow-hidden relative transition-all ${!coach.isSalesRecommended ? '' : ''}`}>
+                        <div className="bg-[#132e21] p-5 border-b border-[#22543d] flex items-center gap-4"><div className="bg-white/10 p-3 rounded-xl text-white shadow-inner"><TrendingUp className="w-6 h-6"/></div><div><h3 className="font-extrabold text-white text-xl leading-none tracking-wide">Lisämyynti</h3><p className="text-[#dcfce7] text-xs mt-1.5 font-medium">Kirjaa sovitut työt</p></div></div>
+                        {!coach.isSalesRecommended && <div className="bg-[#fdf2f2] p-5 border-b border-[#fde8e8] text-[#9b2c2c] text-sm font-bold flex items-center gap-3"><AlertTriangle className="w-6 h-6 flex-shrink-0"/><span>Suositus: Keskity ensisijaisesti korjaamiseen. Myy vain, jos tilanne on purettu.</span></div>}
+                        <div className="p-6 space-y-6">
+                            <div className="bg-stone-50 rounded-2xl p-5 border border-stone-200 shadow-sm">
+                                <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-2"><Calendar className="text-[#2f855a] w-5 h-5"/><span className="text-sm font-black text-stone-800 uppercase tracking-wide">Jatkuva palvelu</span></div><span className="text-xs font-bold bg-white text-[#2f855a] px-3 py-1.5 rounded-lg border border-stone-200 shadow-sm">~40€ / h bonus</span></div>
+                                <div className="flex items-center bg-white rounded-xl p-1.5 shadow-sm border border-stone-200 w-full max-w-[200px]">
+                                    <button onClick={() => updateState({ planHours: Math.max(0, planHours - 0.5) })} className="w-10 h-10 rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 flex items-center justify-center transition-colors"><Minus className="w-5 h-5"/></button>
+                                    <div className="flex-1 text-center font-black text-2xl text-stone-800">{planHours} <span className="text-sm text-stone-400 font-bold">h</span></div>
+                                    <button onClick={() => updateState({ planHours: planHours + 0.5 })} className="w-10 h-10 rounded-lg bg-[#2f855a] text-white hover:bg-[#22543d] flex items-center justify-center transition-colors"><Plus className="w-5 h-5"/></button>
+                                </div>
+                            </div>
+
+                            <div className="bg-stone-50 rounded-2xl p-5 border border-stone-200 shadow-sm">
+                                <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-2"><Sparkles className="text-[#9b2c2c] w-5 h-5"/><span className="text-sm font-black text-stone-800 uppercase tracking-wide">Kertamyynti</span></div><span className="text-xs font-bold bg-white text-[#9b2c2c] px-3 py-1.5 rounded-lg border border-stone-200 shadow-sm">5€ / h bonus</span></div>
+                                <div className="flex items-center bg-white rounded-xl p-1.5 shadow-sm border border-stone-200 w-full max-w-[200px]">
+                                    <button onClick={() => updateState({ oneOffHours: Math.max(0, oneOffHours - 0.5) })} className="w-10 h-10 rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 flex items-center justify-center transition-colors"><Minus className="w-5 h-5"/></button>
+                                    <div className="flex-1 text-center font-black text-2xl text-stone-800">{oneOffHours} <span className="text-sm text-stone-400 font-bold">h</span></div>
+                                    <button onClick={() => updateState({ oneOffHours: oneOffHours + 0.5 })} className="w-10 h-10 rounded-lg bg-[#9b2c2c] text-white hover:bg-[#771d1d] flex items-center justify-center transition-colors"><Plus className="w-5 h-5"/></button>
+                                </div>
+                            </div>
+                            <input type="text" placeholder="Mitä sovittiin?" value={surveyState.salesNote} onChange={e => updateState({salesNote: e.target.value})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-base font-medium text-stone-800 placeholder-stone-400 focus:border-[#2f855a] outline-none shadow-inner" />
+                        </div>
+                    </div>
+
+                    <button onClick={submitSurvey} disabled={surveyState.isSubmitting} className="w-full py-5 rounded-2xl font-black text-xl shadow-xl flex items-center justify-center gap-3 bg-[#771d1d] text-white hover:bg-[#4a0f0f] active:scale-95 transition-all">
+                        {surveyState.isSubmitting ? <><Loader2 className="w-6 h-6 animate-spin"/> Lähetetään...</> : <>Hyväksy & Lopeta <Send className="w-6 h-6"/></>}
+                    </button>
+                </div>
+            )
+        };
+
+        return (
+            <div className="bg-[#e7e5e4] min-h-screen font-sans">
+                {step !== 'login' && step !== 'success' && (
+                    <div className="bg-white shadow-sm sticky top-0 z-30 border-b border-stone-200 animate-fade-in">
+                        <div className="max-w-md mx-auto px-5 py-4 flex items-center justify-between">
+                            <div className="flex flex-col"><span className="font-bold text-stone-900 text-sm tracking-wide">{company}</span></div>
+                            <button onClick={()=>setCurrentView('portal')} className="text-stone-400 hover:text-stone-700 transition-colors"><X size={20}/></button>
+                        </div>
+                    </div>
+                )}
+
+                <div className="max-w-md mx-auto w-full bg-[#f5f5f4] min-h-screen relative pb-12 shadow-2xl">
+                    {step === 'login' && (
+                        <div className="p-4 flex items-center justify-center min-h-screen bg-[#e7e5e4]">
+                            <div className="w-full bg-[#f5f5f4] rounded-[2.5rem] shadow-2xl overflow-hidden border border-stone-200 animate-fade-in relative">
+                                <button onClick={() => setCurrentView('portal')} className="absolute top-5 left-5 text-white/80 hover:text-white p-2 z-20 bg-black/20 rounded-full backdrop-blur-sm"><ChevronLeft size={24} /></button>
+                                <div className="bg-gradient-to-br from-[#22543d] to-[#2f855a] p-10 text-white text-center pt-16 relative"><h1 className="text-4xl font-extrabold mb-2">Famula</h1><p className="text-[#dcfce7] font-semibold">Palautekysely</p></div>
+                                <div className="p-8 space-y-6">
+                                    <div><label className="block text-sm font-bold text-stone-800 mb-2">Asiakkaan nimikirjaimet</label><input type="text" placeholder="Esim. M.M." value={clientInitials} onChange={e => updateState({clientInitials: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none text-lg font-bold text-stone-800 shadow-sm focus:border-[#2f855a]" /></div>
+                                    <button onClick={() => { updateState({ sessionId: `#${Math.floor(1000 + Math.random() * 9000)}` }); goToStep('script'); }} disabled={clientInitials.length < 2} className={`w-full py-4 rounded-2xl font-black text-xl shadow-lg mt-4 ${clientInitials.length > 1 ? 'bg-[#2f855a] text-white' : 'bg-stone-200 text-stone-400 cursor-not-allowed'}`}>Aloita</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {step === 'script' && <div className="px-4 pt-8 animate-fade-in"><button onClick={() => goToStep('customer')} className="w-full py-5 rounded-2xl font-bold text-xl shadow-xl flex justify-center gap-3 bg-[#2f855a] text-white active:scale-95"><UserCheck className="w-6 h-6"/>Asiakas antoi luvan</button></div>}
+                    {step === 'customer' && renderSurveyCustomer()}
+                    {step === 'worker' && renderSurveyWorker()}
+                    {step === 'success' && <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-[#22543d] to-[#2f855a] fixed top-0 left-0 w-full z-50 animate-fade-in"><div className="w-full max-w-md bg-[#f5f5f4] rounded-[2.5rem] shadow-2xl p-10 text-center"><button onClick={handleStartSurveyView} className="w-full py-4 bg-stone-900 text-white rounded-2xl font-bold shadow-lg">Uusi kirjaus</button><button onClick={()=>setCurrentView('portal')} className="w-full py-4 mt-4 bg-white text-stone-900 rounded-2xl font-bold shadow-sm">Palaa portaaliin</button></div></div>}
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="font-sans antialiased bg-[#e7e5e4] min-h-screen">
+            {toast.visible && (
+                <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-[100] w-[90%] max-w-[400px] animate-fade-in">
+                    <div className="bg-[#132e21] text-white p-4 px-6 rounded-2xl shadow-2xl flex items-center border border-[#22543d]">
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center mr-3 shrink-0 bg-[#2f855a]"><Check className="text-white h-3 w-3" /></div>
+                        <span className="font-bold text-sm tracking-wide leading-snug">{toast.message}</span>
+                    </div>
+                </div>
+            )}
+            {currentView === 'simulator_login' && renderSimulatorLogin()}
+            {currentView === 'portal' && renderPortal()}
+            {currentView === 'manager' && renderManager()}
+            {currentView === 'survey' && renderSurveyApp()}
+        </div>
+    );
+}

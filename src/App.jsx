@@ -1834,11 +1834,11 @@ export default function App() {
                                     
                                     <div className="grid grid-cols-2 gap-4 mb-4">
                                         <div className="text-center p-5 bg-[#f0fdf4] rounded-2xl border border-[#dcfce7]">
-                                            <p className="text-[10px] font-bold text-[#2f855a] uppercase mb-1 tracking-wider">Uudet Asiakkaat</p>
-                                            <p className="text-4xl font-black text-stone-900">{isAdmin ? totalRegionCustomers : myCustomers}</p>
+                                            <p className="text-[10px] font-bold text-[#2f855a] uppercase mb-1 tracking-wider">{isAdmin ? 'Tämän Kk Lisämyynti' : 'Uudet Asiakkaat'}</p>
+                                            <p className="text-4xl font-black text-stone-900">{isAdmin ? totalRegionCustomers : myCustomers}{isAdmin && <span className="text-base font-bold text-stone-500 ml-1">h</span>}</p>
                                         </div>
                                         <div className="text-center p-5 bg-[#fdf2f2] rounded-2xl border border-[#fde8e8]">
-                                            <p className="text-[10px] font-bold text-[#9b2c2c] uppercase mb-1 tracking-wider">Myydyt Tunnit</p>
+                                            <p className="text-[10px] font-bold text-[#9b2c2c] uppercase mb-1 tracking-wider">{isAdmin ? 'Edelt. Kk Toteutuma' : 'Myydyt Tunnit'}</p>
                                             <p className="text-4xl font-black text-stone-900">{isAdmin ? totalRegionHours : myHours}<span className="text-base font-bold text-stone-500 ml-1">h</span></p>
                                         </div>
                                     </div>

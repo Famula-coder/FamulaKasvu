@@ -8,7 +8,7 @@ import { auth, db, appId, googleProvider } from './firebase';
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 
 // --- CONSTANTS & CSV DATA TEMPLATES ---
-const REGIONS = [
+const FALLBACK_REGIONS = [
     { id: 'oulu', name: 'Famula Oulu' },
     { id: 'lappeenranta', name: 'Famula Lappeenranta' },
     { id: 'uusimaa', name: 'Famula Uusimaa' },
@@ -77,6 +77,36 @@ function getWeekNumber(d) {
     return Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
 }
 
+function getWeeksForQuarter(year, quarter) {
+    const weeks = [];
+    const firstMonthOfQuarter = (quarter - 1) * 3;
+    let d = new Date(year, firstMonthOfQuarter, 1);
+    
+    // Siirry ensimmäisen viikon maanantaihin
+    while (d.getDay() !== 1) {
+        d.setDate(d.getDate() - 1);
+    }
+    
+    // Käydään viikkoja läpi kunnes ylitetään kvartaali
+    while (d.getMonth() < firstMonthOfQuarter + 3 || (d.getMonth() === firstMonthOfQuarter + 3 && d.getDay() !== 1)) {
+        const dForWeek = new Date(d.valueOf());
+        dForWeek.setUTCDate(dForWeek.getUTCDate() + 4 - (dForWeek.getUTCDay()||7));
+        const startOfYear = new Date(Date.UTC(dForWeek.getUTCFullYear(),0,1));
+        const weekNum = Math.ceil((((dForWeek - startOfYear) / 86400000) + 1)/7);
+        
+        const startStr = d.toLocaleDateString('fi-FI', { day: 'numeric', month: 'numeric' });
+        const endDate = new Date(d);
+        endDate.setDate(d.getDate() + 6);
+        const endStr = endDate.toLocaleDateString('fi-FI', { day: 'numeric', month: 'numeric' });
+        
+        weeks.push({ weekNum, label: `Vko ${weekNum} (${startStr} - ${endStr})` });
+        
+        d.setDate(d.getDate() + 7);
+        if(d.getFullYear() > year) break;
+    }
+    return weeks;
+}
+
 function getTodayInfo(offsetDays = 0) {
     const now = new Date();
     now.setDate(now.getDate() + offsetDays);
@@ -137,6 +167,7 @@ export default function App() {
     const [userHiddenMasterTasks, setUserHiddenMasterTasks] = useState([]); // Hidden global tray items
     const [userProducts, setUserProducts] = useState([]); // User's customized products
     const [hiddenMasterProducts, setHiddenMasterProducts] = useState([]); // Hidden global products
+    const [marketingPlans, setMarketingPlans] = useState([]); // Marketing plans
 
     // UI Modals & Inputs
     const [modals, setModals] = useState({ sales: false, adminPlan: false, editTask: false, editTrayTask: false, newTrayTask: false, bonuses: false, salaryDetails: false, historyEntry: false, activityHistory: null });
@@ -155,6 +186,18 @@ export default function App() {
     // History Data Entry (Aluevetäjä)
     const [historyEntry, setHistoryEntry] = useState({ month: new Date().toISOString().slice(0, 7), hours: "", target: "" });
     
+    
+    // Marketing Plans State
+    const [marketingModal, setMarketingModal] = useState(false);
+    const [editingMarketingPlan, setEditingMarketingPlan] = useState({
+        id: '', year: new Date().getFullYear(), quarter: Math.floor((new Date().getMonth() + 3) / 3),
+        targetMo1: '', targetMo2: '', targetMo3: '',
+        budgetPrint: '', budgetDigital: '', budgetEdustus: '', budgetOther: '',
+        evaluation: '',
+        selectedTasks: [] // { id, trayTaskId, type: 'pinned' | 'week', targetWeekNum: X }
+    });
+    const [marketingTaskDraft, setMarketingTaskDraft] = useState({ trayTaskId: '', type: 'pinned', targetWeekNum: '' });
+
     // Task Editing States
     const [editingTaskIdx, setEditingTaskIdx] = useState(null);
     const [editingTaskText, setEditingTaskText] = useState("");
@@ -168,6 +211,7 @@ export default function App() {
 
     const isAdmin = authSession?.role === 'admin' || authSession?.role === 'superadmin';
     const isSuperAdmin = authSession?.role === 'superadmin';
+    const activeRegions = Array.isArray(publicData.regions) && publicData.regions.length > 0 ? publicData.regions : FALLBACK_REGIONS;
 
     // Unified Tray Computation
     const masterTray = Array.isArray(publicData.masterTray) ? publicData.masterTray : DEFAULT_TRAY_TASKS;
@@ -254,6 +298,13 @@ export default function App() {
             if (docSnap.exists()) setPublicData(docSnap.data());
         }, (err) => console.error("Global data snap error:", err));
 
+        // Fetch Marketing Plans
+        const marketingRef = collection(db, 'artifacts', appId, 'public', 'data', 'marketing_plans');
+        const unsubMarketing = onSnapshot(marketingRef, (snap) => {
+            const plans = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            setMarketingPlans(plans);
+        }, (err) => console.error("Marketing snap error:", err));
+
         // Fetch All Users Stats for the Region (and Global if superadmin)
         const statsRef = collection(db, 'artifacts', appId, 'public', 'data', 'user_stats');
         const unsubStats = onSnapshot(statsRef, (snap) => {
@@ -284,7 +335,7 @@ export default function App() {
             }
         }, (err) => console.error("Private snap error:", err));
 
-        return () => { unsubTools(); unsubStats(); unsubPriv(); };
+        return () => { unsubTools(); unsubStats(); unsubPriv(); unsubMarketing(); };
     }, [authSession, fbUser]);
 
     // Ensure my stats doc exists initially
@@ -359,11 +410,26 @@ export default function App() {
     };
 
     // MY DESKTOP TASKS (Home)
-    const toggleMyTaskCheck = (taskId) => {
+    const toggleMyTaskCheck = (taskId, isMarketingTask = false, taskObj = null) => {
         const todayInfo = getTodayInfo(currentWeekOffset * 7);
         const currentWeekId = `${todayInfo.year}-${todayInfo.weekNum}`;
         const myStat = allUserStats.find(s => s.id === fbUser?.uid) || { logs: [] };
         const updatedLogs = [...(myStat.logs || [])];
+
+        if (isMarketingTask && taskObj) {
+            const mktDoneLog = myStat.marketingTasksDone || [];
+            let newMktDone = [...mktDoneLog];
+            const checkKey = taskObj.type === 'pinned' ? `${taskId}_${currentWeekId}` : taskId;
+            
+            if (newMktDone.includes(checkKey)) {
+                newMktDone = newMktDone.filter(k => k !== checkKey);
+            } else {
+                newMktDone.push(checkKey);
+                updatedLogs.push({ id: generateId(), timestamp: Date.now(), type: 'task_done', taskText: taskObj.text });
+            }
+            syncMyStats({ logs: updatedLogs, marketingTasksDone: newMktDone });
+            return;
+        }
 
         const updatedTasks = myTasks.map(t => {
             if (t.id !== taskId) return t;
@@ -758,7 +824,10 @@ export default function App() {
                     <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#9b2c2c] to-[#2f855a]"></div>
                     <div className="flex justify-between items-center mb-6 mt-4">
                         <h1 className="text-3xl font-black text-stone-900 tracking-tighter">Famula</h1>
-                        <button onClick={handleLogout} className="text-stone-400 hover:text-stone-700 font-bold text-xs flex items-center"><LogOut size={14} className="mr-1"/> Ulos</button>
+                        <div className="flex gap-4">
+                            <button onClick={() => setCurrentView('simulator_login')} className="text-stone-400 hover:text-[#2f855a] transition-colors"><Home size={20}/></button>
+                            <button onClick={handleLogout} className="text-stone-400 hover:text-[#9b2c2c] transition-colors"><LogOut size={20}/></button>
+                        </div>
                     </div>
                     
                     {isAlreadyApplied ? (
@@ -766,7 +835,7 @@ export default function App() {
                             <Clock className="w-16 h-16 text-stone-400 mx-auto mb-4" />
                             <h2 className="text-xl font-bold text-stone-800 mb-2">Odottaa Hyväksyntää</h2>
                             <p className="text-stone-500 text-sm leading-relaxed">
-                                Hakemuksesi alueelle <b>{REGIONS.find(r=>r.id===authSession?.regionId)?.name}</b> on lähetetty! 
+                                Hakemuksesi alueelle <b>{activeRegions.find(r=>r.id===authSession?.regionId)?.name}</b> on lähetetty! 
                                 Pääset sisään työpöydälle heti kun ohjaaja on kuitannut roolisi aktiiviseksi.
                             </p>
                             <button onClick={()=>window.location.reload()} className="mt-8 text-[#9b2c2c] font-bold text-sm underline">Päivitä sivu</button>
@@ -783,7 +852,7 @@ export default function App() {
                                     <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Mille alueelle haet?</label>
                                     <select name="regionSelect" required className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#2f855a]">
                                         <option value="">-- Valitse alueasiakkuus --</option>
-                                        {REGIONS.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                        {activeRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                     </select>
                                 </div>
                                 <div>
@@ -880,7 +949,7 @@ export default function App() {
                                         <div key={u.id} className="bg-[#fdf2f2] border border-[#fde8e8] rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                             <div>
                                                 <div className="font-bold text-stone-800 flex items-center gap-2">{u.name} <span className="px-2 py-0.5 rounded-full bg-white text-[#9b2c2c] text-[10px] border border-[#fde8e8]">{u.requestedRole || 'myyja'}</span></div>
-                                                <div className="text-xs text-stone-500 mt-1">{u.email} • {REGIONS.find(r=>r.id===u.regionId)?.name}</div>
+                                                <div className="text-xs text-stone-500 mt-1">{u.email} • {activeRegions.find(r=>r.id===u.regionId)?.name}</div>
                                             </div>
                                             <div className="flex gap-2 w-full sm:w-auto">
                                                 <button onClick={()=>handleDelete(u.id)} className="flex-1 bg-white border border-[#fde8e8] text-[#9b2c2c] py-2 px-4 rounded-xl text-xs font-bold hover:bg-[#fde8e8] transition">Hylkää</button>
@@ -892,6 +961,33 @@ export default function App() {
                             </div>
                         )}
                         
+                        {isSuperAdmin && (
+                            <div className="mb-8 bg-stone-900 border border-stone-800 rounded-3xl p-5 shadow-sm mt-6">
+                                <h3 className="text-xs font-black uppercase text-[#facc15] tracking-widest mb-3">Hallitse Alueita (Superadmin)</h3>
+                                <div className="space-y-2">
+                                    {activeRegions.map(r => (
+                                        <div key={r.id} className="flex justify-between items-center bg-stone-800 p-2.5 px-3 rounded-xl border border-stone-700">
+                                            <span className="text-white text-sm font-bold">{r.name}</span>
+                                            <span className="text-[10px] text-stone-500 uppercase tracking-widest bg-stone-900 px-2 py-1 rounded-md">{r.id}</span>
+                                        </div>
+                                    ))}
+                                    <div className="flex flex-col sm:flex-row gap-2 mt-4 pt-4 border-t border-stone-800">
+                                        <input type="text" id="newRegionNameInput" placeholder="Uuden alueen nimi..." className="flex-1 bg-stone-800 text-white rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#facc15] border border-stone-700 placeholder-stone-500"/>
+                                        <button onClick={async () => {
+                                            const input = document.getElementById('newRegionNameInput');
+                                            const name = input.value.trim();
+                                            if (!name) return;
+                                            const newId = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+                                            const newRegions = [...activeRegions, { id: newId, name }];
+                                            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'globalData', 'main'), { regions: newRegions }, { merge: true });
+                                            input.value = "";
+                                            showToast("Uusi alue lisätty!");
+                                        }} className="bg-[#2f855a] text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-[#22543d] transition shadow-sm whitespace-nowrap">Lisää alue</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
                          <div>
                             <h3 className="text-xs font-black uppercase text-stone-500 tracking-widest mb-3 px-1 mt-6">Aktiiviset työntekijät ({activeUsers.length})</h3>
                             <div className="space-y-3">
@@ -899,12 +995,12 @@ export default function App() {
                                     <div key={u.id} className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                         <div>
                                             <div className="font-bold text-stone-800 flex items-center gap-2">{u.name} <span className="px-2 py-0.5 rounded-full bg-stone-100 text-stone-500 text-[10px] border border-stone-200">{u.role}</span></div>
-                                            <div className="text-xs text-stone-500 mt-1">{u.email} • {REGIONS.find(r=>r.id===u.regionId)?.name}</div>
+                                            <div className="text-xs text-stone-500 mt-1">{u.email} • {activeRegions.find(r=>r.id===u.regionId)?.name}</div>
                                         </div>
                                         {isSuperAdmin && (
                                             <div className="flex gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
                                                 <select value={u.regionId} onChange={e=>handleAssignRegion(u.id, e.target.value)} className="bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 text-[10px] font-bold text-stone-700 outline-none w-full sm:w-auto">
-                                                    {REGIONS.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                                    {activeRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                                 </select>
                                                 <select value={u.role} onChange={e=>handleAssignRole(u.id, e.target.value)} className="bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 text-[10px] font-bold text-stone-700 outline-none w-full sm:w-auto">
                                                     <option value="myyja">Myyjä</option>
@@ -966,7 +1062,7 @@ export default function App() {
                     </div>
 
                     {/* 2. Asiakastyytyväisyyskysely */}
-                    <div onClick={() => {setSurveyState(prev=>({...prev, step: 'login', company: REGIONS.find(r=>r.id===authSession.regionId)?.name || 'Famula', worker: authSession.name})); setCurrentView('survey');}} className="block group relative cursor-pointer">
+                    <div onClick={() => {setSurveyState(prev=>({...prev, step: 'login', company: activeRegions.find(r=>r.id===authSession.regionId)?.name || 'Famula', worker: authSession.name})); setCurrentView('survey');}} className="block group relative cursor-pointer">
                         <div className="absolute inset-0 bg-[#22543d] rounded-2xl transform translate-y-2 opacity-10 blur transition duration-300 group-hover:translate-y-3 group-hover:opacity-20"></div>
                         <div className="relative bg-white rounded-2xl p-5 border-l-[6px] border-[#2f855a] shadow-sm transition transform group-hover:-translate-y-1 active:scale-[0.98]">
                             <div className="flex justify-between items-center">
@@ -991,18 +1087,21 @@ export default function App() {
                         </div>
                     </div>
 
-                    {/* 4. Oma tarjotin */}
-                    <div onClick={() => { setCurrentView('manager'); setCurrentTab('tools'); }} className="block group relative cursor-pointer">
-                        <div className="absolute inset-0 bg-stone-900 rounded-2xl transform translate-y-2 opacity-10 blur transition duration-300 group-hover:translate-y-3 group-hover:opacity-20"></div>
-                        <div className="relative bg-white rounded-2xl p-5 border-l-[6px] border-stone-800 shadow-sm transition transform group-hover:-translate-y-1 active:scale-[0.98]">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <h3 className="text-lg font-bold text-stone-900 leading-tight">Oma tarjotin</h3>
+                    {/* 4. Markkinointisuunnitelmat */}
+                    {isAdmin && (
+                        <div onClick={() => { setCurrentView('manager'); setCurrentTab('marketing_plans'); }} className="block group relative cursor-pointer">
+                            <div className="absolute inset-0 bg-stone-900 rounded-2xl transform translate-y-2 opacity-10 blur transition duration-300 group-hover:translate-y-3 group-hover:opacity-20"></div>
+                            <div className="relative bg-white rounded-2xl p-5 border-l-[6px] border-stone-800 shadow-sm transition transform group-hover:-translate-y-1 active:scale-[0.98]">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-stone-900 leading-tight">Markkinointisuunnitelmat</h3>
+                                        <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest mt-1">Kvartaalisuunnittelu</p>
+                                    </div>
+                                    <div className="bg-stone-100 p-3 rounded-full text-stone-700"><Briefcase className="h-5 w-5" /></div>
                                 </div>
-                                <div className="bg-stone-100 p-3 rounded-full text-stone-700"><Briefcase className="h-5 w-5" /></div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* 5. Käyttäjähallinta (Only show to Admins) */}
                     {isAdmin && (
@@ -1022,6 +1121,219 @@ export default function App() {
             </div>
         </div>
     );
+
+    
+    const saveMarketingPlan = async () => {
+        if (!isAdmin) return;
+        const planId = editingMarketingPlan.id || `${authSession.regionId}_Q${editingMarketingPlan.quarter}_${editingMarketingPlan.year}`;
+        const planData = {
+            ...editingMarketingPlan,
+            regionId: authSession.regionId,
+            timestamp: Date.now()
+        };
+        
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_plans', planId), planData, { merge: true });
+        
+        // Push tasks automatically to Tray?
+        if (editingMarketingPlan.selectedTasks.length > 0) {
+            // we will mutate masterTray or just the plan itself handles the knowledge.
+            // For simplicity, we just save them inside the plan. The global tray needs them to be visible?
+            // Actually, "Kun tallennetaan, kaikki valitut Toimet injektoidaan automaattisesti Myyjien / Kaikkien tarjottimelle" - wait, the user said:
+            // "Tallennus valittuun alueeseen... Ohjelma listaa kaikki Tarjottimen asiat...".
+            // Since it's too complex to push target tasks dynamically to everyone here, let's just save the plan. We can apply it later or the user manages tasks via the tool.
+            // Let's just save the plan first.
+        }
+        
+        setMarketingModal(false);
+        showToast("Markkinointisuunnitelma tallennettu!");
+    };
+
+    const renderMarketingPlans = () => {
+        const regionPlans = marketingPlans.filter(p => p.regionId === authSession.regionId).sort((a,b) => b.year - a.year || b.quarter - a.quarter);
+        
+        return (
+            <div className="animate-fade-in space-y-6">
+                <header className="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 className="text-2xl font-black text-stone-900 tracking-tight">Markkinointisuunnitelmat</h1>
+                        <p className="text-stone-500 text-xs font-bold uppercase tracking-widest mt-1">Kvartaalitasoinen ohjaus</p>
+                    </div>
+                </header>
+
+                <button onClick={() => {
+                    setEditingMarketingPlan({
+                        id: '', year: new Date().getFullYear(), quarter: Math.floor((new Date().getMonth() + 3) / 3),
+                        targetMo1: '', targetMo2: '', targetMo3: '',
+                        budgetPrint: '', budgetDigital: '', budgetEdustus: '', budgetOther: '',
+                        evaluation: '', selectedTasks: []
+                    });
+                    setMarketingModal(true);
+                }} className="w-full bg-[#fde8e8] border border-[#fca5a5] text-[#9b2c2c] rounded-2xl p-4 flex justify-center items-center gap-2 font-black shadow-sm hover:bg-[#fca5a5] transition">
+                    <Plus size={20} /> Uusi Kvartaalisuunnitelma
+                </button>
+
+                <div className="space-y-4">
+                    {regionPlans.length === 0 ? (
+                        <div className="text-center p-8 bg-white rounded-3xl border border-stone-200">
+                            <p className="text-stone-500 font-bold text-sm">Ei tehtyjä suunnitelmia tälle alueelle.</p>
+                        </div>
+                    ) : regionPlans.map(plan => (
+                        <div key={plan.id} className="bg-white border border-stone-200 rounded-3xl p-5 shadow-sm">
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 className="font-black text-lg text-stone-900">Q{plan.quarter} / {plan.year}</h3>
+                                    <p className="text-[10px] text-stone-500 uppercase tracking-widest font-bold">Budjetti yht: {Number(plan.budgetPrint||0) + Number(plan.budgetDigital||0) + Number(plan.budgetEdustus||0) + Number(plan.budgetOther||0)} €</p>
+                                </div>
+                                <button onClick={() => { setEditingMarketingPlan(plan); setMarketingModal(true); }} className="p-2 bg-stone-100 rounded-xl hover:bg-stone-200 text-stone-600 transition"><Pen size={16}/></button>
+                            </div>
+                            
+                            <div className="bg-stone-50 rounded-2xl p-3 mb-4 border border-stone-100">
+                                <h4 className="text-[10px] uppercase text-stone-500 font-black mb-2">Tavoite vs Toteuma</h4>
+                                <div className="space-y-1">
+                                    <div className="flex justify-between items-center bg-white p-2 rounded-xl border border-stone-200">
+                                        <span className="text-[10px] font-bold text-stone-500">KK 1</span>
+                                        <span className="text-sm font-bold text-stone-800">{plan.targetMo1 || 0}h <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedMo1 || 0}h</span></span>
+                                    </div>
+                                    <div className="flex justify-between items-center bg-white p-2 rounded-xl border border-stone-200">
+                                        <span className="text-[10px] font-bold text-stone-500">KK 2</span>
+                                        <span className="text-sm font-bold text-stone-800">{plan.targetMo2 || 0}h <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedMo2 || 0}h</span></span>
+                                    </div>
+                                    <div className="flex justify-between items-center bg-white p-2 rounded-xl border border-stone-200">
+                                        <span className="text-[10px] font-bold text-stone-500">KK 3</span>
+                                        <span className="text-sm font-bold text-stone-800">{plan.targetMo3 || 0}h <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedMo3 || 0}h</span></span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {plan.evaluation && (
+                                <div className="bg-[#f0fdf4] border border-[#dcfce7] rounded-xl p-3">
+                                    <h4 className="text-[10px] uppercase text-[#2f855a] font-black mb-1">Edellisen Q Arvio</h4>
+                                    <p className="text-xs text-stone-700 whitespace-pre-wrap">{plan.evaluation}</p>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+                
+                {marketingModal && (
+                    <div className="fixed inset-0 z-[60] flex items-end justify-center">
+                        <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setMarketingModal(false)}></div>
+                        <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20 h-[90vh] overflow-y-auto">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-black text-stone-900">{editingMarketingPlan.id ? 'Muokkaa Suunnitelmaa' : 'Uusi Suunnitelma'}</h3>
+                                <button onClick={() => setMarketingModal(false)} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
+                            </div>
+                            
+                            <div className="space-y-4 mb-6">
+                                <div className="flex gap-4">
+                                    <div className="flex-1">
+                                        <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Vuosi</label>
+                                        <input type="number" value={editingMarketingPlan.year} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, year: e.target.value})} className="w-full p-3 bg-white border border-stone-200 rounded-xl font-bold text-stone-800 outline-none" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Kvartaali (1-4)</label>
+                                        <input type="number" min="1" max="4" value={editingMarketingPlan.quarter} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, quarter: e.target.value})} className="w-full p-3 bg-white border border-stone-200 rounded-xl font-bold text-stone-800 outline-none" />
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-white p-4 rounded-2xl border border-stone-200">
+                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-2">Edellisen kvartaalin arviointi</label>
+                                    <textarea value={editingMarketingPlan.evaluation} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, evaluation: e.target.value})} placeholder="Miten edellinen kvartaali meni? Mikä toimi, mikä ei?" className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm font-medium h-24 outline-none"></textarea>
+                                </div>
+
+                                <div className="bg-white p-4 rounded-2xl border border-stone-200">
+                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-3">Tavoite vs Toteuma (Tunnit)</label>
+                                    <div className="flex flex-col gap-3">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-bold text-stone-400 w-6">Kk1</span>
+                                            <input type="number" placeholder="Tavoite (h)" value={editingMarketingPlan.targetMo1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetMo1: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold outline-none" />
+                                            <input type="number" placeholder="Toteuma (h)" value={editingMarketingPlan.realizedMo1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo1: e.target.value})} className="w-full p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-sm font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-bold text-stone-400 w-6">Kk2</span>
+                                            <input type="number" placeholder="Tavoite (h)" value={editingMarketingPlan.targetMo2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetMo2: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold outline-none" />
+                                            <input type="number" placeholder="Toteuma (h)" value={editingMarketingPlan.realizedMo2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo2: e.target.value})} className="w-full p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-sm font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-bold text-stone-400 w-6">Kk3</span>
+                                            <input type="number" placeholder="Tavoite (h)" value={editingMarketingPlan.targetMo3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetMo3: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold outline-none" />
+                                            <input type="number" placeholder="Toteuma (h)" value={editingMarketingPlan.realizedMo3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo3: e.target.value})} className="w-full p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-sm font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-4 rounded-2xl border border-stone-200 space-y-3">
+                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Markkinointibudjetti (€)</label>
+                                    <div className="flex items-center gap-2"><span className="w-24 text-xs font-bold text-stone-600">Printti:</span><input type="number" value={editingMarketingPlan.budgetPrint} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetPrint: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
+                                    <div className="flex items-center gap-2"><span className="w-24 text-xs font-bold text-stone-600">Digitaali:</span><input type="number" value={editingMarketingPlan.budgetDigital} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetDigital: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
+                                    <div className="flex items-center gap-2"><span className="w-24 text-xs font-bold text-stone-600">Edustus:</span><input type="number" value={editingMarketingPlan.budgetEdustus} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetEdustus: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
+                                    <div className="flex items-center gap-2"><span className="w-24 text-xs font-bold text-stone-600">Muu:</span><input type="number" value={editingMarketingPlan.budgetOther} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetOther: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
+                                </div>
+
+                                <div className="bg-[#f0fdf4] p-4 rounded-2xl border border-[#dcfce7]">
+                                    <label className="block text-xs font-bold text-[#2f855a] uppercase mb-2">Markkinointitoimet (Tarjottimelta)</label>
+                                    <p className="text-[10px] text-[#22543d] mb-4 font-medium italic">Tänne lisätyt työt ohjautuvat automaattisesti aluevetäjän omalle Myynnin työpöydälle ja ovat kuitattavissa siellä.</p>
+                                    
+                                    {editingMarketingPlan.selectedTasks?.length > 0 && (
+                                        <div className="space-y-2 mb-4">
+                                            {editingMarketingPlan.selectedTasks.map(st => {
+                                                const taskInfo = unifiedTray.find(t => t.id === st.trayTaskId) || { text: 'Tuntematon tehtävä' };
+                                                return (
+                                                    <div key={st.id} className="flex justify-between items-center bg-white p-2 rounded-xl border border-[#dcfce7] shadow-sm">
+                                                        <div>
+                                                            <p className="text-xs font-bold text-stone-800">{taskInfo.text}</p>
+                                                            <p className="text-[10px] text-stone-500 uppercase tracking-widest mt-0.5">{st.type === 'pinned' ? 'Pysyvä kiinnitys (koko Q)' : `Vko: ${st.targetWeekNum}`}</p>
+                                                        </div>
+                                                        <button onClick={() => setEditingMarketingPlan(prev => ({...prev, selectedTasks: prev.selectedTasks.filter(tsk => tsk.id !== st.id)}))} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"><Trash2 size={14}/></button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
+                                    <div className="bg-white rounded-xl p-3 border border-[#dcfce7]">
+                                        <select value={marketingTaskDraft.trayTaskId} onChange={e => setMarketingTaskDraft({...marketingTaskDraft, trayTaskId: e.target.value})} className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold outline-none mb-2 text-stone-700">
+                                            <option value="">Valitse toimenpide tarjottimelta...</option>
+                                            {unifiedTray.map(t => <option key={t.id} value={t.id}>{t.text}</option>)}
+                                        </select>
+                                        
+                                        <div className="flex gap-2 mb-2">
+                                            <button onClick={() => setMarketingTaskDraft({...marketingTaskDraft, type: 'pinned'})} className={`flex-1 p-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-colors ${marketingTaskDraft.type === 'pinned' ? 'bg-[#2f855a] text-white border-[#2f855a]' : 'bg-stone-50 text-stone-500 border-stone-200 hover:bg-stone-100'}`}>Pysyvä kiinnitys</button>
+                                            <button onClick={() => setMarketingTaskDraft({...marketingTaskDraft, type: 'week'})} className={`flex-1 p-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-colors ${marketingTaskDraft.type === 'week' ? 'bg-[#2f855a] text-white border-[#2f855a]' : 'bg-stone-50 text-stone-500 border-stone-200 hover:bg-stone-100'}`}>Tietty viikko</button>
+                                        </div>
+
+                                        {marketingTaskDraft.type === 'week' && (
+                                            <select value={marketingTaskDraft.targetWeekNum} onChange={e => setMarketingTaskDraft({...marketingTaskDraft, targetWeekNum: e.target.value})} className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold outline-none mb-2 text-stone-700">
+                                                <option value="">Valitse viikko...</option>
+                                                {getWeeksForQuarter(Number(editingMarketingPlan.year), Number(editingMarketingPlan.quarter)).map(w => (
+                                                    <option key={w.weekNum} value={w.weekNum}>{w.label}</option>
+                                                ))}
+                                            </select>
+                                        )}
+
+                                        <button onClick={() => {
+                                            if (!marketingTaskDraft.trayTaskId) return showToast("Valitse tehtävä tarjottimelta!");
+                                            if (marketingTaskDraft.type === 'week' && !marketingTaskDraft.targetWeekNum) return showToast("Valitse viikko!");
+                                            const newTaskObj = {
+                                                id: 'mkt-' + Math.random().toString(36).substr(2, 9),
+                                                trayTaskId: marketingTaskDraft.trayTaskId,
+                                                type: marketingTaskDraft.type,
+                                                targetWeekNum: marketingTaskDraft.targetWeekNum
+                                            };
+                                            setEditingMarketingPlan(prev => ({...prev, selectedTasks: [...(prev.selectedTasks || []), newTaskObj]}));
+                                            setMarketingTaskDraft({ trayTaskId: '', type: 'pinned', targetWeekNum: '' });
+                                        }} className="w-full bg-[#2f855a] text-white text-xs font-bold py-2.5 rounded-lg shadow-sm hover:bg-[#22543d] transition-colors">Lisää toimi</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button onClick={saveMarketingPlan} className="w-full bg-[#9b2c2c] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform mb-8">Tallenna Suunnitelma</button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     const renderManager = () => {
         const todayInfo = getTodayInfo(currentWeekOffset * 7);
@@ -1052,12 +1364,52 @@ export default function App() {
         });
 
         // Calculate Reports
-        let totalRegionHours = 0;
-        let totalRegionCustomers = 0;
-        allUserStats.forEach(s => {
-            totalRegionHours += Number(s.hours || 0);
-            totalRegionCustomers += Number(s.customers || 0);
-        });
+        const getPreviousMonthRealizedTotal = (plans, targetRegionId = null) => {
+            const d = new Date();
+            d.setMonth(d.getMonth() - 1);
+            const prevYear = d.getFullYear();
+            const prevQuarter = Math.floor(d.getMonth() / 3) + 1;
+            const monthKey = `realizedMo${(d.getMonth() % 3) + 1}`;
+            
+            let total = 0;
+            (plans || []).filter(p => Number(p.year) === prevYear && Number(p.quarter) === prevQuarter && (!targetRegionId || p.regionId === targetRegionId)).forEach(p => {
+                total += Number(p[monthKey] || 0);
+            });
+            return total;
+        };
+
+        const getCurrentMonthSalesHours = (statsArray, targetRegionId = null) => {
+            let salesHours = 0;
+            const currMonth = new Date().getMonth();
+            const currYear = new Date().getFullYear();
+            
+            (statsArray || []).filter(s => !targetRegionId || s.regionId === targetRegionId).forEach(s => {
+                (s.logs || []).filter(log => log.type === 'survey').forEach(log => {
+                     const d = new Date(log.timestamp);
+                     if (d.getMonth() === currMonth && d.getFullYear() === currYear) {
+                         salesHours += Number(log.hours || 0);
+                     }
+                });
+            });
+            return salesHours;
+        };
+
+        const getPreviousMonthTarget = (plans, targetRegionId = null) => {
+            const d = new Date();
+            d.setMonth(d.getMonth() - 1);
+            const prevYear = d.getFullYear();
+            const prevQuarter = Math.floor(d.getMonth() / 3) + 1;
+            const monthKey = `targetMo${(d.getMonth() % 3) + 1}`;
+            
+            let total = 0;
+            (plans || []).filter(p => Number(p.year) === prevYear && Number(p.quarter) === prevQuarter && (!targetRegionId || p.regionId === targetRegionId)).forEach(p => {
+                total += Number(p[monthKey] || 0);
+            });
+            return total || 100; // default to avoid zero if no target
+        };
+
+        let totalRegionHours = getPreviousMonthRealizedTotal(marketingPlans, authSession.regionId);
+        let totalRegionCustomers = getCurrentMonthSalesHours(allUserStats, authSession.regionId);
 
         const myStat = (Array.isArray(allUserStats) ? allUserStats : []).find(s => s.id === fbUser?.uid) || { hours: 0, customers: 0, myTasks: [], logs: [] };
         const myHours = myStat.hours || 0;
@@ -1067,10 +1419,15 @@ export default function App() {
             <div className="min-h-screen bg-[#e7e5e4] font-sans pb-[90px] relative">
                 <div className="max-w-[480px] mx-auto bg-[#f5f5f4] min-h-screen shadow-lg relative">
                     <div className="bg-white px-4 py-3 flex justify-between items-center border-b border-stone-200 shadow-sm relative z-20">
-                        <button onClick={() => setCurrentView('portal')} className="text-stone-500 hover:text-[#9b2c2c] flex items-center text-sm font-bold transition-colors"><ChevronLeft className="h-4 w-4 mr-1"/> Portaaliin</button>
+                        <div className="flex gap-4">
+                            {currentTab !== 'dashboard' && (
+                                <button onClick={() => setCurrentTab('dashboard')} className="text-stone-500 hover:text-[#9b2c2c] flex items-center text-[11px] font-bold transition-colors uppercase"><ChevronLeft className="h-4 w-4 mr-0.5"/> Edellinen</button>
+                            )}
+                            <button onClick={() => setCurrentView('simulator_login')} className="text-stone-500 hover:text-[#2f855a] flex items-center text-[11px] font-bold transition-colors uppercase"><Home className="h-4 w-4 mr-0.5"/> Etusivu</button>
+                        </div>
                         <div className="flex items-center gap-2">
                             <button onClick={() => setShowHelpModal(true)} className="text-stone-400 hover:text-[#9b2c2c] transition-colors"><HelpCircle size={18} /></button>
-                            <span className="text-xs bg-stone-100 text-stone-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider">{REGIONS.find(r=>r.id===authSession?.regionId)?.name || 'Famula'}</span>
+                            <span className="text-xs bg-stone-100 text-stone-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider">{activeRegions.find(r=>r.id===authSession?.regionId)?.name || 'Famula'}</span>
                         </div>
                     </div>
 
@@ -1123,7 +1480,7 @@ export default function App() {
                                     </div>
                                     <CalendarCheck className="absolute -right-6 -bottom-6 w-32 h-32 text-white opacity-5 pointer-events-none" />
                                 </div>
-
+                                
                                 {/* TOTAL EARNINGS */}
                                 {!isAdmin && (
                                 <div className="bg-gradient-to-tr from-stone-900 to-stone-800 rounded-[2rem] p-5 mb-5 flex justify-between items-start shadow-lg border border-stone-700 mx-1 relative overflow-hidden group">
@@ -1172,7 +1529,45 @@ export default function App() {
                                     <div className="mb-2 min-h-[100px] px-2 py-2 space-y-3">
                                         {(() => {
                                             const currentWeekId = `${todayInfo.year}-${todayInfo.weekNum}`;
-                                            const visibleTasks = myTasks.filter(t => t.type === 'pinned' || t.targetWeekId === currentWeekId || (!t.type && currentWeekOffset === 0)); // Fallback items show up on current week
+                                            const isPastOrCurrentWeek = (targetId, currentId) => {
+                                                if (!targetId || !currentId) return true;
+                                                const [tY, tW] = targetId.split('-').map(Number);
+                                                const [cY, cW] = currentId.split('-').map(Number);
+                                                return tY < cY || (tY === cY && tW <= cW);
+                                            };
+                                            
+                                            let augmentedTasks = [...myTasks];
+                                            if (isAdmin) {
+                                                const activePlan = marketingPlans.find(p => p.regionId === authSession.regionId && p.year === todayInfo.year && p.quarter === Math.floor(todayInfo.monthIdx/3)+1);
+                                                const myStat = allUserStats.find(s => s.id === fbUser?.uid) || {};
+                                                const marketingTasksDone = myStat.marketingTasksDone || [];
+                                                
+                                                if (activePlan && activePlan.selectedTasks) {
+                                                    activePlan.selectedTasks.forEach(st => {
+                                                        const taskInfo = unifiedTray.find(t => t.id === st.trayTaskId);
+                                                        if (taskInfo) {
+                                                            const checkKeyPrefix = st.type === 'pinned' ? `${st.id}_` : st.id;
+                                                            augmentedTasks.push({
+                                                                id: st.id,
+                                                                text: taskInfo.text,
+                                                                type: st.type,
+                                                                targetWeekId: st.type === 'week' ? `${activePlan.year}-${st.targetWeekNum}` : undefined,
+                                                                isMarketingTask: true,
+                                                                rawInfo: st,
+                                                                done: st.type !== 'pinned' ? marketingTasksDone.includes(st.id) : false,
+                                                                doneWeeks: st.type === 'pinned' ? marketingTasksDone.filter(d => d.startsWith(`${st.id}_`)).map(d => d.split('_')[1]) : []
+                                                            });
+                                                        }
+                                                    });
+                                                }
+                                            }
+
+                                            const visibleTasks = augmentedTasks.filter(t => 
+                                                t.type === 'pinned' || 
+                                                t.targetWeekId === currentWeekId || 
+                                                (!t.done && currentWeekOffset === 0 && isPastOrCurrentWeek(t.targetWeekId, currentWeekId)) ||
+                                                (!t.type && currentWeekOffset === 0)
+                                            );
 
                                             if (visibleTasks.length === 0) {
                                                 return (
@@ -1188,17 +1583,25 @@ export default function App() {
                                             return visibleTasks.map((t) => {
                                                 const isDone = t.type === 'pinned' ? (t.doneWeeks || []).includes(currentWeekId) : t.done;
                                                 return (
-                                                    <div key={t.id} className="flex items-center p-4 bg-white rounded-2xl border border-stone-200 shadow-sm group relative">
-                                                        <div className={`w-6 h-6 border-2 rounded-lg flex items-center justify-center mr-4 transition-colors shrink-0 cursor-pointer ${isDone ? 'bg-[#2f855a] border-[#2f855a]' : 'border-stone-300 bg-stone-50 hover:border-[#2f855a]/50'}`} onClick={() => toggleMyTaskCheck(t.id)}>
+                                                    <div key={t.id} className={`flex items-center p-4 bg-white rounded-2xl border ${t.isMarketingTask ? 'border-[#dcfce7]' : 'border-stone-200'} shadow-sm group relative`}>
+                                                        <div className={`w-6 h-6 border-2 rounded-lg flex items-center justify-center mr-4 transition-colors shrink-0 cursor-pointer ${isDone ? 'bg-[#2f855a] border-[#2f855a]' : 'border-stone-300 bg-stone-50 hover:border-[#2f855a]/50'}`} onClick={() => toggleMyTaskCheck(t.id, t.isMarketingTask, t)}>
                                                             {isDone && <Check className="text-white h-3 w-3" />}
                                                         </div>
                                                         <span className={`text-sm font-medium flex-1 leading-snug flex items-center gap-2 ${isDone ? 'line-through text-stone-400' : 'text-stone-800'}`}>
                                                             {t.text}
+                                                            {t.isMarketingTask && <Shield className="w-3.5 h-3.5 text-[#2f855a] shrink-0" />}
                                                             {t.type === 'pinned' && <Pin className={`w-3.5 h-3.5 ${isDone ? 'text-stone-300' : 'text-[#9b2c2c]'} shrink-0`} />}
                                                         </span>
                                                         <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity ml-2 bg-white">
-                                                            <button onClick={()=>{setEditingTaskIdx(t.id); setEditingTaskText(t.text); setModals(prev=>({...prev, editTask: true}))}} className="p-2 text-stone-400 hover:text-blue-600 bg-stone-50 rounded-lg"><Pen size={14}/></button>
-                                                            <button onClick={()=>deleteMyTask(t.id)} className="p-2 text-stone-400 hover:text-red-600 bg-stone-50 rounded-lg"><Trash2 size={14}/></button>
+                                                            {!t.isMarketingTask && (
+                                                                <>
+                                                                    <button onClick={()=>{setEditingTaskIdx(t.id); setEditingTaskText(t.text); setModals(prev=>({...prev, editTask: true}))}} className="p-2 text-stone-400 hover:text-blue-600 bg-stone-50 rounded-lg"><Pen size={14}/></button>
+                                                                    <button onClick={()=>deleteMyTask(t.id)} className="p-2 text-stone-400 hover:text-red-600 bg-stone-50 rounded-lg"><Trash2 size={14}/></button>
+                                                                </>
+                                                            )}
+                                                            {t.isMarketingTask && (
+                                                                <span className="text-[10px] uppercase font-bold text-[#2f855a]">Alue</span>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 );
@@ -1235,24 +1638,27 @@ export default function App() {
                                     let globalNpsSum = 0;
                                     let globalNpsCount = 0;
 
-                                    const regionStats = REGIONS.map(r => ({ ...r, hours: 0, customers: 0, npsSum: 0, npsCount: 0 }));
+                                    const regionStats = activeRegions.map(r => ({ ...r, hours: 0, customers: 0, npsSum: 0, npsCount: 0 }));
 
                                     (Array.isArray(allGlobalStats) ? allGlobalStats : []).forEach(stat => {
-                                        const h = Number(stat.hours || 0);
-                                        const c = Number(stat.customers || 0);
-                                        globalHours += h;
-                                        globalCustomers += c;
                                         globalNpsSum += Number(stat.npsSum || 0);
                                         globalNpsCount += Number(stat.npsCount || 0);
 
                                         const rIdx = regionStats.findIndex(r => r.id === stat.regionId);
                                         if (rIdx >= 0) {
-                                            regionStats[rIdx].hours += h;
-                                            regionStats[rIdx].customers += c;
                                             regionStats[rIdx].npsSum += Number(stat.npsSum || 0);
                                             regionStats[rIdx].npsCount += Number(stat.npsCount || 0);
                                         }
                                     });
+
+                                    // Populate region Stats hours from realized hours and sales hours
+                                    regionStats.forEach(rs => {
+                                        rs.hours = getPreviousMonthRealizedTotal(marketingPlans, rs.id);
+                                        rs.customers = getCurrentMonthSalesHours(allGlobalStats, rs.id);
+                                    });
+
+                                    globalHours = getPreviousMonthRealizedTotal(marketingPlans, null);
+                                    globalCustomers = getCurrentMonthSalesHours(allGlobalStats, null);
 
                                     const globalNps = globalNpsCount > 0 ? (globalNpsSum / globalNpsCount).toFixed(1) : '-';
                                     const maxHours = Math.max(...regionStats.map(r => r.hours), 1);
@@ -1265,7 +1671,7 @@ export default function App() {
                                                     <h3 className="text-xs font-black text-stone-400 mb-5 uppercase tracking-widest text-center border-b border-stone-800 pb-3">Konsernin Yleiskatsaus</h3>
                                                     <div className="grid grid-cols-2 gap-4 mb-5">
                                                         <div className="text-center">
-                                                            <p className="text-[10px] font-bold text-stone-400 uppercase mb-1 tracking-wider">Kokonais Tunnit</p>
+                                                            <p className="text-[10px] font-bold text-stone-400 uppercase mb-1 tracking-wider">Toteutuneet tunnit (Edellinen Kk)</p>
                                                             <p className="text-4xl font-black text-white">{globalHours}h</p>
                                                         </div>
                                                         <div className="text-center">
@@ -1274,8 +1680,8 @@ export default function App() {
                                                         </div>
                                                     </div>
                                                     <div className="text-center p-4 bg-white/10 rounded-2xl border border-white/10">
-                                                        <p className="text-[10px] font-bold text-stone-400 uppercase mb-1 tracking-wider">Yhteensä Uusia Asiakkaita</p>
-                                                        <p className="text-3xl font-black text-white">{globalCustomers}</p>
+                                                        <p className="text-[10px] font-bold text-stone-400 uppercase mb-1 tracking-wider">Myydyt lisätunnit (Tässä Kk)</p>
+                                                        <p className="text-3xl font-black text-white">{globalCustomers}h</p>
                                                     </div>
                                                 </div>
                                                 <Globe className="absolute -right-6 -bottom-6 w-40 h-40 text-white opacity-5 pointer-events-none" />
@@ -1364,7 +1770,7 @@ export default function App() {
                                             
                                             <div className="flex items-center gap-2 mb-4">
                                                 <span className="h-px bg-stone-300 flex-1"></span>
-                                                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest text-center">Tarkastelussa alue: {REGIONS.find(r=>r.id===authSession.regionId)?.name}</span>
+                                                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest text-center">Tarkastelussa alue: {activeRegions.find(r=>r.id===authSession.regionId)?.name}</span>
                                                 <span className="h-px bg-stone-300 flex-1"></span>
                                             </div>
                                         </div>
@@ -1372,9 +1778,7 @@ export default function App() {
                                 })()}
                                 
                                 {isAdmin && (() => {
-                                    const regionHistory = publicData.regionHistory?.[authSession.regionId] || [];
-                                    const lastMonthEntry = regionHistory.length > 0 ? regionHistory[regionHistory.length - 1] : { hours: 0, target: 100 };
-                                    const targetHours = lastMonthEntry.target || 100;
+                                    const targetHours = getPreviousMonthTarget(marketingPlans, authSession.regionId);
                                     
                                     let fallbackLevel = GROWTH_TEMPLATES[0] || { name: 'Perustus' };
                                     if (targetHours >= 100) fallbackLevel = GROWTH_TEMPLATES[1];
@@ -1382,9 +1786,7 @@ export default function App() {
                                     if (targetHours >= 360) fallbackLevel = GROWTH_TEMPLATES[3] || GROWTH_TEMPLATES[2];
                                     
                                     const lastMatchedLevel = fallbackLevel;
-                                    const currentHours = totalRegionHours;
-                                    const lastMonthHours = lastMonthEntry.hours;
-                                    const pace = currentHours; // Tavoitteet koskevat kuluvaa kuuta
+                                    const pace = totalRegionHours; // Toteutuma koskee edellistä kuuta
                                     const pct = Math.min(100, Math.round((pace / targetHours) * 100));
                                     const isPaceGood = pace >= (targetHours * 0.8); // Simple rule
                                     
@@ -1395,14 +1797,12 @@ export default function App() {
                                                     <h3 className="text-lg font-black text-stone-900">Alueen Kasvu & Tavoite</h3>
                                                     <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-1">Seuraava taso: {lastMatchedLevel.name}</p>
                                                 </div>
-                                                <button onClick={() => setModals(prev => ({...prev, historyEntry: true}))} className="text-[10px] font-bold uppercase tracking-wider text-stone-600 bg-stone-100 px-3 py-2 rounded-xl border border-stone-200 hover:bg-stone-200 transition-colors flex items-center">
-                                                    <Plus className="w-3 h-3 mr-1"/> Syötä Kk Tunnit
-                                                </button>
+                                                
                                             </div>
 
                                             <div className="mb-6">
                                                 <div className="flex justify-between text-sm font-bold mb-2">
-                                                    <span className="text-stone-700">Kuluvan kuun tunnit: <span className="text-lg">{pace}</span>h</span>
+                                                    <span className="text-stone-700">Edellisen kuun tunnit: <span className="text-lg">{pace}</span>h</span>
                                                     <span className="text-[#9b2c2c] bg-[#fdf2f2] px-2 py-0.5 rounded border border-[#fde8e8]">Tavoite: {targetHours}h</span>
                                                 </div>
                                                 <div className="bg-stone-100 h-4 rounded-full overflow-hidden border border-stone-200">
@@ -1809,6 +2209,7 @@ export default function App() {
                             </div>
                         )}
                         {currentTab === 'users' && renderUserProfile()}
+                        {currentTab === 'marketing_plans' && renderMarketingPlans()}
                     </div>
 
                     {/* MODALS */}
@@ -1872,42 +2273,7 @@ export default function App() {
                         </div>
                     )}
 
-                    {modals.historyEntry && (
-                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setModals(prev => ({ ...prev, historyEntry: false }))}></div>
-                            <div className="bg-white w-full max-w-[400px] rounded-[2rem] p-6 shadow-2xl relative z-10">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-lg font-black text-stone-900">Syötä Kuukausitunnit</h3>
-                                    <button onClick={() => setModals(prev => ({ ...prev, historyEntry: false }))} className="w-8 h-8 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center hover:bg-stone-200 transition-colors"><X size={16}/></button>
-                                </div>
-                                <div className="space-y-4 mb-6">
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Kuukausi (Laskutuskausi)</label>
-                                        <input type="month" value={historyEntry.month} onChange={(e) => setHistoryEntry({...historyEntry, month: e.target.value})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#9b2c2c]" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Koko Alueen Tunnit: Mennyt Kk</label>
-                                        <input type="number" placeholder="esim. 90" value={historyEntry.hours} onChange={(e) => {
-                                            const val = e.target.value;
-                                            setHistoryEntry(prev => {
-                                                const numericVal = Number(val);
-                                                let t = 100;
-                                                if (numericVal >= 100) t = 250;
-                                                if (numericVal >= 250) t = 360;
-                                                if (numericVal >= 360) t = 426;
-                                                return { ...prev, hours: val, target: t };
-                                            });
-                                        }} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#9b2c2c] text-2xl mb-2" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Koneen Ehdottama Tavoite tälle Kk</label>
-                                        <input type="number" value={historyEntry.target} onChange={(e) => setHistoryEntry({...historyEntry, target: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-xl outline-none font-black text-[#9b2c2c] text-xl focus:border-[#9b2c2c]" />
-                                    </div>
-                                </div>
-                                <button onClick={() => { saveHistoryEntry(); setModals(prev => ({ ...prev, historyEntry: false })); }} disabled={!historyEntry.hours} className="w-full bg-[#9b2c2c] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform disabled:opacity-50">Tallenna Aikasarjaan</button>
-                            </div>
-                        </div>
-                    )}
+                    
 
                     {modals.activityHistory && (() => {
                         const targetUid = modals.activityHistory;
@@ -2156,7 +2522,7 @@ export default function App() {
                     <div className="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto flex justify-between px-2 py-3 z-40 bg-[#f5f5f4]/95 backdrop-blur-md border-t border-stone-200">
                         <button onClick={() => setCurrentTab('dashboard')} className={`flex flex-col items-center justify-center flex-1 transition-colors ${currentTab==='dashboard'?'text-[#9b2c2c]':'text-stone-400'}`}><Home className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Koti</span></button>
                         <button onClick={() => setCurrentTab('reports')} className={`flex flex-col items-center justify-center flex-1 transition-colors ${currentTab==='reports'?'text-[#9b2c2c]':'text-stone-400'}`}><TrendingUp className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Raportit</span></button>
-                        <button onClick={() => setCurrentTab('tools')} className={`flex flex-col items-center justify-center flex-1 transition-colors ${currentTab==='tools'?'text-[#9b2c2c]':'text-stone-400'}`}><Briefcase className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Työkalu</span></button>
+                        <button onClick={() => setCurrentTab('tools')} className={`flex flex-col items-center justify-center flex-1 transition-colors ${currentTab==='tools'?'text-[#9b2c2c]':'text-stone-400'}`}><Briefcase className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Tarjotin</span></button>
                         <button onClick={() => setCurrentTab('memo')} className={`flex flex-col items-center justify-center flex-1 transition-colors ${currentTab==='memo'?'text-[#9b2c2c]':'text-stone-400'}`}><StickyNote className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Muistio</span></button>
                         <button onClick={() => setCurrentTab('users')} className={`flex flex-col items-center justify-center flex-1 transition-colors ${currentTab==='users'?'text-[#9b2c2c]':'text-stone-400'}`}><User className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Oma Tili</span></button>
                     </div>
@@ -2313,8 +2679,15 @@ export default function App() {
                 {step !== 'login' && step !== 'success' && (
                     <div className="bg-white shadow-sm sticky top-0 z-30 border-b border-stone-200 animate-fade-in">
                         <div className="max-w-md mx-auto px-5 py-4 flex items-center justify-between">
+                            <div className="flex gap-4 text-stone-500">
+                                <button onClick={() => {
+                                    if (step === 'worker') setSurveyState(prev => ({...prev, step: 'customer'}));
+                                    else if (step === 'customer') setSurveyState(prev => ({...prev, step: 'login'}));
+                                }} className="hover:text-[#9b2c2c] transition-colors"><ChevronLeft size={20}/></button>
+                                <button onClick={() => setCurrentView('simulator_login')} className="hover:text-[#2f855a] transition-colors"><Home size={20}/></button>
+                            </div>
                             <div className="flex flex-col"><span className="font-bold text-stone-900 text-sm tracking-wide">{company}</span></div>
-                            <button onClick={()=>setCurrentView('portal')} className="text-stone-400 hover:text-stone-700 transition-colors"><X size={20}/></button>
+                            <button onClick={()=>setCurrentView('portal')} className="text-stone-400 hover:text-[#9b2c2c] transition-colors"><X size={20}/></button>
                         </div>
                     </div>
                 )}
@@ -2323,7 +2696,8 @@ export default function App() {
                     {step === 'login' && (
                         <div className="p-4 flex items-center justify-center min-h-screen bg-[#e7e5e4]">
                             <div className="w-full bg-[#f5f5f4] rounded-[2.5rem] shadow-2xl overflow-hidden border border-stone-200 animate-fade-in relative">
-                                <button onClick={() => setCurrentView('portal')} className="absolute top-5 left-5 text-white/80 hover:text-white p-2 z-20 bg-black/20 rounded-full backdrop-blur-sm"><ChevronLeft size={24} /></button>
+                                <button onClick={() => setCurrentView('portal')} className="absolute top-5 left-5 text-white hover:bg-black/40 p-2 z-20 bg-black/20 rounded-full backdrop-blur-sm transition-colors"><ChevronLeft size={24} /></button>
+                                <button onClick={() => setCurrentView('simulator_login')} className="absolute top-5 right-5 text-white hover:bg-black/40 p-2 z-20 bg-black/20 rounded-full backdrop-blur-sm transition-colors"><Home size={24} /></button>
                                 <div className="bg-gradient-to-br from-[#22543d] to-[#2f855a] p-10 text-white text-center pt-16 relative"><h1 className="text-4xl font-extrabold mb-2">Famula</h1><p className="text-[#dcfce7] font-semibold">Palautekysely</p></div>
                                 <div className="p-8 space-y-6">
                                     <div><label className="block text-sm font-bold text-stone-800 mb-2">Asiakkaan nimikirjaimet</label><input type="text" placeholder="Esim. M.M." value={clientInitials} onChange={e => updateState({clientInitials: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none text-lg font-bold text-stone-800 shadow-sm focus:border-[#2f855a]" /></div>
@@ -2352,7 +2726,7 @@ export default function App() {
                             <option value="myyja">Myyjä</option>
                         </select>
                         <select value={authSession.regionId} onChange={e => setAuthSession({...authSession, regionId: e.target.value})} className="bg-stone-800 text-white text-[11px] font-bold p-2.5 rounded-lg outline-none border border-stone-700 flex-1 focus:border-[#facc15] transition-colors">
-                            {REGIONS.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                            {activeRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                         </select>
                     </div>
                 </div>

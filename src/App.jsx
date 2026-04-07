@@ -393,7 +393,7 @@ export default function App() {
         if (updates.myTasks) setMyTasks(updates.myTasks);
 
         try {
-            setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', fbUser.uid), merged).catch(e => console.warn(e));
+            setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', fbUser.uid), merged, { merge: true }).catch(e => console.warn(e));
         } catch(e) { console.warn('Mock DB block:', e); }
     };
 
@@ -1800,17 +1800,19 @@ export default function App() {
                                             <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6">
                                                 <h3 className="text-xs font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Alueiden Vertailu</h3>
                                                 <div className="space-y-4">
-                                                    {(Array.isArray(regionStats) ? regionStats : []).sort((a,b) => {
-                                                        const aR = getCurrentMonthSalesHours(allUserStats, a.id);
-                                                        const aT = getCurrentMonthTarget(marketingPlans, a.id);
-                                                        const bR = getCurrentMonthSalesHours(allUserStats, b.id);
-                                                        const bT = getCurrentMonthTarget(marketingPlans, b.id);
-                                                        return (bR / (bT || 1)) - (aR / (aT || 1));
-                                                    }).map(rs => {
-                                                        const rTavoite = getCurrentMonthTarget(marketingPlans, rs.id);
-                                                        const rToteutuma = getCurrentMonthSalesHours(allUserStats, rs.id);
-                                                        const pacePct = Math.min(100, Math.round((rToteutuma / (rTavoite || 1)) * 100));
-                                                        const isPaceGood = rToteutuma >= (rTavoite * 0.5);
+                                                    {(() => {
+                                                        const statSource = authSession?.role === 'superadmin' && allGlobalStats?.length > 0 ? allGlobalStats : allUserStats;
+                                                        return (Array.isArray(regionStats) ? regionStats : []).sort((a,b) => {
+                                                            const aR = getCurrentMonthSalesHours(statSource, a.id);
+                                                            const aT = getCurrentMonthTarget(marketingPlans, a.id);
+                                                            const bR = getCurrentMonthSalesHours(statSource, b.id);
+                                                            const bT = getCurrentMonthTarget(marketingPlans, b.id);
+                                                            return (bR / (bT || 1)) - (aR / (aT || 1));
+                                                        }).map(rs => {
+                                                            const rTavoite = getCurrentMonthTarget(marketingPlans, rs.id);
+                                                            const rToteutuma = getCurrentMonthSalesHours(statSource, rs.id);
+                                                            const pacePct = Math.min(100, Math.round((rToteutuma / (rTavoite || 1)) * 100));
+                                                            const isPaceGood = rToteutuma >= (rTavoite * 0.5);
                                                         
                                                         const rNps = rs.npsCount > 0 ? (rs.npsSum / rs.npsCount).toFixed(1) : '-';
                                                         const npsColor = rNps >= 9 ? 'text-[#2f855a]' : rNps <= 6 && rNps !== '-' ? 'text-[#9b2c2c]' : 'text-stone-500';
@@ -1842,7 +1844,8 @@ export default function App() {
                                                                 </div>
                                                             </div>
                                                         );
-                                                    })}
+                                                    });
+                                                })()}
                                                 </div>
                                             </div>
                                             

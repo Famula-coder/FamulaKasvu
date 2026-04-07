@@ -1442,6 +1442,19 @@ export default function App() {
             return total || 100; // default to avoid zero if no target
         };
 
+        const getCurrentMonthTarget = (plans, targetRegionId = null) => {
+            const d = new Date();
+            const currYear = d.getFullYear();
+            const currQuarter = Math.floor(d.getMonth() / 3) + 1;
+            const monthKey = `targetMo${(d.getMonth() % 3) + 1}`;
+            
+            let total = 0;
+            (plans || []).filter(p => Number(p.year) === currYear && Number(p.quarter) === currQuarter && (!targetRegionId || p.regionId === targetRegionId)).forEach(p => {
+                total += Number(p[monthKey] || 0);
+            });
+            return total || 100; // default to avoid zero
+        };
+
         let totalRegionHours = getPreviousMonthRealizedTotal(marketingPlans, authSession.regionId);
         let totalRegionCustomers = getCurrentMonthSalesHours(allUserStats, authSession.regionId);
 
@@ -1813,17 +1826,19 @@ export default function App() {
                                 })()}
                                 
                                 {isAdmin && (() => {
-                                    const targetHours = getPreviousMonthTarget(marketingPlans, authSession.regionId);
+                                    const prevTargetHours = getPreviousMonthTarget(marketingPlans, authSession.regionId);
+                                    const currTargetHours = getCurrentMonthTarget(marketingPlans, authSession.regionId);
                                     
                                     let fallbackLevel = GROWTH_TEMPLATES[0] || { name: 'Perustus' };
-                                    if (targetHours >= 100) fallbackLevel = GROWTH_TEMPLATES[1];
-                                    if (targetHours >= 250) fallbackLevel = GROWTH_TEMPLATES[2];
-                                    if (targetHours >= 360) fallbackLevel = GROWTH_TEMPLATES[3] || GROWTH_TEMPLATES[2];
+                                    if (currTargetHours >= 100) fallbackLevel = GROWTH_TEMPLATES[1];
+                                    if (currTargetHours >= 250) fallbackLevel = GROWTH_TEMPLATES[2];
+                                    if (currTargetHours >= 360) fallbackLevel = GROWTH_TEMPLATES[3] || GROWTH_TEMPLATES[2];
                                     
                                     const lastMatchedLevel = fallbackLevel;
-                                    const pace = totalRegionHours; // Toteutuma koskee edellistä kuuta
-                                    const pct = Math.min(100, Math.round((pace / targetHours) * 100));
-                                    const isPaceGood = pace >= (targetHours * 0.8); // Simple rule
+                                    const prevPace = totalRegionHours; // Edellisen kuun toteutuma
+                                    const currPace = totalRegionCustomers; // Kuluvan kuun myynnit
+                                    const pct = Math.min(100, Math.round((currPace / currTargetHours) * 100));
+                                    const isPaceGood = currPace >= (currTargetHours * 0.5); // Simple active pacing logic
                                     
                                     return (
                                         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6 relative overflow-hidden">
@@ -1832,13 +1847,17 @@ export default function App() {
                                                     <h3 className="text-lg font-black text-stone-900">Alueen Kasvu & Tavoite</h3>
                                                     <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-1">Seuraava taso: {lastMatchedLevel.name}</p>
                                                 </div>
-                                                
+                                            </div>
+
+                                            <div className="flex justify-between items-center text-xs text-stone-500 mb-6 bg-stone-50 p-3 rounded-xl border border-stone-100">
+                                                <span>Edellinen Kk Historiatieto:</span>
+                                                <span className="font-bold border-b border-stone-200/50 pb-0.5">Toteutuma {prevPace}h / Tavoite {prevTargetHours}h</span>
                                             </div>
 
                                             <div className="mb-6">
                                                 <div className="flex justify-between text-sm font-bold mb-2">
-                                                    <span className="text-stone-700">Edellisen kuun tunnit: <span className="text-lg">{pace}</span>h</span>
-                                                    <span className="text-[#9b2c2c] bg-[#fdf2f2] px-2 py-0.5 rounded border border-[#fde8e8]">Tavoite: {targetHours}h</span>
+                                                    <span className="text-stone-700">Kuluvan kuun myynnit: <span className="text-lg text-stone-900">{currPace}</span>h</span>
+                                                    <span className="text-[#9b2c2c] bg-[#fdf2f2] px-2 py-0.5 rounded border border-[#fde8e8]">Tavoite: {currTargetHours}h</span>
                                                 </div>
                                                 <div className="bg-stone-100 h-4 rounded-full overflow-hidden border border-stone-200">
                                                     <div className={`h-full rounded-full transition-all duration-1000 ${pct >= 100 ? 'bg-[#2f855a]' : 'bg-[#9b2c2c]'} relative`} style={{ width: `${pct}%` }}>
@@ -1855,7 +1874,7 @@ export default function App() {
                                                 <div>
                                                     <h4 className="text-xs font-black uppercase tracking-wider mb-1">Sparraaja</h4>
                                                     <p className="text-xs font-medium leading-relaxed opacity-90">
-                                                        {isPaceGood ? 'Hienoa työtä! Olette hyvässä vauhdissa kohti tavoiteporrasta. Pitäkää sama tahti yllä ja varmistakaa nykyisten asiakkaiden tyytyväisyys laadukkaalla kohtaamisella.' : 'Alue on hieman tavoitevauhdista jäljessä suhteessa portaaseen. AI suosittelee tehostamaan uusasiakashankintaa LeadDesk -soitoilla ja varmistamaan tiimin päivittäisen aktiivisuuden.'}
+                                                        {isPaceGood ? 'Hienoa työtä! Olette hyvässä vauhdissa kohti kuluvan kuukauden tavoitetta. Pitäkää sama tahti yllä ja varmistakaa nykyisten asiakkaiden tyytyväisyys!' : 'Alue on hieman tavoitevauhdista jäljessä tälle kuulle. AI suosittelee tehostamaan uusasiakashankintaa LeadDesk -soitoilla ja varmistamaan tiimin aktiivisuuden.'}
                                                     </p>
                                                 </div>
                                             </div>

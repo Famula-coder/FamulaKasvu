@@ -1056,6 +1056,7 @@ export default function App() {
                                     <select name="inviteRole" required className="flex-1 border border-stone-200 rounded-xl px-3 py-2.5 text-sm font-bold text-stone-700 outline-none focus:border-[#2f855a]">
                                         <option value="myyja">Myyjä</option>
                                         <option value="admin">Aluevetäjä</option>
+                                        {isSuperAdmin && <option value="superadmin">Superadmin (Koko Suomi)</option>}
                                     </select>
                                 </div>
                                 <button type="submit" className="w-full bg-[#2f855a] text-white py-3 rounded-xl font-bold shadow-sm hover:bg-[#22543d] transition active:scale-95">Luo työntekijän profiili ennakkoon</button>
@@ -1083,6 +1084,7 @@ export default function App() {
                                                 <select value={u.role} onChange={e=>handleAssignRole(u.id, e.target.value)} className="bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 text-[10px] font-bold text-stone-700 outline-none w-full sm:w-auto">
                                                     <option value="myyja">Myyjä</option>
                                                     <option value="admin">Aluevetäjä</option>
+                                                    <option value="superadmin">Superadmin</option>
                                                 </select>
                                                 <button onClick={()=>handleDelete(u.id)} className="bg-white border border-[#fde8e8] text-[#9b2c2c] p-1.5 rounded-xl hover:bg-[#fde8e8] transition flex items-center justify-center w-full sm:w-10 sm:h-10"><Trash2 size={14} className="mr-2 sm:mr-0"/><span className="sm:hidden text-xs font-bold">Poista</span></button>
                                             </div>

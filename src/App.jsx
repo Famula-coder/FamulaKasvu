@@ -342,9 +342,25 @@ export default function App() {
         return () => { unsubTools(); unsubStats(); unsubPriv(); unsubMarketing(); };
     }, [authSession, fbUser]);
 
-    // Ensure my stats doc exists initially, but only if user is already fully logged in (active)
+    // Ensure my stats doc exists initially, or process an invitation.
     useEffect(() => {
-        if (authSession && fbUser && allUserStats && authSession.status === 'active') {
+        if (!fbUser || !allUserStats) return;
+
+        // 1. Process potential email invitations
+        const existingInvite = allUserStats.find(s => s.isInvite && s.email?.toLowerCase() === fbUser.email?.toLowerCase());
+        
+        if (existingInvite) {
+            import('firebase/firestore').then(({ deleteDoc, doc }) => {
+                deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', existingInvite.id));
+            });
+            const { id: _, isInvite: __, ...inviteData } = existingInvite;
+            syncMyStats({ ...inviteData, status: 'active', hours: 0, customers: 0, npsSum: 0, npsCount: 0, myTasks: [] });
+            showToast(`Kutsu tunnistettu! Tervetuloa alueelle ${inviteData.regionId}.`);
+            return;
+        }
+
+        // 2. Ensure active users have the base data row
+        if (authSession && authSession.status === 'active') {
             const exists = allUserStats.find(s => s.id === fbUser.uid);
             if (!exists && allUserStats.length >= 0) { 
                 syncMyStats({ hours: 0, customers: 0, npsSum: 0, npsCount: 0, myTasks: [] });
@@ -924,6 +940,26 @@ export default function App() {
                 if (uid === fbUser?.uid) handleLogout();
             }
         };
+
+        const handleInviteUser = async (e) => {
+            e.preventDefault();
+            const name = e.target.elements.inviteName.value.trim();
+            const email = e.target.elements.inviteEmail.value.trim().toLowerCase();
+            let regionId = authSession.regionId;
+            if (isSuperAdmin) {
+                regionId = e.target.elements.inviteRegion?.value || regionId;
+            }
+            const role = e.target.elements.inviteRole.value;
+
+            if (!name || !email || !regionId) return;
+
+            const inviteId = `invite_${email.replace(/[^a-z0-9]/g, '')}`;
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', inviteId), {
+                name, email, regionId, role, status: 'active', isInvite: true
+            });
+            e.target.reset();
+            showToast("Työntekijä kutsuttu! Hän pääsee sisään välittömästi kirjautuessaan.");
+        };
         
         return (
             <div className="animate-fade-in">
@@ -1003,13 +1039,40 @@ export default function App() {
                             </div>
                         )}
                         
+                        <div className="mb-8 bg-white border border-stone-200 rounded-3xl p-5 shadow-sm mt-6">
+                            <div className="flex items-center mb-4"><span className="bg-[#2f855a] text-white p-1.5 rounded-lg mr-3 shadow-sm"><UserPlus size={16}/></span><h3 className="text-sm font-bold text-stone-800">Kutsu uusi työntekijä</h3></div>
+                            <form onSubmit={handleInviteUser} className="space-y-3">
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                    <input type="email" name="inviteEmail" required placeholder="Sähköpostiosoite (Gmail)" className="flex-1 border border-stone-200 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-[#2f855a]" />
+                                    <input type="text" name="inviteName" required placeholder="Etunimi Sukunimi" className="flex-1 border border-stone-200 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-[#2f855a]" />
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                    {isSuperAdmin && (
+                                        <select name="inviteRegion" required className="flex-1 border border-stone-200 rounded-xl px-3 py-2.5 text-sm font-bold text-stone-700 outline-none focus:border-[#2f855a]">
+                                            <option value="">-- Valitse alue --</option>
+                                            {activeRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                        </select>
+                                    )}
+                                    <select name="inviteRole" required className="flex-1 border border-stone-200 rounded-xl px-3 py-2.5 text-sm font-bold text-stone-700 outline-none focus:border-[#2f855a]">
+                                        <option value="myyja">Myyjä (Tarjotin ja työlista)</option>
+                                        <option value="admin">Aluevetäjä (Alueen hallinta)</option>
+                                    </select>
+                                </div>
+                                <button type="submit" className="w-full bg-[#2f855a] text-white py-3 rounded-xl font-bold shadow-sm hover:bg-[#22543d] transition active:scale-95">Luo työntekijän profiili ennakkoon</button>
+                            </form>
+                        </div>
+                        
                          <div>
                             <h3 className="text-xs font-black uppercase text-stone-500 tracking-widest mb-3 px-1 mt-6">Aktiiviset työntekijät ({activeUsers.length})</h3>
                             <div className="space-y-3">
                                 {activeUsers.map(u => (
-                                    <div key={u.id} className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div key={u.id} className={`bg-white border rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${u.isInvite ? 'border-dashed border-stone-300 opacity-80 bg-stone-50' : 'border-stone-200'}`}>
                                         <div>
-                                            <div className="font-bold text-stone-800 flex items-center gap-2">{u.name} <span className="px-2 py-0.5 rounded-full bg-stone-100 text-stone-500 text-[10px] border border-stone-200">{u.role}</span></div>
+                                            <div className="font-bold text-stone-800 flex items-center gap-2 flex-wrap">
+                                                {u.name} 
+                                                <span className="px-2 py-0.5 rounded-full bg-stone-100 text-stone-500 text-[10px] border border-stone-200">{u.role}</span>
+                                                {u.isInvite && <span className="text-[10px] text-orange-600 border border-orange-200 bg-orange-50 px-2 py-0.5 rounded-full hidden sm:inline-block">Ei vielä kirjautunut (Kutsu)</span>}
+                                            </div>
                                             <div className="text-xs text-stone-500 mt-1">{u.email} • {activeRegions.find(r=>r.id===u.regionId)?.name}</div>
                                         </div>
                                         {isSuperAdmin && (

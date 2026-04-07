@@ -1505,10 +1505,7 @@ export default function App() {
                 <div className="max-w-[480px] mx-auto bg-[#f5f5f4] min-h-screen shadow-lg relative">
                     <div className="bg-white px-4 py-3 flex justify-between items-center border-b border-stone-200 shadow-sm relative z-20">
                         <div className="flex gap-4">
-                            {currentTab !== 'dashboard' && (
-                                <button onClick={() => setCurrentTab('dashboard')} className="text-stone-500 hover:text-[#9b2c2c] flex items-center text-[11px] font-bold transition-colors uppercase"><ChevronLeft className="h-4 w-4 mr-0.5"/> Edellinen</button>
-                            )}
-                            <button onClick={() => setCurrentView('simulator_login')} className="text-stone-500 hover:text-[#2f855a] flex items-center text-[11px] font-bold transition-colors uppercase"><Home className="h-4 w-4 mr-0.5"/> Etusivu</button>
+                            <button onClick={() => setCurrentView('portal')} className="text-stone-600 hover:text-[#9b2c2c] flex items-center text-[11px] font-black transition-colors uppercase bg-stone-200/50 hover:bg-white px-3 py-1.5 rounded-full border border-transparent hover:border-stone-200"><ChevronLeft className="h-4 w-4 mr-0.5"/> Takaisin Kotiin</button>
                         </div>
                         <div className="flex items-center gap-2">
                             <button onClick={() => setShowHelpModal(true)} className="text-stone-400 hover:text-[#9b2c2c] transition-colors"><HelpCircle size={18} /></button>
@@ -1516,7 +1513,14 @@ export default function App() {
                         </div>
                     </div>
 
-                    <div className="p-4 relative z-10">
+                    <div className="p-4 relative z-10 pb-12">
+                        {['dashboard', 'tools', 'memo'].includes(currentTab) && (
+                            <div className="flex gap-2 mb-6 p-1 bg-stone-200/50 rounded-2xl">
+                                <button onClick={() => setCurrentTab('dashboard')} className={`flex-1 py-3 px-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all ${currentTab === 'dashboard' ? 'bg-white text-[#9b2c2c] shadow-sm' : 'text-stone-500 hover:text-stone-700 hover:bg-white/50'}`}>Työlista</button>
+                                <button onClick={() => setCurrentTab('tools')} className={`flex-1 py-3 px-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all ${currentTab === 'tools' ? 'bg-white text-[#2f855a] shadow-sm' : 'text-stone-500 hover:text-stone-700 hover:bg-white/50'}`}>Tarjotin</button>
+                                <button onClick={() => setCurrentTab('memo')} className={`flex-1 py-3 px-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all ${currentTab === 'memo' ? 'bg-white text-[#ea580c] shadow-sm' : 'text-stone-500 hover:text-stone-700 hover:bg-white/50'}`}>Muistio</button>
+                            </div>
+                        )}
                         {currentTab === 'dashboard' && (
                             <div className="animate-fade-in">
                                 <header className="flex justify-between items-center mb-6 mt-2 px-1">
@@ -2674,14 +2678,6 @@ export default function App() {
                         </div>
                     )}
 
-                    {/* BOTTOM NAV */}
-                    <div className="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto flex justify-between px-2 py-3 z-40 bg-[#f5f5f4]/95 backdrop-blur-md border-t border-stone-200">
-                        <button onClick={() => setCurrentTab('dashboard')} className={`flex flex-col items-center justify-center flex-1 transition-colors ${currentTab==='dashboard'?'text-[#9b2c2c]':'text-stone-400'}`}><Home className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Koti</span></button>
-                        <button onClick={() => setCurrentTab('reports')} className={`flex flex-col items-center justify-center flex-1 transition-colors ${currentTab==='reports'?'text-[#9b2c2c]':'text-stone-400'}`}><TrendingUp className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Raportit</span></button>
-                        <button onClick={() => setCurrentTab('tools')} className={`flex flex-col items-center justify-center flex-1 transition-colors ${currentTab==='tools'?'text-[#9b2c2c]':'text-stone-400'}`}><Briefcase className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Tarjotin</span></button>
-                        <button onClick={() => setCurrentTab('memo')} className={`flex flex-col items-center justify-center flex-1 transition-colors ${currentTab==='memo'?'text-[#9b2c2c]':'text-stone-400'}`}><StickyNote className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Muistio</span></button>
-                        <button onClick={() => setCurrentTab('users')} className={`flex flex-col items-center justify-center flex-1 transition-colors ${currentTab==='users'?'text-[#9b2c2c]':'text-stone-400'}`}><User className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Oma Tili</span></button>
-                    </div>
                 </div>
             </div>
         );

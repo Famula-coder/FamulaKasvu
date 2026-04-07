@@ -1802,50 +1802,76 @@ export default function App() {
                                                 <div className="space-y-4">
                                                     {(() => {
                                                         const statSource = authSession?.role === 'superadmin' && allGlobalStats?.length > 0 ? allGlobalStats : allUserStats;
+                                                        
+                                                        // Helper to compute average pace for sorting
+                                                        const getRegionAvg = (rId) => {
+                                                            const l4 = getLast4MonthsData(marketingPlans, rId);
+                                                            let ap = 0; let tvt = 0;
+                                                            l4.forEach(m => { if (m.target > 0) { ap += (m.realized / m.target); tvt++; }});
+                                                            return tvt > 0 ? (ap / tvt) : 0;
+                                                        };
+
                                                         return (Array.isArray(regionStats) ? regionStats : []).sort((a,b) => {
-                                                            const aR = getCurrentMonthSalesHours(statSource, a.id);
-                                                            const aT = getCurrentMonthTarget(marketingPlans, a.id);
-                                                            const bR = getCurrentMonthSalesHours(statSource, b.id);
-                                                            const bT = getCurrentMonthTarget(marketingPlans, b.id);
-                                                            return (bR / (bT || 1)) - (aR / (aT || 1));
+                                                            return getRegionAvg(b.id) - getRegionAvg(a.id);
                                                         }).map(rs => {
-                                                            const rTavoite = getCurrentMonthTarget(marketingPlans, rs.id);
-                                                            const rToteutuma = getCurrentMonthSalesHours(statSource, rs.id);
-                                                            const pacePct = Math.min(100, Math.round((rToteutuma / (rTavoite || 1)) * 100));
-                                                            const isPaceGood = rToteutuma >= (rTavoite * 0.5);
-                                                        
-                                                        const rNps = rs.npsCount > 0 ? (rs.npsSum / rs.npsCount).toFixed(1) : '-';
-                                                        const npsColor = rNps >= 9 ? 'text-[#2f855a]' : rNps <= 6 && rNps !== '-' ? 'text-[#9b2c2c]' : 'text-stone-500';
-                                                        const isCurrent = rs.id === authSession?.regionId;
-                                                        
-                                                        return (
-                                                            <div key={rs.id} onClick={() => {setAuthSession({...authSession, regionId: rs.id}); setSelectedUserReport(null);}} className={`p-5 rounded-[1.5rem] border ${isCurrent ? 'border-[#9b2c2c] bg-[#fdf2f2] shadow-md' : 'border-stone-200 bg-white'} cursor-pointer hover:border-[#9b2c2c] hover:shadow-md transition-all active:scale-95 group`}>
-                                                                <div className="flex justify-between items-center mb-4">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <span className={`font-black text-sm ${isCurrent ? 'text-[#9b2c2c]' : 'text-stone-900 group-hover:text-[#9b2c2c]'} transition-colors`}>{rs.name}</span>
-                                                                        <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${isPaceGood ? 'bg-[#f0fdf4] text-[#2f855a] border-[#dcfce7]' : 'bg-[#fdf2f2] text-[#9b2c2c] border-[#fde8e8]'}`}>{isPaceGood ? 'Aikataulussa' : 'Vauhti jäljessä'}</span>
+                                                            const last4Months = getLast4MonthsData(marketingPlans, rs.id);
+                                                            
+                                                            let avgPace = 0;
+                                                            let totalValidTargets = 0;
+                                                            let trendIsUp = false;
+
+                                                            if (last4Months.length >= 2) {
+                                                                trendIsUp = last4Months[0].realized >= last4Months[1].realized;
+                                                                last4Months.forEach(m => {
+                                                                    if (m.target > 0) {
+                                                                        avgPace += (m.realized / m.target);
+                                                                        totalValidTargets++;
+                                                                    }
+                                                                });
+                                                            }
+                                                            const avgPerformance = totalValidTargets > 0 ? (avgPace / totalValidTargets) : 0;
+                                                            const isPaceGood = totalValidTargets > 0 ? avgPerformance >= 0.8 : true;
+                                                            
+                                                            const rNps = rs.npsCount > 0 ? (rs.npsSum / rs.npsCount).toFixed(1) : '-';
+                                                            const npsColor = rNps >= 9 ? 'text-[#2f855a]' : rNps <= 6 && rNps !== '-' ? 'text-[#9b2c2c]' : 'text-stone-500';
+                                                            const isCurrent = rs.id === authSession?.regionId;
+                                                            
+                                                            return (
+                                                                <div key={rs.id} onClick={() => {setAuthSession({...authSession, regionId: rs.id}); setSelectedUserReport(null);}} className={`p-5 rounded-[1.5rem] border ${isCurrent ? 'border-[#9b2c2c] bg-[#fdf2f2] shadow-md' : 'border-stone-200 bg-white'} cursor-pointer hover:border-[#9b2c2c] hover:shadow-md transition-all active:scale-95 group`}>
+                                                                    <div className="flex justify-between items-center mb-4 border-b border-stone-100 pb-4">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <span className={`font-black text-sm ${isCurrent ? 'text-[#9b2c2c]' : 'text-stone-900 group-hover:text-[#9b2c2c]'} transition-colors`}>{rs.name}</span>
+                                                                            <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${isPaceGood ? 'bg-[#f0fdf4] text-[#2f855a] border-[#dcfce7]' : 'bg-[#fdf2f2] text-[#9b2c2c] border-[#fde8e8]'}`}>{isPaceGood ? 'Aikataulussa' : 'Vauhti jäljessä'}</span>
+                                                                        </div>
+                                                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${npsColor}`}>NPS {rNps}</span>
                                                                     </div>
-                                                                    <span className={`text-[10px] font-bold uppercase tracking-wider ${npsColor}`}>NPS {rNps}</span>
+                                                                    
+                                                                    <div className="mb-4 space-y-1.5 pl-2 border-l-2 border-stone-100">
+                                                                        {last4Months.map((m, idx) => (
+                                                                            <div key={idx} className="flex justify-between items-center text-[10px] text-stone-600">
+                                                                                <span className="font-bold uppercase tracking-wider text-stone-800">{m.name}</span>
+                                                                                <span><strong className={m.realized >= m.target && m.target > 0 ? 'text-[#2f855a]' : 'text-stone-700'}>{m.realized}h</strong> <span className="opacity-50">/</span> {m.target}h</span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+
+                                                                    <div className={`p-3 rounded-xl border flex items-start gap-3 ${isPaceGood ? 'bg-[#f0fdf4] border-[#dcfce7] text-[#22543d]' : 'bg-[#fdf2f2] border-[#fde8e8] text-[#771d1d]'}`}>
+                                                                        <div className={`shrink-0 p-1.5 rounded-full mt-0.5 ${isPaceGood ? 'bg-[#2f855a] text-white' : 'bg-[#9b2c2c] text-white'}`}>
+                                                                            <Sparkles className="w-3 h-3" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <h4 className="text-[10px] font-black uppercase tracking-wider mb-0.5">AI Analyysi</h4>
+                                                                            <p className="text-[10px] font-medium leading-relaxed opacity-90">
+                                                                                {isPaceGood 
+                                                                                  ? (trendIsUp ? 'Vahvassa kasvussa ja tavoitteissa.' : 'Tavoitteissa ollaan, mutta valvo aktiivisuutta.') 
+                                                                                  : 'Jäljessä historiasta käsin. Vaatii reagointia.'}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
-                                                                <div className="grid grid-cols-2 gap-3 mb-4">
-                                                                    <div className="bg-stone-50 p-3 rounded-xl text-center border border-stone-100">
-                                                                        <p className="text-[9px] font-bold uppercase tracking-wider text-stone-400 mb-0.5">{currentMonth?.name} Toteutuma</p>
-                                                                        <p className="font-black text-stone-800 text-lg leading-none">{rToteutuma}h</p>
-                                                                    </div>
-                                                                    <div className="bg-[#fdf2f2] p-3 rounded-xl text-center border border-[#fde8e8]">
-                                                                        <p className="text-[9px] font-bold uppercase tracking-wider text-[#9b2c2c] mb-0.5">{currentMonth?.name} Tavoite</p>
-                                                                        <p className="font-black text-[#9b2c2c] text-lg leading-none">{rTavoite}h</p>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="bg-stone-100 h-2 w-full rounded-full overflow-hidden border border-stone-200">
-                                                                    <div className={`h-full rounded-full transition-all duration-1000 relative ${isPaceGood ? 'bg-[#2f855a]' : 'bg-[#9b2c2c]'}`} style={{ width: `${pacePct}%` }}>
-                                                                        <div className="absolute inset-0 bg-white/20"></div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    });
-                                                })()}
+                                                            );
+                                                        });
+                                                    })()}
                                                 </div>
                                             </div>
                                             
@@ -1940,7 +1966,7 @@ export default function App() {
                                     )}
                                 </div>
 
-                                {!isAdmin && (() => {
+                                {(() => {
                                     const totalTasks = myTasks.length;
                                     const doneTasks = myTasks.filter(t => t.done || (t.type === 'pinned' && (t.doneWeeks || []).includes(`${todayInfo.year}-${todayInfo.weekNum}`))).length;
                                     const progressPercent = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;

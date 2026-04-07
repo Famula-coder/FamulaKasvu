@@ -1089,29 +1089,6 @@ export default function App() {
                                     <button onClick={() => setCurrentWeekOffset(0)} className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-colors ${currentWeekOffset === 0 ? 'bg-stone-100 text-stone-400 border-transparent cursor-default' : 'bg-white text-[#2f855a] border-stone-200 hover:bg-stone-50'}`}>Kuluva vko</button>
                                 </header>
                                 
-                                {isAdmin && pendingUsers.length > 0 && (
-                                    <div className="bg-[#fdf2f2] border border-[#fde8e8] rounded-3xl p-5 shadow-sm mb-6 animate-fade-in relative overflow-hidden">
-                                        <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-[#9b2c2c]" />
-                                        <div className="flex justify-between items-center mb-4">
-                                            <h3 className="text-sm font-black uppercase text-[#9b2c2c] tracking-widest px-1">Odottaa hyväksyntää ({pendingUsers.length})</h3>
-                                            <button onClick={() => setCurrentTab('users')} className="text-xs font-bold text-stone-500 hover:text-stone-700 underline">Kaikki työntekijät &rarr;</button>
-                                        </div>
-                                        <div className="space-y-3">
-                                            {pendingUsers.map(u => (
-                                                <div key={u.id} className="bg-white border border-[#fde8e8] rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                                    <div>
-                                                        <div className="font-bold text-stone-800 flex items-center gap-2 text-sm">{u.name || 'Nimetön'} <span className="px-2 py-0.5 rounded-full bg-stone-50 text-[#9b2c2c] text-[10px] border border-[#fde8e8] uppercase tracking-wider">{u.requestedRole || 'myyja'}</span></div>
-                                                        <div className="text-xs text-stone-500 mt-1.5">{u.email} <span className="mx-1 opacity-50">•</span> <span className="font-medium">{REGIONS.find(r=>r.id===u.regionId)?.name || 'Ei aluetta'}</span></div>
-                                                    </div>
-                                                    <div className="flex gap-2 w-full sm:w-auto">
-                                                        <button onClick={()=>handleDelete(u.id)} className="flex-1 sm:flex-none bg-stone-50 border border-stone-200 text-stone-600 py-2 px-5 rounded-xl text-xs font-bold hover:bg-stone-100 transition whitespace-nowrap">Hylkää</button>
-                                                        <button onClick={()=>handleApprove(u.id, u.requestedRole || 'myyja')} className="flex-1 sm:flex-none bg-[#9b2c2c] text-white py-2 px-5 rounded-xl text-xs font-bold shadow-sm hover:bg-[#771d1d] transition whitespace-nowrap">Hyväksy sisään</button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
 
                                 <div className="bg-gradient-to-br from-[#771d1d] to-[#9b2c2c] text-white rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden group">
                                     <div className="relative z-10">

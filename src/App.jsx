@@ -139,7 +139,7 @@ export default function App() {
     const [hiddenMasterProducts, setHiddenMasterProducts] = useState([]); // Hidden global products
 
     // UI Modals & Inputs
-    const [modals, setModals] = useState({ sales: false, adminPlan: false, editTask: false, editTrayTask: false, newTrayTask: false, bonuses: false, salaryDetails: false, historyEntry: false });
+    const [modals, setModals] = useState({ sales: false, adminPlan: false, editTask: false, editTrayTask: false, newTrayTask: false, bonuses: false, salaryDetails: false, historyEntry: false, activityHistory: null });
     const [customSalesHours, setCustomSalesHours] = useState("");
     const [saleMode, setSaleMode] = useState('oneTime');
     const [adminBonuses, setAdminBonuses] = useState({ oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 });
@@ -167,7 +167,7 @@ export default function App() {
     });
 
     const isAdmin = authSession?.role === 'admin' || authSession?.role === 'superadmin';
-    const isSuperAdmin = authSession?.realRole === 'superadmin' || authSession?.role === 'superadmin';
+    const isSuperAdmin = authSession?.role === 'superadmin';
 
     // Unified Tray Computation
     const masterTray = Array.isArray(publicData.masterTray) ? publicData.masterTray : DEFAULT_TRAY_TASKS;
@@ -201,11 +201,13 @@ export default function App() {
                     // Use onSnapshot so if admin approves them, their session updates
                     onSnapshot(userRef, (userDocSnap) => {
                         let role = 'myyja';
-                        let regionId = 'uusimaa';
+                        let regionId = null;
                         let name = u.displayName || u.email || 'Käyttäjä';
                         let status = 'pending';
+                        let hasData = false;
                         
                         if (userDocSnap && userDocSnap.exists()) {
+                            hasData = true;
                             const d = userDocSnap.data();
                             if (d.role) role = d.role;
                             if (d.regionId) regionId = d.regionId;
@@ -219,7 +221,7 @@ export default function App() {
                             status = 'active';
                         }
                         
-                        setAuthSession({ name, role, regionId, realRole: role, realRegionId: regionId, status, email: u.email });
+                        setAuthSession({ name, role, regionId, realRole: role, realRegionId: regionId, status, email: u.email, hasData });
                         
                         if (status === 'active') {
                             setCurrentView(prev => prev === 'pending_access' || prev === 'simulator_login' ? 'portal' : prev);
@@ -625,6 +627,59 @@ export default function App() {
         showToast("1 Uusi asiakas kirjattu (ja maksuperuste aktivoitu)!");
     };
 
+    const handleUndoLog = (userId, logId) => {
+        if (!window.confirm("Haluatko varmasti peruuttaa ja poistaa tämän tapahtuman tilastoista kokonaan?")) return;
+        
+        const myStat = allUserStats.find(s => s.id === userId);
+        if (!myStat) return;
+        
+        const logToRemove = (myStat.logs || []).find(l => l.id === logId);
+        if (!logToRemove) return;
+        
+        const isSurvey = logToRemove.type === 'survey';
+        let newHours = myStat.hours || 0;
+        let newCustomers = myStat.customers || 0;
+        let newNpsSum = myStat.npsSum || 0;
+        let newNpsCount = myStat.npsCount || 0;
+        
+        if (logToRemove.type === 'quick_sale') {
+            newHours -= (logToRemove.hours || 0);
+        } else if (logToRemove.type === 'quick_customer') {
+            newCustomers -= 1;
+        } else if (isSurvey) {
+            newHours -= (logToRemove.hours || 0);
+            if (logToRemove.proposalStatus === 'sold') {
+               newCustomers -= 1;
+            }
+            if (logToRemove.nps > 0) {
+                newNpsSum -= logToRemove.nps;
+                newNpsCount -= 1;
+            }
+        }
+        
+        newHours = Math.max(0, newHours);
+        newCustomers = Math.max(0, newCustomers);
+        newNpsSum = Math.max(0, newNpsSum);
+        newNpsCount = Math.max(0, newNpsCount);
+        
+        const newLogs = (myStat.logs || []).filter(l => l.id !== logId);
+        
+        const updates = {
+            hours: newHours,
+            customers: newCustomers,
+            npsSum: newNpsSum,
+            npsCount: newNpsCount,
+            logs: newLogs
+        };
+        
+        // We use setDoc instead of syncMyStats directly, so Superadmin can undo others' logs too
+        const targetRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', userId);
+        setDoc(targetRef, updates, { merge: true });
+        showToast("Tapahtuma ja siihen liittyvät tilastot peruutettiin!");
+        
+        // If my own log was removed and I'm currently viewing history, it just updates automatically via snapshot!
+    };
+
     const handleStartSurveyView = () => {
         setSurveyState({
             step: 'login', worker: authSession?.name || '', clientInitials: '', sessionId: '', answers: {}, serviceRatings: {}, proposalStatus: 'none', planHours: 0, oneOffHours: 0, salesNote: '', calculatedBonus: '0.00', isSubmitting: false
@@ -643,7 +698,8 @@ export default function App() {
             const newLog = {
                 id: generateId(), timestamp: Date.now(), type: 'survey',
                 clientInitials: surveyState.clientInitials || '?',
-                hours: totalHours, nps: npsVal, answers: surveyState.answers
+                hours: totalHours, nps: npsVal, answers: surveyState.answers,
+                proposalStatus: surveyState.proposalStatus
             };
             
             syncMyStats({
@@ -695,7 +751,7 @@ export default function App() {
     };
 
     const renderPendingAccess = () => {
-        const isAlreadyApplied = authSession?.status === 'pending' && authSession?.regionId;
+        const isAlreadyApplied = authSession?.status === 'pending' && authSession?.hasData;
         return (
             <div className="min-h-screen bg-[#e7e5e4] flex flex-col items-center justify-center p-4">
                 <div className="bg-[#f5f5f4] p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md relative overflow-hidden border border-stone-200">
@@ -772,6 +828,12 @@ export default function App() {
                 showToast("Rooli vaihdettu!");
             }
         };
+        const handleAssignRegion = async (uid, newRegionId) => {
+            if(window.confirm("Siirretäänkö työntekijä toiselle alueelle?")) {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', uid), { regionId: newRegionId }, { merge: true });
+                showToast("Alue vaihdettu!");
+            }
+        };
         const handleDelete = async (uid) => {
             if(window.confirm("Haluatko varmasti hylätä/poistaa käyttäjän? Saanti ohjelmaan evätään välittömästi.")) {
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', uid), { status: 'rejected' }, { merge: true });
@@ -841,7 +903,10 @@ export default function App() {
                                         </div>
                                         {isSuperAdmin && (
                                             <div className="flex gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
-                                                <select defaultValue={u.role} onChange={e=>handleAssignRole(u.id, e.target.value)} className="bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 text-[10px] font-bold text-stone-700 outline-none w-full sm:w-auto">
+                                                <select value={u.regionId} onChange={e=>handleAssignRegion(u.id, e.target.value)} className="bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 text-[10px] font-bold text-stone-700 outline-none w-full sm:w-auto">
+                                                    {REGIONS.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                                </select>
+                                                <select value={u.role} onChange={e=>handleAssignRole(u.id, e.target.value)} className="bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 text-[10px] font-bold text-stone-700 outline-none w-full sm:w-auto">
                                                     <option value="myyja">Myyjä</option>
                                                     <option value="admin">Aluevetäjä</option>
                                                 </select>
@@ -864,22 +929,6 @@ export default function App() {
 
     const renderPortal = () => (
         <div className="min-h-screen bg-[#e7e5e4] flex flex-col items-center p-0 sm:p-4 text-stone-800">
-            {(authSession?.realRole === 'superadmin') && (
-                <div className="w-full max-w-md bg-stone-900 text-white p-3 flex flex-col sm:flex-row items-center justify-between z-50 shadow-md gap-2">
-                    <span className="text-xs font-bold text-[#facc15] uppercase tracking-widest"><Settings className="w-3 h-3 inline mr-1"/> Kokeile Roolia:</span>
-                    <div className="flex gap-2 w-full sm:w-auto">
-                        <select value={authSession.role} onChange={e => setAuthSession({...authSession, role: e.target.value})} className="bg-stone-800 text-white text-xs font-bold p-1.5 rounded outline-none border border-stone-700 flex-1">
-                            <option value="superadmin">Koko Suomi (Superadmin)</option>
-                            <option value="admin">Aluevetäjä</option>
-                            <option value="myyja">Myyjä</option>
-                        </select>
-                        <select value={authSession.regionId} onChange={e => setAuthSession({...authSession, regionId: e.target.value})} className="bg-stone-800 text-white text-xs font-bold p-1.5 rounded outline-none border border-stone-700 flex-1">
-                            {REGIONS.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                        </select>
-                    </div>
-                </div>
-            )}
-            
             <div className="w-full max-w-md bg-[#f5f5f4] min-h-screen sm:min-h-[800px] sm:rounded-[2.5rem] overflow-hidden relative flex flex-col shadow-2xl">
                 <header className="bg-gradient-to-br from-[#771d1d] to-[#9b2c2c] pt-12 pb-10 px-8 rounded-b-[3rem] shadow-lg relative z-10">
                     <div className="absolute top-4 right-4 flex gap-1">
@@ -903,51 +952,72 @@ export default function App() {
                 </header>
 
                 <main className="flex-1 px-6 -mt-6 relative z-20 space-y-4 pb-8">
+                    {/* 1. Myynnin työpöytä */}
                     <div onClick={() => { setCurrentView('manager'); setCurrentTab('dashboard'); }} className="block group relative cursor-pointer">
                         <div className="absolute inset-0 bg-[#771d1d] rounded-2xl transform translate-y-2 opacity-20 blur transition duration-300 group-hover:translate-y-3 group-hover:opacity-30"></div>
                         <div className="relative bg-white rounded-2xl p-5 border-l-[6px] border-[#9b2c2c] shadow-sm transition transform group-hover:-translate-y-1 active:scale-[0.98]">
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <h3 className="text-lg font-bold text-stone-900 leading-tight">Myynnin Työpöytä</h3>
-                                    <p className="text-xs text-stone-500 mt-1">Kirjaa myyntisi ja katso palkkiot.</p>
+                                    <h3 className="text-lg font-bold text-stone-900 leading-tight">Myynnin työpöytä</h3>
                                 </div>
                                 <div className="bg-[#fdf2f2] p-3 rounded-full text-[#9b2c2c]"><Home className="h-5 w-5" /></div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div onClick={() => { setCurrentView('manager'); setCurrentTab('tools'); }} className="block group relative cursor-pointer col-span-1">
-                            <div className="absolute inset-0 bg-stone-900 rounded-2xl transform translate-y-2 opacity-10 blur transition duration-300 group-hover:translate-y-3 group-hover:opacity-20"></div>
-                            <div className="relative bg-white rounded-2xl p-4 border border-stone-200 shadow-sm transition transform group-hover:-translate-y-1 active:scale-[0.98]">
-                                <div className="bg-stone-100 p-2 rounded-full w-10 h-10 flex items-center justify-center text-stone-700 mb-3"><Briefcase className="h-5 w-5" /></div>
-                                <h3 className="text-sm font-bold text-stone-900 leading-tight">Oma Tarjotin</h3>
-                                <p className="text-[10px] text-stone-500 mt-1">Valitse viikon tavoitteet.</p>
-                            </div>
-                        </div>
-
-                        <div onClick={() => { setCurrentView('manager'); setCurrentTab('reports'); }} className="block group relative cursor-pointer col-span-1">
-                            <div className="absolute inset-0 bg-[#ea580c] rounded-2xl transform translate-y-2 opacity-10 blur transition duration-300 group-hover:translate-y-3 group-hover:opacity-20"></div>
-                            <div className="relative bg-white rounded-2xl p-4 border border-stone-200 shadow-sm transition transform group-hover:-translate-y-1 active:scale-[0.98]">
-                                <div className="bg-orange-50 p-2 rounded-full w-10 h-10 flex items-center justify-center text-[#ea580c] mb-3"><TrendingUp className="h-5 w-5" /></div>
-                                <h3 className="text-sm font-bold text-stone-900 leading-tight">Raportointi</h3>
-                                <p className="text-[10px] text-stone-500 mt-1">Seuraa tulosten kehitystä.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div onClick={() => {setSurveyState(prev=>({...prev, step: 'login', company: REGIONS.find(r=>r.id===authSession.regionId)?.name || 'Famula', worker: authSession.name})); setCurrentView('survey');}} className="block group relative cursor-pointer mt-4">
+                    {/* 2. Asiakastyytyväisyyskysely */}
+                    <div onClick={() => {setSurveyState(prev=>({...prev, step: 'login', company: REGIONS.find(r=>r.id===authSession.regionId)?.name || 'Famula', worker: authSession.name})); setCurrentView('survey');}} className="block group relative cursor-pointer">
                         <div className="absolute inset-0 bg-[#22543d] rounded-2xl transform translate-y-2 opacity-10 blur transition duration-300 group-hover:translate-y-3 group-hover:opacity-20"></div>
                         <div className="relative bg-white rounded-2xl p-5 border-l-[6px] border-[#2f855a] shadow-sm transition transform group-hover:-translate-y-1 active:scale-[0.98]">
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <h3 className="text-lg font-bold text-stone-900 leading-tight">Asiakastyytyväisyys</h3>
-                                    <p className="text-xs text-stone-500 mt-1">Kartoita tarpeet ja kerää palaute.</p>
+                                    <h3 className="text-lg font-bold text-stone-900 leading-tight">Asiakastyytyväisyyskysely</h3>
                                 </div>
                                 <div className="bg-[#f0fdf4] p-3 rounded-full text-[#2f855a]"><ListTodo className="h-5 w-5" /></div>
                             </div>
                         </div>
                     </div>
+
+                    {/* 3. Raportointi */}
+                    <div onClick={() => { setCurrentView('manager'); setCurrentTab('reports'); }} className="block group relative cursor-pointer">
+                        <div className="absolute inset-0 bg-[#ea580c] rounded-2xl transform translate-y-2 opacity-10 blur transition duration-300 group-hover:translate-y-3 group-hover:opacity-20"></div>
+                        <div className="relative bg-white rounded-2xl p-5 border-l-[6px] border-[#ea580c] shadow-sm transition transform group-hover:-translate-y-1 active:scale-[0.98]">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h3 className="text-lg font-bold text-stone-900 leading-tight">Raportointi</h3>
+                                </div>
+                                <div className="bg-orange-50 p-3 rounded-full text-[#ea580c]"><TrendingUp className="h-5 w-5" /></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 4. Oma tarjotin */}
+                    <div onClick={() => { setCurrentView('manager'); setCurrentTab('tools'); }} className="block group relative cursor-pointer">
+                        <div className="absolute inset-0 bg-stone-900 rounded-2xl transform translate-y-2 opacity-10 blur transition duration-300 group-hover:translate-y-3 group-hover:opacity-20"></div>
+                        <div className="relative bg-white rounded-2xl p-5 border-l-[6px] border-stone-800 shadow-sm transition transform group-hover:-translate-y-1 active:scale-[0.98]">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h3 className="text-lg font-bold text-stone-900 leading-tight">Oma tarjotin</h3>
+                                </div>
+                                <div className="bg-stone-100 p-3 rounded-full text-stone-700"><Briefcase className="h-5 w-5" /></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 5. Käyttäjähallinta (Only show to Admins) */}
+                    {isAdmin && (
+                        <div onClick={() => { setCurrentView('manager'); setCurrentTab('users'); }} className="block group relative cursor-pointer">
+                            <div className="absolute inset-0 bg-blue-900 rounded-2xl transform translate-y-2 opacity-10 blur transition duration-300 group-hover:translate-y-3 group-hover:opacity-20"></div>
+                            <div className="relative bg-white rounded-2xl p-5 border-l-[6px] border-blue-600 shadow-sm transition transform group-hover:-translate-y-1 active:scale-[0.98]">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-stone-900 leading-tight">Käyttäjähallinta</h3>
+                                    </div>
+                                    <div className="bg-blue-50 p-3 rounded-full text-blue-600"><User className="h-5 w-5" /></div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </main>
             </div>
         </div>
@@ -1018,6 +1088,30 @@ export default function App() {
                                     </div>
                                     <button onClick={() => setCurrentWeekOffset(0)} className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-colors ${currentWeekOffset === 0 ? 'bg-stone-100 text-stone-400 border-transparent cursor-default' : 'bg-white text-[#2f855a] border-stone-200 hover:bg-stone-50'}`}>Kuluva vko</button>
                                 </header>
+                                
+                                {isAdmin && pendingUsers.length > 0 && (
+                                    <div className="bg-[#fdf2f2] border border-[#fde8e8] rounded-3xl p-5 shadow-sm mb-6 animate-fade-in relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-[#9b2c2c]" />
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h3 className="text-sm font-black uppercase text-[#9b2c2c] tracking-widest px-1">Odottaa hyväksyntää ({pendingUsers.length})</h3>
+                                            <button onClick={() => setCurrentTab('users')} className="text-xs font-bold text-stone-500 hover:text-stone-700 underline">Kaikki työntekijät &rarr;</button>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {pendingUsers.map(u => (
+                                                <div key={u.id} className="bg-white border border-[#fde8e8] rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                    <div>
+                                                        <div className="font-bold text-stone-800 flex items-center gap-2 text-sm">{u.name || 'Nimetön'} <span className="px-2 py-0.5 rounded-full bg-stone-50 text-[#9b2c2c] text-[10px] border border-[#fde8e8] uppercase tracking-wider">{u.requestedRole || 'myyja'}</span></div>
+                                                        <div className="text-xs text-stone-500 mt-1.5">{u.email} <span className="mx-1 opacity-50">•</span> <span className="font-medium">{REGIONS.find(r=>r.id===u.regionId)?.name || 'Ei aluetta'}</span></div>
+                                                    </div>
+                                                    <div className="flex gap-2 w-full sm:w-auto">
+                                                        <button onClick={()=>handleDelete(u.id)} className="flex-1 sm:flex-none bg-stone-50 border border-stone-200 text-stone-600 py-2 px-5 rounded-xl text-xs font-bold hover:bg-stone-100 transition whitespace-nowrap">Hylkää</button>
+                                                        <button onClick={()=>handleApprove(u.id, u.requestedRole || 'myyja')} className="flex-1 sm:flex-none bg-[#9b2c2c] text-white py-2 px-5 rounded-xl text-xs font-bold shadow-sm hover:bg-[#771d1d] transition whitespace-nowrap">Hyväksy sisään</button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="bg-gradient-to-br from-[#771d1d] to-[#9b2c2c] text-white rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden group">
                                     <div className="relative z-10">
@@ -1403,7 +1497,10 @@ export default function App() {
                                             </div>
 
                                             <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
-                                                <h3 className="text-sm font-black text-stone-800 mb-4 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Uusimmat asiakaskohtaamiset</h3>
+                                                <div className="flex justify-between items-center mb-4 border-b border-stone-100 pb-3">
+                                                    <h3 className="text-sm font-black text-stone-800 uppercase tracking-widest text-center">Asiakaskohtaamiset</h3>
+                                                    <button onClick={() => setModals(prev => ({...prev, activityHistory: fbUser.uid}))} className="text-[10px] font-bold uppercase tracking-wider text-stone-600 bg-stone-100 px-3 py-2 rounded-xl border border-stone-200 hover:bg-stone-200 transition-colors flex items-center">Historia & Peruuta &rarr;</button>
+                                                </div>
                                                 {latestLogs.length === 0 ? <p className="text-center text-sm text-stone-500 py-4">Ei asiakaskohtaamisia vielä.</p> : (
                                                     <div className="space-y-3">
                                                         {latestLogs.map(log => {
@@ -1480,7 +1577,10 @@ export default function App() {
                                                         </div>
 
                                                         <div className="bg-stone-50 rounded-2xl p-5 border border-stone-200">
-                                                            <h3 className="text-xs font-black text-stone-800 mb-4 uppercase tracking-widest text-center border-b border-stone-200 pb-2">Uusimmat asiakaskohtaamiset</h3>
+                                                            <div className="flex justify-between items-center mb-4 border-b border-stone-200 pb-2">
+                                                                <h3 className="text-xs font-black text-stone-800 uppercase tracking-widest text-center">Asiakaskohtaamiset</h3>
+                                                                <button onClick={() => setModals(prev => ({...prev, activityHistory: selectedUserReport.id}))} className="text-[9px] font-bold uppercase tracking-wider text-stone-600 bg-white px-2 py-1.5 rounded-lg border border-stone-200 hover:bg-stone-100 transition-colors">Historia & Peruuta</button>
+                                                            </div>
                                                             {latestLogs.length === 0 ? <p className="text-center text-xs font-medium text-stone-500 py-2">Ei asiakaskohtaamisia vielä.</p> : (
                                                                 <div className="space-y-2">
                                                                     {latestLogs.map(log => {
@@ -1831,6 +1931,69 @@ export default function App() {
                             </div>
                         </div>
                     )}
+
+                    {modals.activityHistory && (() => {
+                        const targetUid = modals.activityHistory;
+                        const targetStat = allUserStats.find(s => s.id === targetUid) || { logs: [], name: 'Käyttäjä' };
+                        const logs = [...(targetStat.logs || [])].sort((a,b) => b.timestamp - a.timestamp);
+                        const isMe = targetUid === fbUser?.uid;
+                        
+                        return (
+                            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                                <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setModals(prev => ({ ...prev, activityHistory: null }))}></div>
+                                <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-[2rem] shadow-2xl relative z-10 overflow-hidden border border-stone-200">
+                                    <div className="bg-white p-6 border-b border-stone-200 flex justify-between items-center relative">
+                                        <div>
+                                            <h3 className="text-lg font-black text-stone-900">Aktiviteettihistoria</h3>
+                                            <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mt-1">{isMe ? 'Omat tapahtumasi' : `${targetStat.name} - Tapahtumat`}</p>
+                                        </div>
+                                        <button onClick={() => setModals(prev => ({ ...prev, activityHistory: null }))} className="w-8 h-8 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center hover:bg-stone-200 transition-colors"><X size={16}/></button>
+                                    </div>
+                                    
+                                    <div className="p-4 max-h-[60vh] overflow-y-auto space-y-3">
+                                        {logs.length === 0 ? <p className="text-center text-sm font-medium text-stone-500 py-10">Ei kirjattuja tapahtumia.</p> : logs.map(log => {
+                                            const isSurvey = log.type === 'survey';
+                                            const npsColor = log.nps >= 9 ? 'bg-[#f0fdf4] text-[#2f855a] border-[#dcfce7]' : (log.nps <= 6 && log.nps > 0 ? 'bg-[#fdf2f2] text-[#9b2c2c] border-[#fde8e8]' : 'bg-white text-stone-600 border-stone-200');
+                                            
+                                            return (
+                                                <div key={log.id} className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm relative group overflow-hidden flex justify-between">
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-1.5">
+                                                            {isSurvey ? <MessageCircle className="w-4 h-4 text-[#2f855a]" /> : <Activity className="w-4 h-4 text-[#9b2c2c]" />}
+                                                            <span className="font-black text-stone-800 text-sm">{isSurvey ? `Asiakaskohtaaminen` : (log.type === 'quick_sale' ? 'Kirjattu Lisämyynti' : 'Uusi Asiakas')}</span>
+                                                        </div>
+                                                        <div className="text-xs text-stone-500 font-medium mb-3">
+                                                            {new Date(log.timestamp).toLocaleString('fi-FI')}
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {isSurvey && <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-stone-50 border border-stone-200 rounded-md text-stone-600">As: {log.clientInitials}</span>}
+                                                            {log.hours > 0 && <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-stone-50 border border-stone-200 rounded-md text-stone-600"><Clock className="w-3 h-3 text-[#9b2c2c]"/> {log.hours}h</span>}
+                                                            {isSurvey && log.nps > 0 && <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 border rounded-md ${npsColor}`}>NPS: {log.nps}</span>}
+                                                            {log.proposalStatus === 'sold' && <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-[#f0fdf4] border border-[#dcfce7] rounded-md text-[#2f855a]"><UserCheck className="w-3 h-3"/> Uusi asiakas!</span>}
+                                                            {log.type === 'quick_customer' && <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-[#f0fdf4] border border-[#dcfce7] rounded-md text-[#2f855a]"><UserCheck className="w-3 h-3"/> Pika-asiakas</span>}
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="flex items-start">
+                                                        <button 
+                                                            onClick={() => handleUndoLog(targetUid, log.id)} 
+                                                            className="p-2 sm:p-2.5 bg-[#fdf2f2] text-[#9b2c2c] hover:bg-[#fce8e8] hover:text-[#771d1d] border border-[#fde8e8] rounded-xl flex items-center justify-center transition-colors shadow-sm shrink-0"
+                                                            title="Poista ja peruuta tilastoista"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <div className="bg-stone-50 p-4 border-t border-stone-200 text-center text-[10px] text-stone-400 font-bold uppercase rounded-b-[2rem]">
+                                        <p>Huom: Peruutuksen tulo tilastoihin edellyttää sivun päivitystä, mutta data on turvassa.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
 
                     {/* Admin - Aseta Tarjotin */}
                     {modals.adminPlan && (
@@ -2201,7 +2364,22 @@ export default function App() {
     };
 
     return (
-        <div className="font-sans antialiased bg-[#e7e5e4] min-h-screen">
+        <div className="font-sans antialiased bg-[#e7e5e4] min-h-screen flex flex-col">
+            {(authSession?.realRole === 'superadmin' && currentView !== 'simulator_login') && (
+                <div className="w-full bg-stone-900 text-white p-3 flex flex-col sm:flex-row items-center justify-center z-[100] shadow-md gap-3 sticky top-0 border-b border-stone-800">
+                    <span className="text-xs font-bold text-[#facc15] uppercase tracking-widest whitespace-nowrap"><Settings className="w-4 h-4 inline mr-1.5 mb-0.5 text-[#facc15] animate-pulse"/> Testitila</span>
+                    <div className="flex gap-2 w-full sm:w-auto max-w-md">
+                        <select value={authSession.role} onChange={e => setAuthSession({...authSession, role: e.target.value})} className="bg-stone-800 text-white text-[11px] font-bold p-2.5 rounded-lg outline-none border border-stone-700 flex-1 focus:border-[#facc15] transition-colors">
+                            <option value="superadmin">Koko Suomi (Superadmin)</option>
+                            <option value="admin">Aluevetäjä</option>
+                            <option value="myyja">Myyjä</option>
+                        </select>
+                        <select value={authSession.regionId} onChange={e => setAuthSession({...authSession, regionId: e.target.value})} className="bg-stone-800 text-white text-[11px] font-bold p-2.5 rounded-lg outline-none border border-stone-700 flex-1 focus:border-[#facc15] transition-colors">
+                            {REGIONS.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                        </select>
+                    </div>
+                </div>
+            )}
             {toast.visible && (
                 <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-[100] w-[90%] max-w-[400px] animate-fade-in">
                     <div className="bg-[#132e21] text-white p-4 px-6 rounded-2xl shadow-2xl flex items-center border border-[#22543d]">

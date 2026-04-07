@@ -135,6 +135,8 @@ export default function App() {
     const [myTasks, setMyTasks] = useState([]); // Seller's personal weekly list
     const [userCustomTray, setUserCustomTray] = useState([]); // Seller's custom tray items
     const [userHiddenMasterTasks, setUserHiddenMasterTasks] = useState([]); // Hidden global tray items
+    const [userProducts, setUserProducts] = useState([]); // User's customized products
+    const [hiddenMasterProducts, setHiddenMasterProducts] = useState([]); // Hidden global products
 
     // UI Modals & Inputs
     const [modals, setModals] = useState({ sales: false, adminPlan: false, editTask: false, editTrayTask: false, newTrayTask: false, bonuses: false, salaryDetails: false, historyEntry: false });
@@ -175,6 +177,16 @@ export default function App() {
     const unifiedTray = [
         ...masterTray.filter(t => t && t.id && !safeUserHiddenTasks.includes(t.id)).map(t => ({...t, isMaster: true})),
         ...safeUserCustomTray.map(t => ({...t, isMaster: false}))
+    ];
+
+    // Unified Products Computation
+    const masterProducts = Array.isArray(publicData.products) ? publicData.products : FALLBACK_PRODUCTS;
+    const safeHiddenMasterProducts = Array.isArray(hiddenMasterProducts) ? hiddenMasterProducts : [];
+    const safeUserProducts = Array.isArray(userProducts) ? userProducts : [];
+
+    const unifiedProducts = [
+        ...masterProducts.filter(p => p && p.id && !safeHiddenMasterProducts.includes(p.id)).map(p => ({...p, isMaster: true})),
+        ...safeUserProducts.map(p => ({...p, isMaster: false}))
     ];
 
     // 1. Initial Auth setup
@@ -265,6 +277,8 @@ export default function App() {
                 setUserMemos(data.memos || []);
                 setUserCustomTray(data.customTray || []);
                 setUserHiddenMasterTasks(data.hiddenMasterTasks || []);
+                setUserProducts(data.userProducts || []);
+                setHiddenMasterProducts(data.hiddenMasterProducts || []);
             }
         }, (err) => console.error("Private snap error:", err));
 
@@ -546,14 +560,51 @@ export default function App() {
         showToast("Laskutetut tunnit ja tavoite tallennettu aikasarjaan!");
     };
 
+    const updateProductField = async (id, field, val, isMaster) => {
+        if (isMaster && isAdmin) {
+            updatePublicDataProps({ products: (publicData.products || []).map(p => p.id === id ? { ...p, [field]: val } : p) });
+        } else if (!isMaster) {
+            await updatePrivateDoc({ userProducts: userProducts.map(p => p.id === id ? { ...p, [field]: val } : p) });
+        }
+    };
+    
+    const deleteProduct = async (id, isMaster) => {
+        if (isMaster) {
+            if (isAdmin && window.confirm("Poistetaanko tämä MASTER-kortti pysyvästi kaikilta käyttäjiltä (OK), vai piilotetaanko vain omalta tarjottimeltasi (Cancel)?")) {
+                updatePublicDataProps({ products: (publicData.products || []).filter(p => p.id !== id) });
+                showToast("Master-toimintakortti poistettu kaikilta tuotannosta");
+            } else {
+                await updatePrivateDoc({ hiddenMasterProducts: [...hiddenMasterProducts, id] });
+                showToast("Master-kortti piilotettu omalta tarjottimeltasi");
+            }
+        } else {
+            if(window.confirm("Poistetaanko oma muokattu korttisi?")) {
+                await updatePrivateDoc({ userProducts: userProducts.filter(p => p.id !== id) });
+                showToast("Oma kortti poistettu");
+            }
+        }
+    };
 
-    const updateProductField = (id, field, val) => updatePublicDataProps({ products: (publicData.products || []).map(p => p.id === id ? { ...p, [field]: val } : p) });
-    const deleteProduct = (id) => { updatePublicDataProps({ products: (publicData.products || []).filter(p => p.id !== id) }); showToast("Toimintakortti poistettu"); };
-    const addNewProduct = () => {
+    const duplicateMasterProduct = async (product) => {
+        const newId = Date.now();
+        const copy = { ...product, id: newId };
+        await updatePrivateDoc({ 
+            userProducts: [...userProducts, copy],
+            hiddenMasterProducts: [...hiddenMasterProducts, product.id]
+        });
+        setExpandedProductId(newId);
+        showToast("Kopioitu omaksi versioksi! Voit nyt muokata sitä.");
+    };
+
+    const addNewProduct = async () => {
         const newProduct = { id: Date.now(), title: "Uusi Tuote", icon: "Star", content: "Muokkaa sisältöä...", pitch: "Myyntilause..." };
-        updatePublicDataProps({ products: [...(publicData.products || []), newProduct] });
+        if (isAdmin && window.confirm("Haluatko lisätä kaikille näkyvän yhteisen Master-kortin (OK) vai vain henkilökohtaisen kortin (Cancel)?")) {
+            updatePublicDataProps({ products: [...(publicData.products || []), newProduct] });
+        } else {
+            await updatePrivateDoc({ userProducts: [...userProducts, newProduct] });
+        }
         setExpandedProductId(newProduct.id);
-        showToast("Uusi kortti lisätty");
+        showToast("Uusi kortti lisätty salkkuun!");
     };
 
     // SALES & SURVEY
@@ -1574,14 +1625,13 @@ export default function App() {
                                 
                                 <div className="flex justify-between items-center mb-4 mt-8 px-1 border-t border-stone-200 pt-6">
                                     <h3 className="text-lg font-black text-stone-900">Myyntimateriaalit</h3>
-                                    {isSuperAdmin && (
-                                        <button onClick={() => setIsEditMode(!isEditMode)} className={`w-8 h-8 rounded-full border border-stone-300 flex items-center justify-center text-stone-500 ${isEditMode ? 'bg-[#9b2c2c] text-white border-transparent shadow-md' : 'bg-white'}`}>
-                                            {isEditMode ? <Check size={14} /> : <Pen size={14} />}
-                                        </button>
-                                    )}
+                                    <h3 className="text-lg font-black text-stone-900">Myyntimateriaalit</h3>
+                                    <button onClick={() => setIsEditMode(!isEditMode)} className={`w-8 h-8 rounded-full border border-stone-300 flex items-center justify-center text-stone-500 ${isEditMode ? 'bg-[#9b2c2c] text-white border-transparent shadow-md' : 'bg-white'}`}>
+                                        {isEditMode ? <Check size={14} /> : <Pen size={14} />}
+                                    </button>
                                 </div>
                                 
-                                {isSuperAdmin && !isEditMode && <p className="text-xs text-stone-500 text-center mb-4">Työkalut ovat valtakunnallisia. Vain Super Admin voi muokata näitä.</p>}
+                                {isEditMode && <p className="text-xs text-stone-500 text-center mb-4">Muokkaa, piilota ja luo myyntisalkkusi kortteja.</p>}
                                 
                                 {publicData.scripts && publicData.scripts.length > 0 && (
                                     <div className="bg-white rounded-2xl overflow-hidden mb-4 border border-[#fde8e8] shadow-sm">
@@ -1593,7 +1643,7 @@ export default function App() {
                                             {!isEditMode && <ChevronDown size={16} className={`text-[#9b2c2c] transition-transform ${expandedProductId === 'leaddesk' ? 'rotate-180' : ''}`} />}
                                         </div>
                                         <div className={`${expandedProductId === 'leaddesk' || isEditMode ? 'block' : 'hidden'} p-4 bg-white border-t border-[#fde8e8]`}>
-                                            {isEditMode ? (
+                                            {isEditMode && isAdmin ? (
                                                 <textarea className="w-full p-3 border border-stone-200 rounded-xl h-64 text-sm focus:border-[#9b2c2c] outline-none" value={publicData.scripts[0].content} onChange={(e) => updatePublicDataProps({ scripts: [{...publicData.scripts[0], content: e.target.value}] })} />
                                             ) : (
                                                 <div className="prose text-sm text-stone-700 whitespace-pre-line leading-relaxed">{publicData.scripts[0].content}</div>
@@ -1602,27 +1652,42 @@ export default function App() {
                                     </div>
                                 )}
 
-                                {(publicData.products || []).map(p => (
-                                    <div key={p.id} className="bg-white rounded-2xl overflow-hidden mb-3 border border-stone-200 relative group shadow-sm">
-                                        {isEditMode && <button onClick={() => deleteProduct(p.id)} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-[#fdf2f2] text-[#9b2c2c] flex items-center justify-center z-20"><Trash2 size={14}/></button>}
+                                {(unifiedProducts || []).map(p => {
+                                    const canEditMaster = p.isMaster && isAdmin;
+                                    const canEdit = !p.isMaster || canEditMaster;
+
+                                    return (
+                                    <div key={p.id} className={`bg-white rounded-2xl overflow-hidden mb-3 border relative group shadow-sm ${p.isMaster ? 'border-stone-200' : 'border-[#2f855a]/30'}`}>
+                                        {isEditMode && (
+                                            <div className="absolute top-3 right-3 flex gap-2 z-20">
+                                                {p.isMaster && !canEditMaster && (
+                                                    <button onClick={() => duplicateMasterProduct(p)} className="h-8 px-3 text-xs font-bold rounded-xl bg-stone-100 text-[#9b2c2c] flex items-center border border-stone-200 hover:bg-stone-200 transition-colors">
+                                                        Kopioi & Muokkaa
+                                                    </button>
+                                                )}
+                                                <button onClick={() => deleteProduct(p.id, p.isMaster)} className={`w-8 h-8 rounded-full flex items-center justify-center ${p.isMaster ? 'bg-stone-100 text-stone-500 hover:bg-stone-200' : 'bg-[#fdf2f2] text-[#9b2c2c]'}`}>
+                                                    {p.isMaster && !canEditMaster ? <EyeOff size={14}/> : <Trash2 size={14}/>}
+                                                </button>
+                                            </div>
+                                        )}
                                         <div onClick={() => !isEditMode && setExpandedProductId(expandedProductId === p.id ? null : p.id)} className="bg-stone-50 p-4 flex justify-between items-center cursor-pointer select-none">
                                             <div className="flex items-center w-full">
-                                                <div className="w-8 h-8 rounded-full bg-white border border-stone-200 text-[#22543d] flex items-center justify-center mr-3 shrink-0 shadow-sm">
-                                                    {getIconByName(p.icon, { size: 16 })}
+                                                <div className={`w-8 h-8 rounded-full border flex items-center justify-center mr-3 shrink-0 shadow-sm ${p.isMaster ? 'bg-white border-stone-200 text-[#22543d]' : 'bg-[#f0fdf4] border-[#dcfce7] text-[#2f855a]'}`}>
+                                                    {p.isMaster ? getIconByName(p.icon, { size: 16 }) : <User size={14}/>}
                                                 </div>
-                                                {isEditMode ? 
-                                                    <input type="text" className="font-bold text-sm uppercase bg-transparent border-b border-dashed border-stone-400 w-full mr-10 focus:outline-none focus:border-[#9b2c2c]" value={p.title} onChange={(e) => updateProductField(p.id, 'title', e.target.value)} onClick={e => e.stopPropagation()} />
-                                                : <span className="font-bold text-sm uppercase text-stone-800">{p.title}</span>}
+                                                {isEditMode && canEdit ? 
+                                                    <input type="text" className="font-bold text-sm uppercase bg-transparent border-b border-dashed border-stone-400 w-full mr-24 focus:outline-none focus:border-[#9b2c2c]" value={p.title} onChange={(e) => updateProductField(p.id, 'title', e.target.value, p.isMaster)} onClick={e => e.stopPropagation()} />
+                                                : <span className="font-bold text-sm uppercase text-stone-800 flex items-center gap-2">{p.title} {!p.isMaster && <span className="px-1.5 py-0.5 rounded bg-[#f0fdf4] text-[#2f855a] text-[9px] border border-[#dcfce7]">Oma</span>}</span>}
                                             </div>
                                             {!isEditMode && <ChevronDown size={16} className={`text-stone-400 transition-transform ${expandedProductId === p.id ? 'rotate-180' : ''}`} />}
                                         </div>
                                         <div className={`${expandedProductId === p.id || isEditMode ? 'block' : 'hidden'} p-4 bg-white border-t border-stone-100`}>
-                                            {isEditMode ? (
+                                            {isEditMode && canEdit ? (
                                                 <>
                                                     <label className="text-xs font-bold text-stone-500 uppercase mb-1 block">Sisältö</label>
-                                                    <textarea className="w-full p-3 border border-stone-200 rounded-xl mb-3 text-sm focus:border-[#9b2c2c] outline-none" rows="3" value={p.content} onChange={(e) => updateProductField(p.id, 'content', e.target.value)}></textarea>
+                                                    <textarea className="w-full p-3 border border-stone-200 rounded-xl mb-3 text-sm focus:border-[#9b2c2c] outline-none" rows="3" value={p.content} onChange={(e) => updateProductField(p.id, 'content', e.target.value, p.isMaster)}></textarea>
                                                     <label className="text-xs font-bold text-stone-500 uppercase mb-1 block">Myyntilause</label>
-                                                    <textarea className="w-full p-3 border border-stone-200 rounded-xl bg-stone-50 text-sm focus:border-[#9b2c2c] outline-none" rows="2" value={p.pitch} onChange={(e) => updateProductField(p.id, 'pitch', e.target.value)}></textarea>
+                                                    <textarea className="w-full p-3 border border-stone-200 rounded-xl bg-stone-50 text-sm focus:border-[#9b2c2c] outline-none" rows="2" value={p.pitch} onChange={(e) => updateProductField(p.id, 'pitch', e.target.value, p.isMaster)}></textarea>
                                                 </>
                                             ) : (
                                                 <>
@@ -1635,7 +1700,8 @@ export default function App() {
                                             )}
                                         </div>
                                     </div>
-                                ))}
+                                    );
+                                })}
 
                                 {isEditMode && (
                                     <button onClick={addNewProduct} className="w-full border-2 border-dashed border-[#9b2c2c] text-[#9b2c2c] font-bold py-4 rounded-2xl hover:bg-[#fdf2f2] transition-colors flex items-center justify-center mt-4 mb-8">

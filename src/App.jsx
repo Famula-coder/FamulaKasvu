@@ -885,10 +885,11 @@ export default function App() {
 
     const renderUserProfile = () => {
         // Collect users to display depending on role
-        const usersToManage = (allGlobalStats || allUserStats || []).filter(u => {
+        const statsSource = authSession?.role === 'superadmin' ? (allGlobalStats?.length > 0 ? allGlobalStats : allUserStats) : allUserStats;
+        const usersToManage = (Array.isArray(statsSource) ? statsSource : []).filter(u => {
             if (!u.status || u.status === 'pending' || u.status === 'active') {
                 if (isSuperAdmin) return true;
-                if (isAdmin && !isSuperAdmin) return u.regionId === authSession.regionId && u.role === 'myyja';
+                if (isAdmin && !isSuperAdmin) return u.regionId === authSession.regionId && (u.role === 'myyja' || u.requestedRole === 'myyja');
                 return false;
             }
             return false;

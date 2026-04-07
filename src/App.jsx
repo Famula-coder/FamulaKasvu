@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Compass, Mic, Globe, Home, TrendingUp, Briefcase, StickyNote, X, CheckCircle, Clock, UserPlus, List, ChevronLeft, ChevronRight, ChevronDown, Lightbulb, CalendarCheck, Pen, Check, Trash2, PlusCircle, Coins, ListTodo, Rocket, Paintbrush, Utensils, HeartPulse, Shirt, TreePine, Coffee, Leaf, Smartphone, Star, Headset, Quote, LogOut, Plus, MessageCircle, UserCheck, ArrowRight, ThumbsUp, Activity, HeartHandshake, ShoppingBag, Shield, HelpCircle, AlertTriangle, Calendar, Sparkles, Minus, Send, Loader2, User, Settings, Target, DownloadCloud, Heart, Pin } from 'lucide-react';
+import { Compass, Mic, Globe, Home, TrendingUp, Briefcase, StickyNote, X, CheckCircle, Clock, UserPlus, List, ChevronLeft, ChevronRight, ChevronDown, Lightbulb, CalendarCheck, Pen, Check, Trash2, PlusCircle, Coins, ListTodo, Rocket, Paintbrush, Utensils, HeartPulse, Shirt, TreePine, Coffee, Leaf, Smartphone, Star, Headset, Quote, LogOut, Plus, MessageCircle, UserCheck, ArrowRight, ThumbsUp, Activity, HeartHandshake, ShoppingBag, Shield, HelpCircle, AlertTriangle, Calendar, Sparkles, Minus, Send, Loader2, User, Settings, Target, DownloadCloud, Heart, Pin, RefreshCw } from 'lucide-react';
 import { signInAnonymously, onAuthStateChanged, signInWithCustomToken, signInWithPopup, signOut } from 'firebase/auth';
 import { doc, setDoc, getDoc, onSnapshot, collection } from 'firebase/firestore';
 import { auth, db, appId, googleProvider } from './firebase';
@@ -764,7 +764,10 @@ export default function App() {
             const newLog = {
                 id: generateId(), timestamp: Date.now(), type: 'survey',
                 clientInitials: surveyState.clientInitials || '?',
-                hours: totalHours, nps: npsVal, answers: surveyState.answers,
+                hours: totalHours, 
+                planHours: surveyState.planHours || 0,
+                oneOffHours: surveyState.oneOffHours || 0,
+                nps: npsVal, answers: surveyState.answers,
                 proposalStatus: surveyState.proposalStatus
             };
             
@@ -1335,6 +1338,54 @@ export default function App() {
         );
     };
 
+    const calculateUserBonuses = (logs, regionBonuses, todayInfo) => {
+        let weekBonus = 0;
+        let monthBonus = 0;
+        let monthDetails = { oneTime: 0, ongoing: 0, customer: 0 };
+        
+        (logs || []).forEach(l => {
+            const lDate = new Date(l.timestamp);
+            const isThisWeek = getWeekNumber(lDate) === todayInfo.weekNum && lDate.getFullYear() === todayInfo.year;
+            const isThisMonth = lDate.getMonth() === todayInfo.monthIdx && lDate.getFullYear() === todayInfo.year;
+            
+            let val = 0;
+            let type = '';
+
+            if (l.type === 'quick_sale') {
+                val = (l.saleMode === 'ongoing' ? regionBonuses.ongoingRate : regionBonuses.oneTimeRate) * Number(l.hours || 0);
+                type = l.saleMode === 'ongoing' ? 'ongoing' : 'oneTime';
+            } else if (l.type === 'quick_customer') {
+                val = regionBonuses.customerBonus;
+                type = 'customer';
+            } else if (l.type === 'survey') {
+                if (l.planHours) {
+                    const planVal = regionBonuses.ongoingRate * Number(l.planHours);
+                    if (isThisWeek) weekBonus += planVal;
+                    if (isThisMonth) { monthBonus += planVal; monthDetails.ongoing += planVal; }
+                }
+                if (l.oneOffHours) {
+                    const oneOffVal = regionBonuses.oneTimeRate * Number(l.oneOffHours);
+                    if (isThisWeek) weekBonus += oneOffVal;
+                    if (isThisMonth) { monthBonus += oneOffVal; monthDetails.oneTime += oneOffVal; }
+                }
+                if (l.proposalStatus === 'sold') {
+                    const custVal = regionBonuses.customerBonus;
+                    if (isThisWeek) weekBonus += custVal;
+                    if (isThisMonth) { monthBonus += custVal; monthDetails.customer += custVal; }
+                }
+                return;
+            }
+            
+            if (isThisWeek) weekBonus += val;
+            if (isThisMonth) {
+                monthBonus += val;
+                if(type) monthDetails[type] += val;
+            }
+        });
+        
+        return { weekBonus, monthBonus, monthDetails };
+    };
+
     const renderManager = () => {
         const todayInfo = getTodayInfo(currentWeekOffset * 7);
         const currentMonthIdx = todayInfo.monthIdx;
@@ -1342,26 +1393,9 @@ export default function App() {
         const currentMonth = monthsData[currentMonthIdx];
         
         // Calculate Bonuses for Week and Month
-        let weekBonus = 0;
-        let monthBonus = 0;
         const myStatDocForBonus = allUserStats.find(s => s.id === fbUser?.uid) || { logs: [] };
         const regionBonuses = publicData?.regionBonuses?.[authSession?.regionId] || { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 };
-        
-        (myStatDocForBonus.logs || []).forEach(l => {
-            const lDate = new Date(l.timestamp);
-            const isThisWeek = getWeekNumber(lDate) === todayInfo.weekNum && lDate.getFullYear() === todayInfo.year;
-            const isThisMonth = lDate.getMonth() === todayInfo.monthIdx && lDate.getFullYear() === todayInfo.year;
-            
-            let val = 0;
-            if (l.type === 'quick_sale') {
-                val = (l.saleMode === 'ongoing' ? regionBonuses.ongoingRate : regionBonuses.oneTimeRate) * Number(l.hours || 0);
-            } else if (l.type === 'quick_customer') {
-                val = regionBonuses.customerBonus * Number(l.customers || 0);
-            }
-            
-            if (isThisWeek) weekBonus += val;
-            if (isThisMonth) monthBonus += val;
-        });
+        const { weekBonus, monthBonus } = calculateUserBonuses(myStatDocForBonus.logs, regionBonuses, todayInfo);
 
         // Calculate Reports
         const getPreviousMonthRealizedTotal = (plans, targetRegionId = null) => {
@@ -2250,26 +2284,56 @@ export default function App() {
                                     <h3 className="text-xl font-black text-stone-900">Palkkiot ja Komissiot</h3>
                                     <button onClick={() => setModals(prev => ({ ...prev, salaryDetails: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
                                 </div>
-                                <div className="bg-gradient-to-br from-[#22543d] to-[#2f855a] text-white p-6 rounded-2xl shadow-lg mb-6 relative overflow-hidden">
-                                    <div className="relative z-10">
-                                        <p className="text-[10px] font-bold text-[#dcfce7] uppercase mb-2 tracking-wider">Oma Arvioitu Bonus</p>
-                                        <div className="flex items-baseline">
-                                            <span className="text-5xl font-black">{(() => {
-                                                const myStat = (Array.isArray(allUserStats) ? allUserStats : []).find(s => s.id === fbUser?.uid) || { hours: 0 };
-                                                return (myStat.hours * 39.95).toFixed(2);
-                                            })()}</span>
-                                            <span className="text-xl font-bold ml-2 opacity-80">€</span>
-                                        </div>
-                                    </div>
-                                    <Coins className="absolute -right-4 -bottom-4 w-28 h-28 opacity-10" />
-                                </div>
-                                <div className="space-y-3">
-                                    <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 flex justify-between items-center">
-                                        <span className="text-sm font-bold text-stone-600">Peruspalkkio / H</span>
-                                        <span className="font-black text-stone-900">39.95 €</span>
-                                    </div>
-                                    <p className="text-xs text-stone-400 text-center opacity-80 mt-4">Palkkiot maksetaan asiakkaan hyväksymän tuntikirjauksen perusteella kerran kuussa.</p>
-                                </div>
+                                
+                                {(() => {
+                                    const todayInfo = getTodayInfo(0);
+                                    const regionBonuses = publicData?.regionBonuses?.[authSession?.regionId] || { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 };
+                                    const myStat = (Array.isArray(allUserStats) ? allUserStats : []).find(s => s.id === fbUser?.uid) || { logs: [] };
+                                    const { monthBonus, monthDetails } = calculateUserBonuses(myStat.logs, regionBonuses, todayInfo);
+                                    return (
+                                        <>
+                                            <div className="bg-gradient-to-br from-[#22543d] to-[#2f855a] text-white p-6 rounded-2xl shadow-lg mb-6 relative overflow-hidden">
+                                                <div className="relative z-10">
+                                                    <p className="text-[10px] font-bold text-[#dcfce7] uppercase mb-2 tracking-wider">Arvioitu Bonus: {todayInfo.monthIdx + 1}/{todayInfo.year}</p>
+                                                    <div className="flex items-baseline">
+                                                        <span className="text-5xl font-black">{monthBonus.toFixed(2)}</span>
+                                                        <span className="text-xl font-bold ml-2 opacity-80">€</span>
+                                                    </div>
+                                                </div>
+                                                <Coins className="absolute -right-4 -bottom-4 w-28 h-28 opacity-10" />
+                                            </div>
+                                            <div className="space-y-4 mb-2">
+                                                <h4 className="text-xs font-black text-stone-500 uppercase tracking-widest pl-1 mb-2 border-b border-stone-200/60 pb-2">Erittely kuluvalta kuulta</h4>
+                                                
+                                                <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex justify-between items-center group">
+                                                    <div>
+                                                        <div className="text-sm font-black text-stone-800 flex items-center gap-2"><RefreshCw className="w-4 h-4 text-[#2f855a]"/> Jatkuva palvelu</div>
+                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Sopimus: {regionBonuses.ongoingRate} €/h</div>
+                                                    </div>
+                                                    <span className="text-lg font-black text-stone-900 group-hover:text-[#2f855a] transition-colors">{monthDetails.ongoing.toFixed(2)} €</span>
+                                                </div>
+
+                                                <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex justify-between items-center group">
+                                                    <div>
+                                                        <div className="text-sm font-black text-stone-800 flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#9b2c2c]"/> Kertamyynti</div>
+                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Sopimus: {regionBonuses.oneTimeRate} €/h</div>
+                                                    </div>
+                                                    <span className="text-lg font-black text-stone-900 group-hover:text-[#9b2c2c] transition-colors">{monthDetails.oneTime.toFixed(2)} €</span>
+                                                </div>
+
+                                                <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex justify-between items-center group">
+                                                    <div>
+                                                        <div className="text-sm font-black text-stone-800 flex items-center gap-2"><UserPlus className="w-4 h-4 text-stone-600"/> Uusi Asiakas</div>
+                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Sopimus: {regionBonuses.customerBonus} €/kpl</div>
+                                                    </div>
+                                                    <span className="text-lg font-black text-stone-900">{monthDetails.customer.toFixed(2)} €</span>
+                                                </div>
+                                            </div>
+                                        </>
+                                    );
+                                })()}
+                                
+                                <p className="text-[10px] text-stone-400 text-center uppercase tracking-widest mt-6 opacity-80 font-bold mb-2">Maksetaan hyväksytyn tuntilokin pohjalta palkanmaksun yhteydessä.</p>
                             </div>
                         </div>
                     )}

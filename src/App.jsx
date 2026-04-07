@@ -1412,6 +1412,36 @@ export default function App() {
             return total;
         };
 
+        const getLast4MonthsData = (plans, targetRegionId = null) => {
+            const data = [];
+            const monthNames = ["Tammikuu", "Helmikuu", "Maaliskuu", "Huhtikuu", "Toukokuu", "Kesäkuu", "Heinäkuu", "Elokuu", "Syyskuu", "Lokakuu", "Marraskuu", "Joulukuu"];
+            
+            for (let i = 1; i <= 4; i++) {
+                const d = new Date();
+                d.setMonth(d.getMonth() - i);
+                const y = d.getFullYear();
+                const q = Math.floor(d.getMonth() / 3) + 1;
+                const moIdx = (d.getMonth() % 3) + 1;
+                const mName = monthNames[d.getMonth()];
+                
+                let tTarget = 0;
+                let tRealized = 0;
+
+                (plans || []).filter(p => Number(p.year) === y && Number(p.quarter) === q && (!targetRegionId || p.regionId === targetRegionId)).forEach(p => {
+                    tTarget += Number(p[`targetMo${moIdx}`] || 0);
+                    tRealized += Number(p[`realizedMo${moIdx}`] || 0);
+                });
+                
+                data.push({
+                    name: mName,
+                    year: y,
+                    target: tTarget,
+                    realized: tRealized,
+                });
+            }
+            return data;
+        };
+
         const getCurrentMonthSalesHours = (statsArray, targetRegionId = null) => {
             let salesHours = 0;
             const currMonth = new Date().getMonth();
@@ -1826,7 +1856,6 @@ export default function App() {
                                 })()}
                                 
                                 {isAdmin && (() => {
-                                    const prevTargetHours = getPreviousMonthTarget(marketingPlans, authSession.regionId);
                                     const currTargetHours = getCurrentMonthTarget(marketingPlans, authSession.regionId);
                                     
                                     let fallbackLevel = GROWTH_TEMPLATES[0] || { name: 'Perustus' };
@@ -1835,10 +1864,23 @@ export default function App() {
                                     if (currTargetHours >= 360) fallbackLevel = GROWTH_TEMPLATES[3] || GROWTH_TEMPLATES[2];
                                     
                                     const lastMatchedLevel = fallbackLevel;
-                                    const prevPace = totalRegionHours; // Edellisen kuun toteutuma
-                                    const currPace = totalRegionCustomers; // Kuluvan kuun myynnit
-                                    const pct = Math.min(100, Math.round((currPace / currTargetHours) * 100));
-                                    const isPaceGood = currPace >= (currTargetHours * 0.5); // Simple active pacing logic
+                                    const last4Months = getLast4MonthsData(marketingPlans, authSession.regionId);
+                                    
+                                    let avgPace = 0;
+                                    let totalValidTargets = 0;
+                                    let trendIsUp = false;
+
+                                    if (last4Months.length >= 2) {
+                                        trendIsUp = last4Months[0].realized >= last4Months[1].realized; // last4Months is ordered newest first (i = 1 to 4)
+                                        last4Months.forEach(m => {
+                                            if (m.target > 0) {
+                                                avgPace += (m.realized / m.target);
+                                                totalValidTargets++;
+                                            }
+                                        });
+                                    }
+                                    const avgPerformance = totalValidTargets > 0 ? (avgPace / totalValidTargets) : 0;
+                                    const isPaceGood = totalValidTargets > 0 ? avgPerformance >= 0.8 : true;
                                     
                                     return (
                                         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6 relative overflow-hidden">
@@ -1849,22 +1891,13 @@ export default function App() {
                                                 </div>
                                             </div>
 
-                                            <div className="flex justify-between items-center text-xs text-stone-500 mb-6 bg-stone-50 p-3 rounded-xl border border-stone-100">
-                                                <span>Edellinen Kk Historiatieto:</span>
-                                                <span className="font-bold border-b border-stone-200/50 pb-0.5">Toteutuma {prevPace}h / Tavoite {prevTargetHours}h</span>
-                                            </div>
-
-                                            <div className="mb-6">
-                                                <div className="flex justify-between text-sm font-bold mb-2">
-                                                    <span className="text-stone-700">Kuluvan kuun myynnit: <span className="text-lg text-stone-900">{currPace}</span>h</span>
-                                                    <span className="text-[#9b2c2c] bg-[#fdf2f2] px-2 py-0.5 rounded border border-[#fde8e8]">Tavoite: {currTargetHours}h</span>
-                                                </div>
-                                                <div className="bg-stone-100 h-4 rounded-full overflow-hidden border border-stone-200">
-                                                    <div className={`h-full rounded-full transition-all duration-1000 ${pct >= 100 ? 'bg-[#2f855a]' : 'bg-[#9b2c2c]'} relative`} style={{ width: `${pct}%` }}>
-                                                        <div className="absolute inset-0 bg-white/20"></div>
+                                            <div className="mb-6 space-y-2">
+                                                {last4Months.map((m, idx) => (
+                                                    <div key={idx} className="flex justify-between items-center text-xs text-stone-600 bg-stone-50 p-3 rounded-xl border border-stone-100">
+                                                        <span className="font-bold uppercase tracking-wider">{m.name} {m.year}</span>
+                                                        <span className="font-bold border-b border-stone-200/50 pb-0.5"><span className={m.realized >= m.target && m.target > 0 ? 'text-[#2f855a]' : 'text-stone-800'}>Toteutuma: {m.realized}h</span> <span className="opacity-50 mx-1">/</span> Tavoite: {m.target}h</span>
                                                     </div>
-                                                </div>
-                                                <p className="text-[10px] text-right mt-1.5 font-bold text-stone-400 uppercase tracking-wider">{pct}% tavoitevauhdista</p>
+                                                ))}
                                             </div>
 
                                             <div className={`p-4 rounded-xl border flex items-start gap-4 ${isPaceGood ? 'bg-[#f0fdf4] border-[#dcfce7] text-[#22543d]' : 'bg-[#fdf2f2] border-[#fde8e8] text-[#771d1d]'}`}>
@@ -1874,7 +1907,9 @@ export default function App() {
                                                 <div>
                                                     <h4 className="text-xs font-black uppercase tracking-wider mb-1">Sparraaja</h4>
                                                     <p className="text-xs font-medium leading-relaxed opacity-90">
-                                                        {isPaceGood ? 'Hienoa työtä! Olette hyvässä vauhdissa kohti kuluvan kuukauden tavoitetta. Pitäkää sama tahti yllä ja varmistakaa nykyisten asiakkaiden tyytyväisyys!' : 'Alue on hieman tavoitevauhdista jäljessä tälle kuulle. AI suosittelee tehostamaan uusasiakashankintaa LeadDesk -soitoilla ja varmistamaan tiimin aktiivisuuden.'}
+                                                        {isPaceGood 
+                                                          ? (trendIsUp ? 'Mahtavaa työtä! Viimeisten kuukausien todennettu historiadata osoittaa vakaata nousua ja tavoitteissa pysymistä. Pitäkää sama tahti yllä.' : 'Hyvää työtä! Olette keskimäärin pysyneet todennetuissa tavoitteissa menneinä kuukausina. Varmistakaa uusasiakashankinnan aktiivisuus.') 
+                                                          : 'Alue on historiallisesti hieman tavoitevauhdista jäljessä suhteessa kuitattuihin tavoitteisiin. AI suosittelee tiukentamaan asiakashankinnan rutiineja tulevina viikkoina.'}
                                                     </p>
                                                 </div>
                                             </div>

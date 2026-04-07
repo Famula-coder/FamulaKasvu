@@ -1723,12 +1723,17 @@ export default function App() {
                                             <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6">
                                                 <h3 className="text-xs font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Alueiden Vertailu</h3>
                                                 <div className="space-y-4">
-                                                    {(Array.isArray(regionStats) ? regionStats : []).sort((a,b) => b.hours - a.hours).map(rs => {
-                                                        const rHistory = publicData.regionHistory?.[rs.id] || [];
-                                                        const lastMonthEntry = rHistory.length > 0 ? rHistory[rHistory.length - 1] : { hours: 0, target: 100 };
-                                                        const targetHours = lastMonthEntry.target || 100;
-                                                        const pacePct = Math.min(100, Math.round((rs.hours / targetHours) * 100));
-                                                        const isPaceGood = rs.hours >= (targetHours * 0.8);
+                                                    {(Array.isArray(regionStats) ? regionStats : []).sort((a,b) => {
+                                                        const aR = getPreviousMonthRealizedTotal(marketingPlans, a.id);
+                                                        const aT = getPreviousMonthTarget(marketingPlans, a.id);
+                                                        const bR = getPreviousMonthRealizedTotal(marketingPlans, b.id);
+                                                        const bT = getPreviousMonthTarget(marketingPlans, b.id);
+                                                        return (bR / (bT || 1)) - (aR / (aT || 1));
+                                                    }).map(rs => {
+                                                        const rTavoite = getPreviousMonthTarget(marketingPlans, rs.id);
+                                                        const rToteutuma = getPreviousMonthRealizedTotal(marketingPlans, rs.id);
+                                                        const pacePct = Math.min(100, Math.round((rToteutuma / (rTavoite || 1)) * 100));
+                                                        const isPaceGood = rToteutuma >= (rTavoite * 0.8);
                                                         
                                                         const rNps = rs.npsCount > 0 ? (rs.npsSum / rs.npsCount).toFixed(1) : '-';
                                                         const npsColor = rNps >= 9 ? 'text-[#2f855a]' : rNps <= 6 && rNps !== '-' ? 'text-[#9b2c2c]' : 'text-stone-500';
@@ -1743,18 +1748,14 @@ export default function App() {
                                                                     </div>
                                                                     <span className={`text-[10px] font-bold uppercase tracking-wider ${npsColor}`}>NPS {rNps}</span>
                                                                 </div>
-                                                                <div className="grid grid-cols-3 gap-3 mb-4">
+                                                                <div className="grid grid-cols-2 gap-3 mb-4">
                                                                     <div className="bg-stone-50 p-3 rounded-xl text-center border border-stone-100">
-                                                                        <p className="text-[9px] font-bold uppercase tracking-wider text-stone-400 mb-0.5">Kuluva Kk</p>
-                                                                        <p className="font-black text-stone-800 text-lg leading-none">{rs.hours}h</p>
-                                                                    </div>
-                                                                    <div className="bg-stone-50 p-3 rounded-xl text-center border border-stone-100">
-                                                                        <p className="text-[9px] font-bold uppercase tracking-wider text-stone-400 mb-0.5">Mennyt Kk</p>
-                                                                        <p className="font-black text-stone-800 text-lg leading-none">{lastMonthEntry.hours}h</p>
+                                                                        <p className="text-[9px] font-bold uppercase tracking-wider text-stone-400 mb-0.5">Toteutuma</p>
+                                                                        <p className="font-black text-stone-800 text-lg leading-none">{rToteutuma}h</p>
                                                                     </div>
                                                                     <div className="bg-[#fdf2f2] p-3 rounded-xl text-center border border-[#fde8e8]">
                                                                         <p className="text-[9px] font-bold uppercase tracking-wider text-[#9b2c2c] mb-0.5">Tavoite</p>
-                                                                        <p className="font-black text-[#9b2c2c] text-lg leading-none">{targetHours}h</p>
+                                                                        <p className="font-black text-[#9b2c2c] text-lg leading-none">{rTavoite}h</p>
                                                                     </div>
                                                                 </div>
                                                                 <div className="bg-stone-100 h-2 w-full rounded-full overflow-hidden border border-stone-200">

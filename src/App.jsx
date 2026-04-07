@@ -877,7 +877,7 @@ export default function App() {
                                     </select>
                                 </div>
                                 <button type="submit" className="w-full bg-[#22543d] text-white rounded-2xl py-4 font-bold hover:bg-[#132e21] transition-all flex items-center justify-center shadow-lg active:scale-95 mt-4">
-                                    Lähetä Hakemus <ChevronRight className="ml-2 w-5 h-5"/>
+                                    Lähetä hakemus <ChevronRight className="ml-2 w-5 h-5"/>
                                 </button>
                             </form>
                         </div>

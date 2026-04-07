@@ -179,27 +179,44 @@ export default function App() {
 
     // 1. Initial Auth setup
     useEffect(() => {
+        const SUPER_ADMINS = ['heikki.laivamaa@famula.fi', 'paulus.linnanmaki@famula.fi'];
+        
         const unsub = onAuthStateChanged(auth, async (u) => {
             if (u) {
                 setFbUser(u);
                 if (!authSession) {
-                    const userDocSnap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', u.uid)).catch(()=>null);
-                    let role = 'myyja';
-                    let regionId = 'uusimaa';
-                    let name = u.displayName || u.email || 'Myyjä';
-                    if (userDocSnap && userDocSnap.exists()) {
-                        const d = userDocSnap.data();
-                        if (d.role) role = d.role;
-                        if (d.regionId) regionId = d.regionId;
-                        if (d.name) name = d.name;
-                    }
-                    // For the first user (developer testing setting up), let's make them superadmin
-                    // In a highly constrained test environment, this gets things rolling.
-                    if (name.toLowerCase().includes('heikki') || name.toLowerCase().includes('super')) {
-                        role = 'superadmin';
-                    }
-                    setAuthSession({ name, role, regionId, realRole: role, realRegionId: regionId });
-                    setCurrentView('portal');
+                    const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', u.uid);
+                    // Use onSnapshot so if admin approves them, their session updates
+                    onSnapshot(userRef, (userDocSnap) => {
+                        let role = 'myyja';
+                        let regionId = 'uusimaa';
+                        let name = u.displayName || u.email || 'Käyttäjä';
+                        let status = 'pending';
+                        
+                        if (userDocSnap && userDocSnap.exists()) {
+                            const d = userDocSnap.data();
+                            if (d.role) role = d.role;
+                            if (d.regionId) regionId = d.regionId;
+                            if (d.name) name = d.name;
+                            if (d.status) status = d.status;
+                        }
+
+                        // Hardcoded override
+                        if (u.email && SUPER_ADMINS.includes(u.email.toLowerCase())) {
+                            role = 'superadmin';
+                            status = 'active';
+                        }
+                        
+                        setAuthSession({ name, role, regionId, realRole: role, realRegionId: regionId, status, email: u.email });
+                        
+                        if (status === 'active') {
+                            setCurrentView(prev => prev === 'pending_access' || prev === 'simulator_login' ? 'portal' : prev);
+                        } else {
+                            setCurrentView('pending_access');
+                        }
+                    }, (err) => {
+                        console.error('Session listener error:', err);
+                    });
                 }
             } else {
                 setFbUser(null);
@@ -605,6 +622,194 @@ export default function App() {
             </div>
         </div>
     );
+
+    const handleApplyAccess = async (e) => {
+        e.preventDefault();
+        const role = e.target.elements.roleSelect.value;
+        const regionId = e.target.elements.regionSelect.value;
+        const name = e.target.elements.nameInput.value;
+        
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', fbUser.uid), {
+            name: name,
+            email: fbUser.email,
+            requestedRole: role,
+            regionId: regionId,
+            status: 'pending',
+            role: 'myyja', // Always save initial underlying role safely
+            hours: 0, customers: 0, npsSum: 0, npsCount: 0, myTasks: []
+        }, { merge: true });
+        
+        setAuthSession(prev => ({...prev, status: 'pending', regionId}));
+        showToast("Hakemus lähetetty johtajalle!", "success");
+    };
+
+    const renderPendingAccess = () => {
+        const isAlreadyApplied = authSession?.status === 'pending' && authSession?.regionId;
+        return (
+            <div className="min-h-screen bg-[#e7e5e4] flex flex-col items-center justify-center p-4">
+                <div className="bg-[#f5f5f4] p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md relative overflow-hidden border border-stone-200">
+                    <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#9b2c2c] to-[#2f855a]"></div>
+                    <div className="flex justify-between items-center mb-6 mt-4">
+                        <h1 className="text-3xl font-black text-stone-900 tracking-tighter">Famula</h1>
+                        <button onClick={handleLogout} className="text-stone-400 hover:text-stone-700 font-bold text-xs flex items-center"><LogOut size={14} className="mr-1"/> Ulos</button>
+                    </div>
+                    
+                    {isAlreadyApplied ? (
+                        <div className="text-center py-6 animate-fade-in">
+                            <Clock className="w-16 h-16 text-stone-400 mx-auto mb-4" />
+                            <h2 className="text-xl font-bold text-stone-800 mb-2">Odottaa Hyväksyntää</h2>
+                            <p className="text-stone-500 text-sm leading-relaxed">
+                                Hakemuksesi alueelle <b>{REGIONS.find(r=>r.id===authSession?.regionId)?.name}</b> on lähetetty! 
+                                Pääset sisään työpöydälle heti kun ohjaaja on kuitannut roolisi aktiiviseksi.
+                            </p>
+                            <button onClick={()=>window.location.reload()} className="mt-8 text-[#9b2c2c] font-bold text-sm underline">Päivitä sivu</button>
+                        </div>
+                    ) : (
+                        <div className="animate-fade-in">
+                            <p className="text-stone-500 mb-6 text-sm font-medium tracking-wide">Uusi käyttäjä! Pyydä oikeudet tiimin sovellukseen täyttämällä tiedot.</p>
+                            <form onSubmit={handleApplyAccess} className="space-y-4 text-left">
+                                <div>
+                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Koko Nimesi</label>
+                                    <input type="text" name="nameInput" required defaultValue={fbUser?.displayName || ''} className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#2f855a]" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Mille alueelle haet?</label>
+                                    <select name="regionSelect" required className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#2f855a]">
+                                        <option value="">-- Valitse alueasiakkuus --</option>
+                                        {REGIONS.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Mitä roolia haet?</label>
+                                    <select name="roleSelect" required className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#2f855a]">
+                                        <option value="myyja">Myyjä (Asiakaskohtaamiset)</option>
+                                        <option value="admin">Aluevetäjä (Alueen hallinta)</option>
+                                    </select>
+                                </div>
+                                <button type="submit" className="w-full bg-[#22543d] text-white rounded-2xl py-4 font-bold hover:bg-[#132e21] transition-all flex items-center justify-center shadow-lg active:scale-95 mt-4">
+                                    Lähetä Hakemus <ChevronRight className="ml-2 w-5 h-5"/>
+                                </button>
+                            </form>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    const renderUserProfile = () => {
+        // Collect users to display depending on role
+        const usersToManage = (allGlobalStats || allUserStats || []).filter(u => {
+            if (!u.status || u.status === 'pending' || u.status === 'active') {
+                if (isSuperAdmin) return true;
+                if (isAdmin && !isSuperAdmin) return u.regionId === authSession.regionId && u.role === 'myyja';
+                return false;
+            }
+            return false;
+        });
+
+        const pendingUsers = usersToManage.filter(u => u.status === 'pending');
+        const activeUsers = usersToManage.filter(u => u.status === 'active' && u.id !== fbUser?.uid);
+
+        const handleApprove = async (uid, reqRole) => {
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', uid), { status: 'active', role: reqRole }, { merge: true });
+            showToast("Käyttäjä hyväksytty!");
+        };
+        const handleAssignRole = async (uid, newRole) => {
+            if(window.confirm("Muutetaanko roolia?")) {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', uid), { role: newRole }, { merge: true });
+                showToast("Rooli vaihdettu!");
+            }
+        };
+        const handleDelete = async (uid) => {
+            if(window.confirm("Haluatko varmasti hylätä/poistaa käyttäjän? Saanti ohjelmaan evätään välittömästi.")) {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', uid), { status: 'rejected' }, { merge: true });
+                if (uid === fbUser?.uid) handleLogout();
+            }
+        };
+        
+        return (
+            <div className="animate-fade-in">
+                <header className="mb-4 mt-2 px-1"><h2 className="text-2xl font-black text-stone-900">{isAdmin ? 'Käyttäjähallinta' : 'Oma Profiili'}</h2></header>
+                
+                <div className="bg-white p-6 rounded-3xl shadow-sm border border-stone-200 mb-6">
+                    <div className="flex items-center gap-4 mb-4">
+                        <div className="w-16 h-16 rounded-full bg-stone-100 flex items-center justify-center text-[#2f855a] text-xl font-bold">{fbUser?.displayName?.[0] || 'U'}</div>
+                        <div>
+                            <h3 className="font-bold text-lg text-stone-800">{fbUser?.displayName || authSession?.name}</h3>
+                            <p className="text-stone-500 text-sm">{fbUser?.email}</p>
+                            <div className="mt-2 flex gap-2">
+                                <span className="bg-[#f0fdf4] text-[#22543d] px-2 py-1 rounded text-[10px] font-bold uppercase border border-[#dcfce7]">{authSession?.realRole}</span>
+                                <span className="bg-stone-100 text-stone-600 px-2 py-1 rounded text-[10px] font-bold uppercase border border-stone-200">{authSession?.regionId}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {!isSuperAdmin && (
+                        <div className="mt-6 pt-6 border-t border-stone-100 space-y-3">
+                            <button onClick={()=>showToast("Pyyntö vetäjälle lähetetty (Demo)")} className="w-full text-left p-3 rounded-xl border border-stone-200 text-sm font-bold text-stone-700 hover:bg-stone-50 transition flex items-center justify-between">Ano siirtoa toiselle alueelle <ChevronRight size={16} className="text-stone-400"/></button>
+                            {authSession?.role === 'admin' && <button onClick={()=>showToast("Pyyntö Superadminille lähetetty! (Demo)")} className="w-full text-left p-3 rounded-xl border border-stone-200 text-sm font-bold text-stone-700 hover:bg-stone-50 transition flex items-center justify-between">Ano Superadmin-oikeuksia <ChevronRight size={16} className="text-stone-400"/></button>}
+                            
+                            <button onClick={()=>handleDelete(fbUser.uid)} className="w-full p-3 rounded-xl border border-[#fde8e8] bg-[#fdf2f2] text-sm font-bold text-[#9b2c2c] hover:bg-[#fce8e8] transition flex items-center justify-center mt-4 text-center">Poista työntekijätili kanta-asiakasohjelmasta</button>
+                        </div>
+                    )}
+                    
+                    <button onClick={handleLogout} className="w-full text-center p-3 rounded-xl bg-stone-900 border border-stone-900 text-sm font-bold text-white shadow-md hover:bg-black transition flex items-center justify-center mt-6 gap-2"><LogOut size={16}/> Kirjaudu ulos</button>
+                </div>
+
+                {isAdmin && (
+                    <div className="space-y-6">
+                        {pendingUsers.length > 0 && (
+                            <div>
+                                <h3 className="text-xs font-black uppercase text-[#9b2c2c] tracking-widest mb-3 px-1">Odottaa hyväksyntää ({pendingUsers.length})</h3>
+                                <div className="space-y-3">
+                                    {pendingUsers.map(u => (
+                                        <div key={u.id} className="bg-[#fdf2f2] border border-[#fde8e8] rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                            <div>
+                                                <div className="font-bold text-stone-800 flex items-center gap-2">{u.name} <span className="px-2 py-0.5 rounded-full bg-white text-[#9b2c2c] text-[10px] border border-[#fde8e8]">{u.requestedRole || 'myyja'}</span></div>
+                                                <div className="text-xs text-stone-500 mt-1">{u.email} • {REGIONS.find(r=>r.id===u.regionId)?.name}</div>
+                                            </div>
+                                            <div className="flex gap-2 w-full sm:w-auto">
+                                                <button onClick={()=>handleDelete(u.id)} className="flex-1 bg-white border border-[#fde8e8] text-[#9b2c2c] py-2 px-4 rounded-xl text-xs font-bold hover:bg-[#fde8e8] transition">Hylkää</button>
+                                                <button onClick={()=>handleApprove(u.id, u.requestedRole || 'myyja')} className="flex-1 bg-[#2f855a] text-white py-2 px-4 rounded-xl text-xs font-bold shadow-sm hover:bg-[#22543d] transition">Hyväksy</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        
+                         <div>
+                            <h3 className="text-xs font-black uppercase text-stone-500 tracking-widest mb-3 px-1 mt-6">Aktiiviset työntekijät ({activeUsers.length})</h3>
+                            <div className="space-y-3">
+                                {activeUsers.map(u => (
+                                    <div key={u.id} className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        <div>
+                                            <div className="font-bold text-stone-800 flex items-center gap-2">{u.name} <span className="px-2 py-0.5 rounded-full bg-stone-100 text-stone-500 text-[10px] border border-stone-200">{u.role}</span></div>
+                                            <div className="text-xs text-stone-500 mt-1">{u.email} • {REGIONS.find(r=>r.id===u.regionId)?.name}</div>
+                                        </div>
+                                        {isSuperAdmin && (
+                                            <div className="flex gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+                                                <select defaultValue={u.role} onChange={e=>handleAssignRole(u.id, e.target.value)} className="bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 text-[10px] font-bold text-stone-700 outline-none w-full sm:w-auto">
+                                                    <option value="myyja">Myyjä</option>
+                                                    <option value="admin">Aluevetäjä</option>
+                                                </select>
+                                                <button onClick={()=>handleDelete(u.id)} className="bg-white border border-[#fde8e8] text-[#9b2c2c] p-1.5 rounded-xl hover:bg-[#fde8e8] transition flex items-center justify-center w-full sm:w-10 sm:h-10"><Trash2 size={14} className="mr-2 sm:mr-0"/><span className="sm:hidden text-xs font-bold">Poista</span></button>
+                                            </div>
+                                        )}
+                                        {isAdmin && !isSuperAdmin && (
+                                            <button onClick={()=>handleDelete(u.id)} className="w-full sm:w-auto bg-white border border-[#fde8e8] text-[#9b2c2c] py-2 px-4 rounded-xl text-xs font-bold hover:bg-[#fde8e8] transition">Poista tiimistä</button>
+                                        )}
+                                    </div>
+                                ))}
+                                {activeUsers.length === 0 && <p className="text-stone-400 text-sm px-1 py-2">Ei muita aktiivisia työntekijöitä.</p>}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     const renderPortal = () => (
         <div className="min-h-screen bg-[#e7e5e4] flex flex-col items-center p-0 sm:p-4 text-stone-800">
@@ -1460,6 +1665,7 @@ export default function App() {
                                 </div>
                             </div>
                         )}
+                        {currentTab === 'users' && renderUserProfile()}
                     </div>
 
                     {/* MODALS */}
@@ -1742,10 +1948,11 @@ export default function App() {
 
                     {/* BOTTOM NAV */}
                     <div className="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto flex justify-between px-2 py-3 z-40 bg-[#f5f5f4]/95 backdrop-blur-md border-t border-stone-200">
-                        <button onClick={() => setCurrentTab('dashboard')} className={`flex flex-col items-center justify-center w-1/4 transition-colors ${currentTab==='dashboard'?'text-[#9b2c2c]':'text-stone-400'}`}><Home className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider">Koti</span></button>
-                        <button onClick={() => setCurrentTab('reports')} className={`flex flex-col items-center justify-center w-1/4 transition-colors ${currentTab==='reports'?'text-[#9b2c2c]':'text-stone-400'}`}><TrendingUp className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider">Raportit</span></button>
-                        <button onClick={() => setCurrentTab('tools')} className={`flex flex-col items-center justify-center w-1/4 transition-colors ${currentTab==='tools'?'text-[#9b2c2c]':'text-stone-400'}`}><Briefcase className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider">Työkalut</span></button>
-                        <button onClick={() => setCurrentTab('memo')} className={`flex flex-col items-center justify-center w-1/4 transition-colors ${currentTab==='memo'?'text-[#9b2c2c]':'text-stone-400'}`}><StickyNote className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider">Muistio</span></button>
+                        <button onClick={() => setCurrentTab('dashboard')} className={`flex flex-col items-center justify-center flex-1 transition-colors ${currentTab==='dashboard'?'text-[#9b2c2c]':'text-stone-400'}`}><Home className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Koti</span></button>
+                        <button onClick={() => setCurrentTab('reports')} className={`flex flex-col items-center justify-center flex-1 transition-colors ${currentTab==='reports'?'text-[#9b2c2c]':'text-stone-400'}`}><TrendingUp className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Raportit</span></button>
+                        <button onClick={() => setCurrentTab('tools')} className={`flex flex-col items-center justify-center flex-1 transition-colors ${currentTab==='tools'?'text-[#9b2c2c]':'text-stone-400'}`}><Briefcase className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Työkalu</span></button>
+                        <button onClick={() => setCurrentTab('memo')} className={`flex flex-col items-center justify-center flex-1 transition-colors ${currentTab==='memo'?'text-[#9b2c2c]':'text-stone-400'}`}><StickyNote className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Muistio</span></button>
+                        <button onClick={() => setCurrentTab('users')} className={`flex flex-col items-center justify-center flex-1 transition-colors ${currentTab==='users'?'text-[#9b2c2c]':'text-stone-400'}`}><User className="h-6 w-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Oma Tili</span></button>
                     </div>
                 </div>
             </div>
@@ -1938,6 +2145,7 @@ export default function App() {
                 </div>
             )}
             {currentView === 'simulator_login' && renderSimulatorLogin()}
+            {currentView === 'pending_access' && renderPendingAccess()}
             {currentView === 'portal' && renderPortal()}
             {currentView === 'manager' && renderManager()}
             {currentView === 'survey' && renderSurveyApp()}

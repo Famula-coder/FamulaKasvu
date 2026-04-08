@@ -25,6 +25,17 @@ const DEFAULT_TRAY_TASKS = [
     { id: generateId(), text: "Digi- ja lehtimainonnan konversioiden optimointi: 1 kerta / vko" }
 ];
 
+const GAMIFICATION_LEVELS = [
+    { level: 0, maxHours: 100, title: "Aluevaltaaja", icon: "🥉", color: "text-[#cd7f32]", bgColor: "bg-[#cd7f32]/10", border: "border-[#cd7f32]/30", desc: "Perustan rakentaminen. Palkan turvaaminen." },
+    { level: 1, maxHours: 250, title: "Työnjohtaja", icon: "🥈", color: "text-[#71717a]", bgColor: "bg-[#f4f4f5]", border: "border-[#e4e4e7]", desc: "Ensimmäiset työntekijät. Myyntivolyymin kasvatus." },
+    { level: 2, maxHours: 426, title: "Kasvujohtaja", icon: "🥇", color: "text-[#eab308]", bgColor: "bg-[#fefce8]", border: "border-[#fef08a]", desc: "Kuopan ylitys. Ohjaa aikaa lisämyyntiin ja tukemiseen." },
+    { level: 3, maxHours: Infinity, title: "Omistaja", icon: "💎", color: "text-[#06b6d4]", bgColor: "bg-[#ecfeff]", border: "border-[#a5f3fc]", desc: "Koneisto rullaa. Liiketoiminnan täysi skaalautuminen." }
+];
+
+const getGamificationLevel = (hours) => {
+    return GAMIFICATION_LEVELS.find(l => (hours || 0) < l.maxHours) || GAMIFICATION_LEVELS[GAMIFICATION_LEVELS.length - 1];
+};
+
 const GROWTH_TEMPLATES = [
     { id: '0_perustus', name: "Yleinen: 0. Perustus (0–100 h)", tasks: ["LeadDesk-soitot: 250 kpl / vko", "Kaupan repäisymainokset: 5 kpl / vko", "Asiakaskäynnit: 3-4 kpl / vko", "Sidosryhmätapaamiset (palveluohjaajat): 1 kpl / vko", "Digi- ja lehtimainonnan optimointi: 1 kerta / vko"] },
     { id: '1_ensimmaiset', name: "Yleinen: 1. Ensimmäiset työntekijät (100–250 h)", tasks: ["LeadDesk-soitot: 350 kpl / vko", "Kaupan repäisymainokset: 5 kpl / vko", "Asiakaskäynnit: 4-5 kpl / vko", "Sidosryhmätapaamiset (sote-ammattilaiset): 1-2 kpl / vko", "Rekrytointivalmius / Tiimin ohjaus: 2 h / vko"] },
@@ -181,11 +192,12 @@ export default function App() {
     const [editThemeData, setEditThemeData] = useState({ theme: "", tip: "" });
     const [selectedUserReport, setSelectedUserReport] = useState(null);
     const [showHelpModal, setShowHelpModal] = useState(false);
+    const [showLevelsInfo, setShowLevelsInfo] = useState(false);
     const [isGeneratingRecording, setIsGeneratingRecording] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     
     // History Data Entry (Aluevetäjä)
-    const [historyEntry, setHistoryEntry] = useState({ month: new Date().toISOString().slice(0, 7), hours: "", target: "" });
+    const [historyEntry, setHistoryEntry] = useState({ month: new Date().toISOString().slice(0, 7), hours: "", target: "", revenue: "", revenueTarget: "" });
     
     
     // Marketing Plans State
@@ -193,6 +205,7 @@ export default function App() {
     const [editingMarketingPlan, setEditingMarketingPlan] = useState({
         id: '', year: new Date().getFullYear(), quarter: Math.floor((new Date().getMonth() + 3) / 3),
         targetMo1: '', targetMo2: '', targetMo3: '',
+        targetRev1: '', targetRev2: '', targetRev3: '',
         budgetPrint: '', budgetDigital: '', budgetEdustus: '', budgetOther: '',
         evaluation: '',
         selectedTasks: [] // { id, trayTaskId, type: 'pinned' | 'week', targetWeekNum: X }
@@ -1240,12 +1253,14 @@ export default function App() {
                         <h1 className="text-2xl font-black text-stone-900 tracking-tight">Markkinointisuunnitelmat</h1>
                         <p className="text-stone-500 text-xs font-bold uppercase tracking-widest mt-1">Kvartaalitasoinen ohjaus</p>
                     </div>
+                    <button onClick={() => setShowLevelsInfo(true)} className="w-10 h-10 rounded-full bg-white border border-stone-200 shadow-sm flex items-center justify-center text-[#2f855a] hover:bg-stone-50 transition"><HelpCircle size={20}/></button>
                 </header>
 
                 <button onClick={() => {
                     setEditingMarketingPlan({
                         id: '', year: new Date().getFullYear(), quarter: Math.floor((new Date().getMonth() + 3) / 3),
                         targetMo1: '', targetMo2: '', targetMo3: '',
+                        targetRev1: '', targetRev2: '', targetRev3: '',
                         budgetPrint: '', budgetDigital: '', budgetEdustus: '', budgetOther: '',
                         evaluation: '', selectedTasks: []
                     });
@@ -1274,15 +1289,24 @@ export default function App() {
                                 <div className="space-y-1">
                                     <div className="flex justify-between items-center bg-white p-2 rounded-xl border border-stone-200">
                                         <span className="text-[10px] font-bold text-stone-500">KK 1</span>
-                                        <span className="text-sm font-bold text-stone-800">{plan.targetMo1 || 0}h <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedMo1 || 0}h</span></span>
+                                        <div className="text-right">
+                                            <div className="text-sm font-bold text-stone-800">{plan.targetMo1 || 0}h <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedMo1 || 0}h</span></div>
+                                            <div className="text-[10px] font-bold text-stone-400 mt-0.5">{plan.targetRev1 || 0}€ <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedRev1 || 0}€</span></div>
+                                        </div>
                                     </div>
                                     <div className="flex justify-between items-center bg-white p-2 rounded-xl border border-stone-200">
                                         <span className="text-[10px] font-bold text-stone-500">KK 2</span>
-                                        <span className="text-sm font-bold text-stone-800">{plan.targetMo2 || 0}h <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedMo2 || 0}h</span></span>
+                                        <div className="text-right">
+                                            <div className="text-sm font-bold text-stone-800">{plan.targetMo2 || 0}h <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedMo2 || 0}h</span></div>
+                                            <div className="text-[10px] font-bold text-stone-400 mt-0.5">{plan.targetRev2 || 0}€ <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedRev2 || 0}€</span></div>
+                                        </div>
                                     </div>
                                     <div className="flex justify-between items-center bg-white p-2 rounded-xl border border-stone-200">
                                         <span className="text-[10px] font-bold text-stone-500">KK 3</span>
-                                        <span className="text-sm font-bold text-stone-800">{plan.targetMo3 || 0}h <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedMo3 || 0}h</span></span>
+                                        <div className="text-right">
+                                            <div className="text-sm font-bold text-stone-800">{plan.targetMo3 || 0}h <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedMo3 || 0}h</span></div>
+                                            <div className="text-[10px] font-bold text-stone-400 mt-0.5">{plan.targetRev3 || 0}€ <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedRev3 || 0}€</span></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1328,18 +1352,24 @@ export default function App() {
                                     <div className="flex flex-col gap-3">
                                         <div className="flex items-center gap-2">
                                             <span className="text-[10px] font-bold text-stone-400 w-6">Kk1</span>
-                                            <input type="number" placeholder="Tavoite (h)" value={editingMarketingPlan.targetMo1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetMo1: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold outline-none" />
-                                            <input type="number" placeholder="Toteuma (h)" value={editingMarketingPlan.realizedMo1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo1: e.target.value})} className="w-full p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-sm font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                            <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetMo1: e.target.value})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
+                                            <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo1: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                            <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetRev1: e.target.value})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
+                                            <input type="number" placeholder="Tot (€)" value={editingMarketingPlan.realizedRev1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedRev1: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-1.5">
                                             <span className="text-[10px] font-bold text-stone-400 w-6">Kk2</span>
-                                            <input type="number" placeholder="Tavoite (h)" value={editingMarketingPlan.targetMo2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetMo2: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold outline-none" />
-                                            <input type="number" placeholder="Toteuma (h)" value={editingMarketingPlan.realizedMo2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo2: e.target.value})} className="w-full p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-sm font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                            <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetMo2: e.target.value})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
+                                            <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo2: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                            <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetRev2: e.target.value})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
+                                            <input type="number" placeholder="Tot (€)" value={editingMarketingPlan.realizedRev2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedRev2: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-1.5">
                                             <span className="text-[10px] font-bold text-stone-400 w-6">Kk3</span>
-                                            <input type="number" placeholder="Tavoite (h)" value={editingMarketingPlan.targetMo3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetMo3: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold outline-none" />
-                                            <input type="number" placeholder="Toteuma (h)" value={editingMarketingPlan.realizedMo3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo3: e.target.value})} className="w-full p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-sm font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                            <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetMo3: e.target.value})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
+                                            <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo3: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                            <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetRev3: e.target.value})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
+                                            <input type="number" placeholder="Tot (€)" value={editingMarketingPlan.realizedRev3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedRev3: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
                                         </div>
                                     </div>
                                 </div>
@@ -1410,6 +1440,43 @@ export default function App() {
                             </div>
                             
                             <button onClick={saveMarketingPlan} className="w-full bg-[#9b2c2c] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform mb-8">Tallenna Suunnitelma</button>
+                        </div>
+                    </div>
+                )}
+                
+                {showLevelsInfo && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setShowLevelsInfo(false)}></div>
+                        <div className="bg-[#f5f5f4] w-full max-w-md rounded-3xl p-6 shadow-2xl relative z-10 animate-fade-in border border-stone-100">
+                            <div className="flex justify-between items-center mb-5">
+                                <div>
+                                    <h3 className="text-lg font-black text-stone-900">Famulan Kasvun Portaat</h3>
+                                    <p className="text-[10px] uppercase font-bold text-stone-400 tracking-wider mt-1">Ohjelman suoritustasot</p>
+                                </div>
+                                <button onClick={() => setShowLevelsInfo(false)} className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-stone-500 hover:bg-stone-300 transition"><X size={16}/></button>
+                            </div>
+                            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                                {GAMIFICATION_LEVELS.map((lvl, index) => {
+                                    const prevLvl = index > 0 ? GAMIFICATION_LEVELS[index - 1] : null;
+                                    return (
+                                    <div key={lvl.level} className={`p-4 rounded-2xl border ${lvl.bgColor} ${lvl.border} bg-white shadow-sm`}>
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <span className="text-2xl">{lvl.icon}</span>
+                                            <div>
+                                                <h4 className={`text-sm font-black uppercase tracking-wider ${lvl.color}`}>{lvl.title}</h4>
+                                                <p className="text-[10px] font-bold text-stone-500 uppercase">
+                                                    {lvl.maxHours === Infinity ? 'Yli 426 h/kk' : lvl.level === 0 ? `0 - ${lvl.maxHours} h/kk` : `${prevLvl.maxHours} - ${lvl.maxHours} h/kk`}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-stone-700 font-medium leading-relaxed bg-[#f5f5f4] p-2.5 rounded-xl border border-stone-200/50">
+                                            {lvl.desc}
+                                        </p>
+                                    </div>
+                                    );
+                                })}
+                            </div>
+                            <button onClick={() => setShowLevelsInfo(false)} className="w-full bg-[#9b2c2c] text-white font-bold py-3.5 rounded-xl mt-5 shadow-sm active:scale-95 transition-transform uppercase tracking-wider text-xs">Selvä</button>
                         </div>
                     </div>
                 )}
@@ -1505,10 +1572,14 @@ export default function App() {
                 
                 let tTarget = 0;
                 let tRealized = 0;
+                let tTargetRev = 0;
+                let tRealizedRev = 0;
 
                 (plans || []).filter(p => Number(p.year) === y && Number(p.quarter) === q && (!targetRegionId || p.regionId === targetRegionId)).forEach(p => {
                     tTarget += Number(p[`targetMo${moIdx}`] || 0);
                     tRealized += Number(p[`realizedMo${moIdx}`] || 0);
+                    tTargetRev += Number(p[`targetRev${moIdx}`] || 0);
+                    tRealizedRev += Number(p[`realizedRev${moIdx}`] || 0);
                 });
                 
                 data.push({
@@ -1516,6 +1587,8 @@ export default function App() {
                     year: y,
                     target: tTarget,
                     realized: tRealized,
+                    targetRev: tTargetRev,
+                    realizedRev: tRealizedRev,
                 });
             }
             return data;
@@ -1580,6 +1653,15 @@ export default function App() {
                         </div>
                         <div className="flex items-center gap-2">
                             <button onClick={() => setShowHelpModal(true)} className="text-stone-400 hover:text-[#9b2c2c] transition-colors"><HelpCircle size={18} /></button>
+                            {isAdmin && (() => {
+                                const currTgtHours = getCurrentMonthTarget(marketingPlans, authSession.regionId);
+                                const lvl = getGamificationLevel(currTgtHours);
+                                return (
+                                    <span className={`text-[10px] ${lvl.bgColor} ${lvl.color} px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${lvl.border} flex items-center gap-1`} title={lvl.desc}>
+                                        <span className="text-xs">{lvl.icon}</span> {lvl.title}
+                                    </span>
+                                );
+                            })()}
                             <span className="text-xs bg-stone-100 text-stone-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider">{activeRegions.find(r=>r.id===authSession?.regionId)?.name || 'Famula'}</span>
                         </div>
                     </div>
@@ -1929,11 +2011,17 @@ export default function App() {
                                                                         <span className={`text-[10px] font-bold uppercase tracking-wider ${npsColor}`}>NPS {rNps}</span>
                                                                     </div>
                                                                     
-                                                                    <div className="mb-4 space-y-1.5 pl-2 border-l-2 border-stone-100">
+                                                                    <div className="mb-4 space-y-2 pl-2 border-l-2 border-stone-100">
                                                                         {last4Months.map((m, idx) => (
-                                                                            <div key={idx} className="flex justify-between items-center text-[10px] text-stone-600">
-                                                                                <span className="font-bold uppercase tracking-wider text-stone-800">{m.name}</span>
-                                                                                <span><strong className={m.realized >= m.target && m.target > 0 ? 'text-[#2f855a]' : 'text-stone-700'}>{m.realized}h</strong> <span className="opacity-50">/</span> {m.target}h</span>
+                                                                            <div key={idx} className="flex flex-col gap-1 text-[10px] text-stone-600 border-b border-stone-100/50 pb-1.5 last:border-0 last:pb-0">
+                                                                                <div className="flex justify-between items-center">
+                                                                                    <span className="font-bold uppercase tracking-wider text-stone-800">{m.name}</span>
+                                                                                    <span><strong className={m.realized >= m.target && m.target > 0 ? 'text-[#2f855a]' : 'text-stone-700'}>{m.realized}h</strong> <span className="opacity-50">/</span> {m.target}h</span>
+                                                                                </div>
+                                                                                <div className="flex justify-between items-center">
+                                                                                    <span className="uppercase tracking-wider opacity-60">Liikevaihto</span>
+                                                                                    <span><strong className={m.realizedRev >= m.targetRev && m.targetRev > 0 ? 'text-[#2f855a]' : 'text-stone-700'}>{m.realizedRev}€</strong> <span className="opacity-50">/</span> {m.targetRev}€</span>
+                                                                                </div>
                                                                             </div>
                                                                         ))}
                                                                     </div>
@@ -1970,12 +2058,8 @@ export default function App() {
                                 {isAdmin && (() => {
                                     const currTargetHours = getCurrentMonthTarget(marketingPlans, authSession.regionId);
                                     
-                                    let fallbackLevel = GROWTH_TEMPLATES[0] || { name: 'Perustus' };
-                                    if (currTargetHours >= 100) fallbackLevel = GROWTH_TEMPLATES[1];
-                                    if (currTargetHours >= 250) fallbackLevel = GROWTH_TEMPLATES[2];
-                                    if (currTargetHours >= 360) fallbackLevel = GROWTH_TEMPLATES[3] || GROWTH_TEMPLATES[2];
+                                    const gamificationLevel = getGamificationLevel(currTargetHours);
                                     
-                                    const lastMatchedLevel = fallbackLevel;
                                     const last4Months = getLast4MonthsData(marketingPlans, authSession.regionId);
                                     
                                     let avgPace = 0;
@@ -1999,30 +2083,42 @@ export default function App() {
                                             <div className="flex justify-between items-start mb-5 border-b border-stone-100 pb-4">
                                                 <div>
                                                     <h3 className="text-lg font-black text-stone-900">Alueen Kasvu & Tavoite</h3>
-                                                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-1">Seuraava taso: {lastMatchedLevel.name}</p>
+                                                    <div className={`mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${gamificationLevel.bgColor} ${gamificationLevel.border} shadow-sm`}>
+                                                        <span className="text-base leading-none">{gamificationLevel.icon}</span>
+                                                        <span className={`text-[10px] font-black uppercase tracking-widest ${gamificationLevel.color}`}>Taso: {gamificationLevel.title}</span>
+                                                    </div>
                                                 </div>
                                             </div>
 
                                             <div className="mb-6 space-y-2">
                                                 {last4Months.map((m, idx) => (
-                                                    <div key={idx} className="flex justify-between items-center text-xs text-stone-600 bg-stone-50 p-3 rounded-xl border border-stone-100">
-                                                        <span className="font-bold uppercase tracking-wider">{m.name} {m.year}</span>
-                                                        <span className="font-bold border-b border-stone-200/50 pb-0.5"><span className={m.realized >= m.target && m.target > 0 ? 'text-[#2f855a]' : 'text-stone-800'}>Toteutuma: {m.realized}h</span> <span className="opacity-50 mx-1">/</span> Tavoite: {m.target}h</span>
+                                                    <div key={idx} className="flex flex-col gap-2 text-xs text-stone-600 bg-stone-50 p-3 rounded-xl border border-stone-100">
+                                                        <div className="flex justify-between items-center w-full">
+                                                            <span className="font-bold uppercase tracking-wider">{m.name} {m.year}</span>
+                                                            <span className="font-bold border-b border-stone-200/50 pb-0.5"><span className={m.realized >= m.target && m.target > 0 ? 'text-[#2f855a]' : 'text-stone-800'}>Tot: {m.realized}h</span> <span className="opacity-50 mx-1">/</span> Tav: {m.target}h</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center w-full mt-1 border-t border-stone-200 pt-2">
+                                                            <span className="font-bold uppercase tracking-wider text-[10px] text-stone-400">LIIKEVAIHTO</span>
+                                                            <span className="font-bold border-b border-stone-200/50 pb-0.5 text-[10px]"><span className={m.realizedRev >= m.targetRev && m.targetRev > 0 ? 'text-[#2f855a]' : 'text-stone-800'}>Tot: {m.realizedRev}€</span> <span className="opacity-50 mx-1">/</span> Tav: {m.targetRev}€</span>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
 
-                                            <div className={`p-4 rounded-xl border flex items-start gap-4 ${isPaceGood ? 'bg-[#f0fdf4] border-[#dcfce7] text-[#22543d]' : 'bg-[#fdf2f2] border-[#fde8e8] text-[#771d1d]'}`}>
-                                                <div className={`shrink-0 p-2 rounded-full ${isPaceGood ? 'bg-[#2f855a] text-white' : 'bg-[#9b2c2c] text-white'}`}>
+                                            <div className={`p-4 rounded-xl border flex items-start gap-4 bg-[#f0fdf4] border-[#dcfce7] text-[#22543d]`}>
+                                                <div className={`shrink-0 p-2 rounded-full bg-[#2f855a] text-white`}>
                                                     <Sparkles className="w-4 h-4" />
                                                 </div>
                                                 <div>
                                                     <h4 className="text-xs font-black uppercase tracking-wider mb-1">Sparraaja</h4>
                                                     <p className="text-xs font-medium leading-relaxed opacity-90">
-                                                        {isPaceGood 
-                                                          ? (trendIsUp ? 'Mahtavaa työtä! Viimeisten kuukausien todennettu historiadata osoittaa vakaata nousua ja tavoitteissa pysymistä. Pitäkää sama tahti yllä.' : 'Hyvää työtä! Olette keskimäärin pysyneet todennetuissa tavoitteissa menneinä kuukausina. Varmistakaa uusasiakashankinnan aktiivisuus.') 
-                                                          : 'Alue on historiallisesti hieman tavoitevauhdista jäljessä suhteessa kuitattuihin tavoitteisiin. AI suosittelee tiukentamaan asiakashankinnan rutiineja tulevina viikkoina.'}
+                                                        {gamificationLevel.desc}
                                                     </p>
+                                                    {!isPaceGood && (
+                                                        <p className="text-xs font-medium leading-relaxed opacity-90 mt-2 text-[#9b2c2c] border-t border-[#dcfce7] pt-2">
+                                                            * Vauhti laahaa historiaan nähden. Kiristä rutiineja varmistaaksesi että taso säilyy.
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

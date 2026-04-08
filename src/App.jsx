@@ -3494,11 +3494,13 @@ const updatePublicDataProps = (updates) => {
                                         ...(isAdmin && !isSuperAdmin ? [
                                             { id: 'team', title: 'Myyjien suoritustaso', desc: 'Alueesi työntekijöiden tuloslistaus ohjauksen ja vertailun tueksi.' }
                                         ] : []),
-                                        ...(isSuperAdmin ? [
+                                        ...(isAdmin ? [
                                             { id: 'fin_revenue', title: 'Tilikauden liikevaihto ja muutos-%', desc: 'Kertoo alueen liikevaihdon ja prosentuaalisen kehityksen suhteessa edelliseen tilikauteen.' },
                                             { id: 'fin_ebitda', title: 'Käyttökate (EBITDA)', desc: 'Indikoi operatiivisen toiminnan peruskannattavuutta asettaen sen rinnakkain tulosluistoon.' },
                                             { id: 'fin_ebit', title: 'Liiketulos (EBIT)', desc: 'Liiketoiminnan tulos poistojen jälkeen. Paljastaa miten tuottavaa toiminta on.' },
-                                            { id: 'fin_cashflow', title: 'Operatiivinen kassavirta', desc: 'Kuvaa liiketoiminnan jättämää reaalista rahavirtaa ja kassan riittävyyttä.' },
+                                            { id: 'fin_cashflow', title: 'Operatiivinen kassavirta', desc: 'Kuvaa liiketoiminnan jättämää reaalista rahavirtaa ja kassan riittävyyttä.' }
+                                        ] : []),
+                                        ...(isSuperAdmin ? [
                                             { id: 'fin_equity', title: 'Omavaraisuusaste', desc: 'Prosenttiluku vahvistaa, kuinka suuri osa alueen varallisuudesta on rahoitettu omalla pääomalla.' },
                                             { id: 'fin_quickratio', title: 'Maksuvalmius (Quick Ratio)', desc: 'Happotesti maksuvalmiudelle: kyky selviytyä lyhytaikaisista veloista.' }
                                         ] : [])

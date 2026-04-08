@@ -2777,8 +2777,8 @@ export default function App() {
                                     {item.type === 'nps' ? (
                                         <div className="w-full pt-4 pb-2 px-1">
                                             <div className="flex justify-between text-xs text-stone-400 font-bold px-1 mb-2"><span>1 (Ei)</span><span>10 (Kyllä)</span></div>
-                                            <input type="range" min="1" max="10" step="1" value={val || 5} className="w-full h-4 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-[#9b2c2c] z-20" onChange={(e) => updateState({ answers: { ...(answers || {}), [item.id]: parseInt(e.target.value) } })} style={{ opacity: val === 0 ? 0.5 : 1 }} />
-                                            <div className="text-center mt-4 h-8"><span className={`text-4xl font-black ${val === 0 ? 'text-stone-300' : 'text-[#9b2c2c]'}`}>{val === 0 ? '?' : val}</span></div>
+                                            <input type="range" min="1" max="10" step="1" value={val || 5} className="w-full h-4 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-[#2f855a] z-20" onChange={(e) => updateState({ answers: { ...(answers || {}), [item.id]: parseInt(e.target.value) } })} style={{ opacity: val === 0 ? 0.5 : 1 }} />
+                                            <div className="text-center mt-4 h-8"><span className={`text-4xl font-black ${val === 0 ? 'text-stone-300' : 'text-[#2f855a]'}`}>{val === 0 ? '?' : val}</span></div>
                                         </div>
                                     ) : (
                                         <div className="flex justify-between items-center gap-1">
@@ -2794,8 +2794,8 @@ export default function App() {
                     })}
                 </div>
                 <div className="pt-4">
-                    <button onClick={() => goToStep('worker')} disabled={!isSurveyComplete} className={`w-full py-4 rounded-2xl font-bold text-xl shadow-xl flex items-center justify-center gap-3 transition-all ${isSurveyComplete ? 'bg-[#9b2c2c] text-white hover:bg-[#771d1d] active:scale-95' : 'bg-stone-200 text-stone-400 cursor-not-allowed'}`}>Jatka <ArrowRight className="w-6 h-6" /></button>
-                    {!isSurveyComplete && <p className="text-center text-[#9b2c2c] font-bold mt-3">Vastaathan kaikkiin kohtiin.</p>}
+                    <button onClick={() => goToStep('worker')} disabled={!isSurveyComplete} className={`w-full py-4 rounded-2xl font-bold text-xl shadow-xl flex items-center justify-center gap-3 transition-all ${isSurveyComplete ? 'bg-[#2f855a] text-white hover:bg-[#22543d] active:scale-95' : 'bg-stone-200 text-stone-400 cursor-not-allowed'}`}>Jatka <ArrowRight className="w-6 h-6" /></button>
+                    {!isSurveyComplete && <p className="text-center text-[#2f855a] font-bold mt-3">Vastaathan kaikkiin kohtiin.</p>}
                 </div>
             </div>
         );
@@ -2822,9 +2822,9 @@ export default function App() {
                     <div className="space-y-4">
                         <div className="flex flex-col gap-1 mb-2">
                             <div className="flex items-center gap-2"><HeartHandshake className="text-stone-500 w-6 h-6"/><h3 className="text-base font-black text-stone-700 uppercase tracking-widest">Hyvinvointikartoitus</h3></div>
-                            <div className="ml-1 bg-[#fdf2f2] border border-[#fde8e8] p-5 rounded-2xl relative mt-4 shadow-sm">
-                                <div className="absolute -top-3 left-4 bg-[#9b2c2c] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Avausrepliikki</div>
-                                <p className="text-lg font-bold text-[#771d1d] leading-snug">"Sopiiko, että kartoitetaan tämän hetken palvelun tarvetta ja riittävyyttä?"</p>
+                            <div className="ml-1 bg-[#f0fdf4] border border-[#dcfce7] p-5 rounded-2xl relative mt-4 shadow-sm">
+                                <div className="absolute -top-3 left-4 bg-[#2f855a] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Avausrepliikki</div>
+                                <p className="text-lg font-bold text-[#22543d] leading-snug">"Sopiiko, että kartoitetaan tämän hetken palvelun tarvetta ja riittävyyttä?"</p>
                             </div>
                         </div>
                         <div className="space-y-4 pt-2">
@@ -2859,7 +2859,7 @@ export default function App() {
                                         </div>
                                     </>
                                 ) : mediumNeeds.length > 0 ? (
-                                    <><div className="flex items-center gap-2 mb-2 text-[#9b2c2c] font-black text-xs uppercase tracking-wider"><HelpCircle className="w-5 h-5"/> Kartoita tarkemmin</div><p className="text-sm text-stone-800 font-medium">Asiakkaalla on heräävää kiinnostusta alueilla: <strong>{mediumNeeds.map(i=>i.title).join(", ")}</strong>. Kysy tarkentavia kysymyksiä.</p></>
+                                    <><div className="flex items-center gap-2 mb-2 text-[#2f855a] font-black text-xs uppercase tracking-wider"><HelpCircle className="w-5 h-5"/> Kartoita tarkemmin</div><p className="text-sm text-stone-800 font-medium">Asiakkaalla on heräävää kiinnostusta alueilla: <strong>{mediumNeeds.map(i=>i.title).join(", ")}</strong>. Kysy tarkentavia kysymyksiä.</p></>
                                 ) : <p className="text-sm font-medium text-stone-500 text-center py-2">Arki sujuu hyvin / ei tarvetta lisätuelle.</p>}
                             </div>
                         </div>
@@ -2879,18 +2879,18 @@ export default function App() {
                             </div>
 
                             <div className="bg-stone-50 rounded-2xl p-5 border border-stone-200 shadow-sm">
-                                <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-2"><Sparkles className="text-[#9b2c2c] w-5 h-5"/><span className="text-sm font-black text-stone-800 uppercase tracking-wide">Kertamyynti</span></div><span className="text-xs font-bold bg-white text-[#9b2c2c] px-3 py-1.5 rounded-lg border border-stone-200 shadow-sm">5€ / h bonus</span></div>
+                                <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-2"><Sparkles className="text-[#2f855a] w-5 h-5"/><span className="text-sm font-black text-stone-800 uppercase tracking-wide">Kertamyynti</span></div><span className="text-xs font-bold bg-white text-[#2f855a] px-3 py-1.5 rounded-lg border border-stone-200 shadow-sm">5€ / h bonus</span></div>
                                 <div className="flex items-center bg-white rounded-xl p-1.5 shadow-sm border border-stone-200 w-full max-w-[200px]">
                                     <button onClick={() => updateState({ oneOffHours: Math.max(0, oneOffHours - 0.5) })} className="w-10 h-10 rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 flex items-center justify-center transition-colors"><Minus className="w-5 h-5"/></button>
                                     <div className="flex-1 text-center font-black text-2xl text-stone-800">{oneOffHours} <span className="text-sm text-stone-400 font-bold">h</span></div>
-                                    <button onClick={() => updateState({ oneOffHours: oneOffHours + 0.5 })} className="w-10 h-10 rounded-lg bg-[#9b2c2c] text-white hover:bg-[#771d1d] flex items-center justify-center transition-colors"><Plus className="w-5 h-5"/></button>
+                                    <button onClick={() => updateState({ oneOffHours: oneOffHours + 0.5 })} className="w-10 h-10 rounded-lg bg-[#2f855a] text-white hover:bg-[#22543d] flex items-center justify-center transition-colors"><Plus className="w-5 h-5"/></button>
                                 </div>
                             </div>
                             <input type="text" placeholder="Mitä sovittiin?" value={surveyState.salesNote} onChange={e => updateState({salesNote: e.target.value})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-base font-medium text-stone-800 placeholder-stone-400 focus:border-[#2f855a] outline-none shadow-inner" />
                         </div>
                     </div>
 
-                    <button onClick={submitSurvey} disabled={surveyState.isSubmitting} className="w-full py-5 rounded-2xl font-black text-xl shadow-xl flex items-center justify-center gap-3 bg-[#771d1d] text-white hover:bg-[#4a0f0f] active:scale-95 transition-all">
+                    <button onClick={submitSurvey} disabled={surveyState.isSubmitting} className="w-full py-5 rounded-2xl font-black text-xl shadow-xl flex items-center justify-center gap-3 bg-[#2f855a] text-white hover:bg-[#22543d] active:scale-95 transition-all">
                         {surveyState.isSubmitting ? <><Loader2 className="w-6 h-6 animate-spin"/> Lähetetään...</> : <>Hyväksy & Lopeta <Send className="w-6 h-6"/></>}
                     </button>
                 </div>
@@ -2906,7 +2906,7 @@ export default function App() {
                                 <button onClick={() => {
                                     if (step === 'worker') setSurveyState(prev => ({...prev, step: 'customer'}));
                                     else if (step === 'customer') setSurveyState(prev => ({...prev, step: 'login'}));
-                                }} className="hover:text-[#9b2c2c] transition-colors"><ChevronLeft size={20}/></button>
+                                }} className="hover:text-[#2f855a] transition-colors"><ChevronLeft size={20}/></button>
                                 <button onClick={() => setCurrentView('simulator_login')} className="hover:text-[#2f855a] transition-colors"><Home size={20}/></button>
                             </div>
                             <div className="flex flex-col"><span className="font-bold text-stone-900 text-sm tracking-wide">{company}</span></div>

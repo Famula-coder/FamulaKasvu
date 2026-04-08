@@ -1072,7 +1072,7 @@ const updatePublicDataProps = (updates) => {
                 </div>
 
                 {isAdmin && (
-                    <div className="space-y-6">
+                    <div className="space-y-6 lg:col-span-1">
                         {pendingUsers.length > 0 && (
                             <div>
                                 <h3 className="text-xs font-black uppercase text-[#9b2c2c] tracking-widest mb-3 px-1">Odottaa hyväksyntää ({pendingUsers.length})</h3>
@@ -1966,6 +1966,9 @@ const updatePublicDataProps = (updates) => {
                                             <p className="text-sm text-stone-500 font-medium mt-1">{isAdmin ? 'Koko alueen yhdistetty data' : 'Omat tuloksesi'}</p>
                                         </div>
                                         <div className="flex gap-2">
+                                            <button onClick={() => showToast("Raporttipankki - Ominaisuus tulossa pian. Voit raahata uusia widgettejä tästä kojelaudallesi.")} className="bg-stone-900 border border-stone-800 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-sm flex items-center hover:bg-black transition-colors">
+                                                <Plus className="w-3.5 h-3.5 mr-1.5"/> Muokkaa näkymää
+                                            </button>
                                             {(isAdmin || isSuperAdmin) && (
                                                 <button onClick={() => {
                                                     const rBonuses = publicData?.regionBonuses?.[authSession?.regionId] || { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 };
@@ -2021,9 +2024,9 @@ const updatePublicDataProps = (updates) => {
                                     const maxHours = Math.max(...regionStats.map(r => r.hours), 1);
 
                                     return (
-                                        <div className="mb-8">
+                                        <div className="mb-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
                                             {/* Global KPIs */}
-                                            <div className="bg-stone-900 text-white rounded-[2rem] p-6 shadow-xl mb-6 relative overflow-hidden">
+                                            <div className="bg-stone-900 text-white rounded-[2rem] p-6 shadow-xl relative overflow-hidden lg:col-span-3">
                                                 <div className="relative z-10">
                                                     <h3 className="text-xs font-black text-stone-400 mb-5 uppercase tracking-widest text-center border-b border-stone-800 pb-3">Konsernin yleiskatsaus</h3>
                                                     <div className="grid grid-cols-2 gap-4 mb-5">
@@ -2046,7 +2049,7 @@ const updatePublicDataProps = (updates) => {
 
                                             {/* AI Risk & Strategy Radar */}
                                             <div className="bg-gradient-to-br from-[#f0fdf4] to-white rounded-[2rem] p-6 shadow-sm border border-[#dcfce7] mb-6">
-                                                <h3 className="text-xs font-black text-[#2f855a] mb-4 uppercase tracking-widest flex items-center gap-2"><Compass size={16}/> Asiakasriskit ja Laajentuminen</h3>
+                                                <h3 className="text-xs font-black text-[#2f855a] mb-4 uppercase tracking-widest flex items-center gap-2"><Compass size={16}/> Asiakasriskit ja laajentuminen</h3>
                                                 <div className="space-y-3">
                                                     {(() => {
                                                         const sortedRegions = [...regionStats].sort((a,b) => b.hours - a.hours);
@@ -2197,7 +2200,7 @@ const updatePublicDataProps = (updates) => {
                                         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6 relative overflow-hidden">
                                             <div className="flex justify-between items-start mb-5 border-b border-stone-100 pb-4">
                                                 <div>
-                                                    <h3 className="text-lg font-black text-stone-900">Alueen kasvu & tavoite</h3>
+                                                    <h3 className="text-lg font-black text-stone-900">Alueen kasvu ja tavoite</h3>
                                                     <div className={`mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${gamificationLevel.bgColor} ${gamificationLevel.border} shadow-sm`}>
                                                         <span className="text-base leading-none">{gamificationLevel.icon}</span>
                                                         <span className={`text-[10px] font-black uppercase tracking-widest ${gamificationLevel.color}`}>Taso: {gamificationLevel.title}</span>
@@ -2241,7 +2244,7 @@ const updatePublicDataProps = (updates) => {
                                 })()}
                                 
                                 <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6">
-                                    <h3 className="text-sm font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">{isAdmin ? 'Alueen Tuloskortti' : 'Oma Tuloskortti'}</h3>
+                                    <h3 className="text-sm font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">{isAdmin ? 'Alueen tuloskortti' : 'Oma tuloskortti'}</h3>
                                     
                                     <div className="grid grid-cols-2 gap-4 mb-4">
                                         <div className="text-center p-5 bg-[#f0fdf4] rounded-2xl border border-[#dcfce7]">
@@ -2423,7 +2426,7 @@ const updatePublicDataProps = (updates) => {
                                     <div className="flex flex-col gap-6 mb-6">
                                         {/* Smart Alerts */}
                                         <div className="bg-gradient-to-br from-[#fdf2f2] to-white rounded-[2rem] p-6 shadow-sm border border-[#fde8e8]">
-                                            <h3 className="text-xs font-black text-[#9b2c2c] mb-4 uppercase tracking-widest flex items-center gap-2"><Sparkles size={16}/> Sparraajan Huomiot</h3>
+                                            <h3 className="text-xs font-black text-[#9b2c2c] mb-4 uppercase tracking-widest flex items-center gap-2"><Sparkles size={16}/> Sparraajan huomiot</h3>
                                             <div className="space-y-3">
                                                 {(Array.isArray(allUserStats) ? allUserStats : []).map(stat => {
                                                     const uTasks = stat.myTasks || [];
@@ -3049,7 +3052,7 @@ const updatePublicDataProps = (updates) => {
                                             
                                             <div className="bg-[#fdf2f2] p-5 rounded-2xl border border-[#fde8e8]">
                                                 <h4 className="font-bold text-[#9b2c2c] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Sparkles size={14}/> 1. Älykkäät Nostot (Smart Alerts)</h4>
-                                                <p className="text-stone-700 text-xs leading-relaxed">Seuraa Raportit-välilehdellä <b>Sparraajan Huomiot</b> -osiota. Ohjelma ilmoittaa jatkossa automaattisesti, jos jollakulla menee loistavasti (NPS 10 putki) tai jos joku kaipaa tukea!</p>
+                                                <p className="text-stone-700 text-xs leading-relaxed">Seuraa Raportit-välilehdellä <b>Sparraajan huomiot</b> -osiota. Ohjelma ilmoittaa jatkossa automaattisesti, jos jollakulla menee loistavasti (NPS 10 putki) tai jos joku kaipaa tukea!</p>
                                             </div>
 
                                             <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
@@ -3069,7 +3072,7 @@ const updatePublicDataProps = (updates) => {
                                             <p className="border-l-4 border-stone-200 pl-3">Olet <strong>Super Admin (Ylin Johto)</strong>. Sinun tehtäväsi on etsiä parhaita käytäntöjä ja laajentaa Famulan toimintaa valtakunnallisesti.</p>
                                             
                                             <div className="bg-[#f0fdf4] p-5 rounded-2xl border border-[#dcfce7]">
-                                                <h4 className="font-bold text-[#2f855a] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Compass size={14}/> 1. Asiakasriskit ja Laajentuminen</h4>
+                                                <h4 className="font-bold text-[#2f855a] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Compass size={14}/> 1. Asiakasriskit ja laajentuminen</h4>
                                                 <p className="text-stone-700 text-xs leading-relaxed">Ohjelmisto analysoi livenä kaikkia tilastoja. Näet Raporttien alalaidassa dynaamiset <b>Riskit ja Kehotukset</b>. Voit nopeasti reagoida esimerkiksi heikkoihin NPS-lukemiin Jyväskylässä suuntaamalla sinne koulutusta.</p>
                                             </div>
 
@@ -3129,7 +3132,7 @@ const updatePublicDataProps = (updates) => {
         const renderSurveyCustomer = () => (
             <div className="px-4 pt-6 space-y-6 animate-fade-in pb-12">
                 <div className="text-center mb-4"><h2 className="text-2xl font-extrabold text-stone-900">Miten onnistuimme?</h2><p className="text-stone-600 font-medium mt-1">Anna arvio ja paina sopivinta vaihtoehtoa.</p></div>
-                <div className="space-y-6">
+                <div className="space-y-6 lg:col-span-1">
                     {SURVEY_ITEMS.map(item => {
                         const val = (answers || {})[item.id] || 0;
                         return (

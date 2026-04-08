@@ -2299,7 +2299,7 @@ const updatePublicDataProps = (updates) => {
                                             {activeWidgets.includes('revenue') && (
                                                 <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6 lg:col-span-3">
                                                     <h3 className="text-xs font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Liikevaihto (Arvio)</h3>
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                    <div className="grid grid-cols-1 gap-4">
                                                         {(Array.isArray(regionStats) ? regionStats : []).map(rs => {
                                                             const last4Months = getLast4MonthsData(marketingPlans, rs.id);
                                                             return (

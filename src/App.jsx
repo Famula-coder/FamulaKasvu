@@ -2623,8 +2623,6 @@ const updatePublicDataProps = (updates) => {
                         })()}
                         
                         {currentTab === 'tools' && (
-
-                        {currentTab === 'tools' && (
                             <div className="animate-fade-in">
                                 <header className="mb-4 mt-2 px-1 flex justify-between items-center">
                                     <h2 className="text-2xl font-black text-stone-900">Työkalut & Tarjotin</h2>

@@ -1643,6 +1643,16 @@ const updatePublicDataProps = (updates) => {
         
         // Calculate Bonuses for Week and Month
         const myStatDocForBonus = allUserStats.find(s => s.id === fbUser?.uid) || { logs: [] };
+        
+        // Widget logic
+        const activeWidgets = myStatDocForBonus.activeWidgets || ['hours', 'risks', 'revenue', 'engagement', 'streak'];
+        const toggleWidget = (wId) => {
+            let nextWidgets = [...activeWidgets];
+            if (nextWidgets.includes(wId)) nextWidgets = nextWidgets.filter(w => w !== wId);
+            else nextWidgets.push(wId);
+            syncMyStats({ activeWidgets: nextWidgets });
+        };
+        
         const regionBonuses = publicData?.regionBonuses?.[authSession?.regionId] || { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 };
         const { weekBonus, monthBonus } = calculateUserBonuses(myStatDocForBonus.logs, regionBonuses, todayInfo);
 
@@ -1966,7 +1976,7 @@ const updatePublicDataProps = (updates) => {
                                             <p className="text-sm text-stone-500 font-medium mt-1">{isAdmin ? 'Koko alueen yhdistetty data' : 'Omat tuloksesi'}</p>
                                         </div>
                                         <div className="flex gap-2">
-                                            <button onClick={() => showToast("Raporttipankki - Ominaisuus tulossa pian. Voit raahata uusia widgettejä tästä kojelaudallesi.")} className="bg-stone-900 border border-stone-800 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-sm flex items-center hover:bg-black transition-colors">
+                                            <button onClick={() => setModals(prev => ({...prev, reportBank: true}))} className="bg-stone-900 border border-stone-800 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-sm flex items-center hover:bg-black transition-colors">
                                                 <Plus className="w-3.5 h-3.5 mr-1.5"/> Muokkaa näkymää
                                             </button>
                                             {(isAdmin || isSuperAdmin) && (
@@ -2048,13 +2058,14 @@ const updatePublicDataProps = (updates) => {
                                             </div>
 
                                             {/* AI Risk & Strategy Radar */}
-                                            <div className="bg-gradient-to-br from-[#f0fdf4] to-white rounded-[2rem] p-6 shadow-sm border border-[#dcfce7] mb-6">
+                                            {activeWidgets.includes('risks') && (
+                                                <div className="bg-gradient-to-br from-[#f0fdf4] to-white rounded-[2rem] p-6 shadow-sm border border-[#dcfce7] mb-6">
                                                 <h3 className="text-xs font-black text-[#2f855a] mb-4 uppercase tracking-widest flex items-center gap-2"><Compass size={16}/> Asiakasriskit ja laajentuminen</h3>
                                                 <div className="space-y-3">
                                                     {(() => {
                                                         const sortedRegions = [...regionStats].sort((a,b) => b.hours - a.hours);
                                                         const topRegion = sortedRegions[0];
-                                                        const bottomRegion = sortedRegions[sortedRegions.length - 1];
+                                                        const bottomRegion = sortedRegions.length > 1 ? sortedRegions[sortedRegions.length - 1] : null;
                                                         return (
                                                             <>
                                                                 {topRegion && topRegion.hours > 0 && (
@@ -2078,9 +2089,11 @@ const updatePublicDataProps = (updates) => {
                                                     })()}
                                                 </div>
                                             </div>
+                                            )}
 
                                             {/* Comparative Analytics */}
-                                            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6">
+                                            {activeWidgets.includes('hours') && (
+                                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6 lg:col-span-2">
                                                 <h3 className="text-xs font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Alueiden vertailu</h3>
                                                 <div className="space-y-4">
                                                     {(() => {
@@ -2136,10 +2149,6 @@ const updatePublicDataProps = (updates) => {
                                                                                     <span className="font-bold uppercase tracking-wider text-stone-800">{m.name}</span>
                                                                                     <span><strong className={m.realized >= m.target && m.target > 0 ? 'text-[#2f855a]' : 'text-stone-700'}>{m.realized}h</strong> <span className="opacity-50">/</span> {m.target}h</span>
                                                                                 </div>
-                                                                                <div className="flex justify-between items-center">
-                                                                                    <span className="uppercase tracking-wider opacity-60">Liikevaihto</span>
-                                                                                    <span><strong className={m.realizedRev >= m.targetRev && m.targetRev > 0 ? 'text-[#2f855a]' : 'text-stone-700'}>{m.realizedRev}€</strong> <span className="opacity-50">/</span> {m.targetRev}€</span>
-                                                                                </div>
                                                                             </div>
                                                                         ))}
                                                                     </div>
@@ -2163,6 +2172,32 @@ const updatePublicDataProps = (updates) => {
                                                     })()}
                                                 </div>
                                             </div>
+                                            )}
+
+                                            {/* Liikevaihtoseuranta */}
+                                            {activeWidgets.includes('revenue') && (
+                                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6 lg:col-span-3">
+                                                    <h3 className="text-xs font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Liikevaihto (Arvio)</h3>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                        {(Array.isArray(regionStats) ? regionStats : []).map(rs => {
+                                                            const last4Months = getLast4MonthsData(marketingPlans, rs.id);
+                                                            return (
+                                                                <div key={rs.id} className="p-4 rounded-2xl border border-stone-200 bg-stone-50">
+                                                                    <h4 className="font-bold text-sm text-stone-900 mb-3">{rs.name}</h4>
+                                                                    <div className="space-y-2">
+                                                                        {last4Months.map((m, idx) => (
+                                                                            <div key={idx} className="flex justify-between items-center text-[10px] text-stone-600 border-b border-stone-200/60 pb-1.5 last:border-0 last:pb-0">
+                                                                                <span className="font-bold uppercase tracking-wider text-stone-800 text-[9px]">{m.name}</span>
+                                                                                <span><strong className={m.realizedRev >= m.targetRev && m.targetRev > 0 ? 'text-[#2f855a]' : 'text-stone-700'}>{m.realizedRev || 0}€</strong> <span className="opacity-50">/</span> {m.targetRev || 0}€</span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
                                             
                                             <div className="flex items-center gap-2 mb-4">
                                                 <span className="h-px bg-stone-300 flex-1"></span>
@@ -2243,16 +2278,17 @@ const updatePublicDataProps = (updates) => {
                                     );
                                 })()}
                                 
-                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6">
-                                    <h3 className="text-sm font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">{isAdmin ? 'Alueen tuloskortti' : 'Oma tuloskortti'}</h3>
-                                    
-                                    <div className="grid grid-cols-2 gap-4 mb-4">
-                                        <div className="text-center p-5 bg-[#f0fdf4] rounded-2xl border border-[#dcfce7]">
-                                            <p className="text-[10px] font-bold text-[#2f855a] uppercase mb-1 tracking-wider">{isAdmin ? 'Tämän Kk Lisämyynti' : 'Uudet asiakkaat'}</p>
-                                            <p className="text-4xl font-black text-stone-900">{isAdmin ? totalRegionCustomers : myCustomers}{isAdmin && <span className="text-base font-bold text-stone-500 ml-1">h</span>}</p>
-                                        </div>
-                                        <div className="text-center p-5 bg-[#fdf2f2] rounded-2xl border border-[#fde8e8]">
-                                            <p className="text-[10px] font-bold text-[#9b2c2c] uppercase mb-1 tracking-wider">{isAdmin ? 'Edelt. Kk Toteutuma' : 'Myydyt tunnit'}</p>
+                                {activeWidgets.includes('hours') && (
+                                    <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6">
+                                        <h3 className="text-sm font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">{isAdmin ? 'Alueen tuloskortti' : 'Oma tuloskortti'}</h3>
+                                        
+                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                            <div className="text-center p-5 bg-[#f0fdf4] rounded-2xl border border-[#dcfce7]">
+                                                <p className="text-[10px] font-bold text-[#2f855a] uppercase mb-1 tracking-wider">{isAdmin ? 'Tämän Kk Lisämyynti' : 'Uudet asiakkaat'}</p>
+                                                <p className="text-4xl font-black text-stone-900">{isAdmin ? totalRegionCustomers : myCustomers}{isAdmin && <span className="text-base font-bold text-stone-500 ml-1">h</span>}</p>
+                                            </div>
+                                            <div className="text-center p-5 bg-[#fdf2f2] rounded-2xl border border-[#fde8e8]">
+                                                <p className="text-[10px] font-bold text-[#9b2c2c] uppercase mb-1 tracking-wider">{isAdmin ? 'Edelt. Kk Toteutuma' : 'Myydyt tunnit'}</p>
                                             <p className="text-4xl font-black text-stone-900">{isAdmin ? totalRegionHours : myHours}<span className="text-base font-bold text-stone-500 ml-1">h</span></p>
                                         </div>
                                     </div>
@@ -2262,6 +2298,7 @@ const updatePublicDataProps = (updates) => {
                                         </button>
                                     )}
                                 </div>
+                                )}
 
                                 {(() => {
                                     const totalTasks = myTasks.length;
@@ -3114,6 +3151,39 @@ const updatePublicDataProps = (updates) => {
                                     <input type="number" value={customSalesHours} onChange={e=>setCustomSalesHours(e.target.value)} placeholder="Muu määrä..." className="w-full p-4 bg-white border border-stone-200 rounded-2xl text-center font-bold text-stone-700 mb-4 shadow-sm focus:border-[#9b2c2c] outline-none" />
                                 </div>
                                 <button onClick={() => customSalesHours > 0 && handleRecordSale(parseFloat(customSalesHours))} className="w-full bg-stone-900 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Kirjaa muu määrä</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {modals.reportBank && (
+                        <div className="fixed inset-0 z-[60] flex items-end justify-center">
+                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setModals(prev => ({ ...prev, reportBank: false }))}></div>
+                            <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-xl font-black text-stone-900">Raporttipankki</h3>
+                                    <button onClick={() => setModals(prev => ({ ...prev, reportBank: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
+                                </div>
+                                <p className="text-stone-500 font-medium text-sm mb-6">Valitse mitä raportteja haluat nähdä kojelaudallasi.</p>
+                                
+                                <div className="space-y-3 mb-6">
+                                    {[
+                                        { id: 'hours', title: 'Tuntikertymä', desc: 'Näyttää toteutuneet tunnit työpöydän pääraporttina.' },
+                                        { id: 'revenue', title: 'Liikevaihtoseuranta', desc: 'Suuntaa-antava euromääräinen liikevaihto tunneista erillisenä raporttina.' },
+                                        { id: 'risks', title: 'Asiakasriskit & Laajentuminen', desc: 'Tekoälyn huomiot aktiivisuuksista ja poistumariskistä.' },
+                                        { id: 'streak', title: 'Tavoiteputki (Streak)', desc: 'Motivoiva putkiseuranta: kuinka monta kautta tavoite on saavutettu.' }
+                                    ].map(w => (
+                                        <div key={w.id} onClick={() => toggleWidget(w.id)} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${activeWidgets.includes(w.id) ? 'bg-white border-[#2f855a] shadow-sm' : 'bg-stone-50 border-stone-200 hover:border-stone-300'}`}>
+                                            <div className="pr-4">
+                                                <h4 className={`font-black text-sm mb-1 ${activeWidgets.includes(w.id) ? 'text-[#2f855a]' : 'text-stone-700'}`}>{w.title}</h4>
+                                                <p className="text-[10px] text-stone-500 font-medium leading-relaxed">{w.desc}</p>
+                                            </div>
+                                            <div className={`shrink-0 w-10 h-6 rounded-full flex items-center p-1 transition-colors ${activeWidgets.includes(w.id) ? 'bg-[#2f855a]' : 'bg-stone-300'}`}>
+                                                <div className={`w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${activeWidgets.includes(w.id) ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button onClick={() => setModals(prev => ({ ...prev, reportBank: false }))} className="w-full bg-stone-900 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Valmis</button>
                             </div>
                         </div>
                     )}

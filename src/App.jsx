@@ -2158,7 +2158,7 @@ const updatePublicDataProps = (updates) => {
                                             {activeWidgets.includes('overview') && (
                                                 <div className="bg-stone-900 text-white rounded-[2rem] p-6 shadow-xl relative overflow-hidden lg:col-span-3">
                                                 <div className="relative z-10">
-                                                    <h3 className="text-xs font-black text-stone-400 mb-5 uppercase tracking-widest text-center border-b border-stone-800 pb-3">Konsernin yleiskatsaus</h3>
+                                                    <h3 className="text-xs font-black text-stone-400 mb-5 uppercase tracking-widest text-center border-b border-stone-800 pb-3">Konsernin tunnusluvut</h3>
                                                     <div className="grid grid-cols-2 gap-4 mb-5">
                                                         <div className="text-center">
                                                             <p className="text-[10px] font-bold text-stone-400 uppercase mb-1 tracking-wider">Toteutuneet tunnit (edellinen kk)</p>
@@ -2215,7 +2215,7 @@ const updatePublicDataProps = (updates) => {
                                             {/* Comparative Analytics */}
                                             {activeWidgets.includes('comp_regions') && (
                                                 <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 lg:col-span-3">
-                                                <h3 className="text-xs font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Alueiden vertailu</h3>
+                                                <h3 className="text-xs font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Alueiden suoritusvertailu</h3>
                                                 <div className="space-y-4">
                                                     {(() => {
                                                         const statSource = authSession?.role === 'superadmin' && allGlobalStats?.length > 0 ? allGlobalStats : allUserStats;
@@ -2298,7 +2298,7 @@ const updatePublicDataProps = (updates) => {
                                             {/* Liikevaihtoseuranta */}
                                             {activeWidgets.includes('revenue') && (
                                                 <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6 lg:col-span-3">
-                                                    <h3 className="text-xs font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Liikevaihto (Arvio)</h3>
+                                                    <h3 className="text-xs font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Operatiivinen kuukausimyynti</h3>
                                                     <div className="grid grid-cols-1 gap-4">
                                                         {(Array.isArray(regionStats) ? regionStats : []).map(rs => {
                                                             const last4Months = getLast4MonthsData(marketingPlans, rs.id);
@@ -2391,7 +2391,7 @@ const updatePublicDataProps = (updates) => {
                                                     <Sparkles className="w-4 h-4" />
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-xs font-black uppercase tracking-wider mb-1">Sparraajan huomiot</h4>
+                                                    <h4 className="text-xs font-black uppercase tracking-wider mb-1">Tekoälyn sparraus</h4>
                                                     <p className="text-xs font-medium leading-relaxed opacity-90">
                                                         {gamificationLevel.desc}
                                                     </p>
@@ -2453,7 +2453,7 @@ const updatePublicDataProps = (updates) => {
                                             {activeWidgets.includes('tasks') && (
                                                 <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
                                                     <div className="flex justify-between items-center mb-6">
-                                                    <h3 className="text-sm font-black text-stone-800 uppercase tracking-widest">Tehtävien suoritusaste</h3>
+                                                    <h3 className="text-sm font-black text-stone-800 uppercase tracking-widest">Rutiinien suoritusaste</h3>
                                                     {isAdmin && (
                                                         <div className="flex bg-stone-100 p-1 rounded-lg shrink-0">
                                                             <button onClick={() => setTaskCompletionTab('oma')} className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-wider rounded-md transition-all ${taskCompletionTab === 'oma' ? 'bg-white shadow-sm text-[#9b2c2c]' : 'text-stone-500 hover:text-stone-700'}`}>Oma</button>
@@ -2479,7 +2479,7 @@ const updatePublicDataProps = (updates) => {
                                             {activeWidgets.includes('surveys') && (
                                                 <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
                                                     <div className="flex justify-between items-center mb-4 border-b border-stone-100 pb-3">
-                                                    <h3 className="text-sm font-black text-stone-800 uppercase tracking-widest text-center">Asiakastyytyväisyyskysely</h3>
+                                                    <h3 className="text-sm font-black text-stone-800 uppercase tracking-widest text-center">Asiakastyytyväisyys ja palautteet</h3>
                                                     <button onClick={() => setModals(prev => ({...prev, activityHistory: fbUser.uid}))} className="text-[10px] font-bold uppercase tracking-wider text-stone-600 bg-stone-100 px-3 py-2 rounded-xl border border-stone-200 hover:bg-stone-200 transition-colors flex items-center">Historia & Peruuta &rarr;</button>
                                                 </div>
                                                 {latestLogs.length === 0 ? <p className="text-center text-sm text-stone-500 py-4">Ei asiakaskohtaamisia vielä.</p> : (
@@ -2545,7 +2545,7 @@ const updatePublicDataProps = (updates) => {
                                                         </div>
 
                                                         <div className="bg-stone-50 rounded-2xl p-5 border border-stone-200 flex flex-col items-center">
-                                                            <h3 className="text-xs font-black text-stone-800 mb-3 uppercase tracking-widest text-center">Tehtävien suoritusaste</h3>
+                                                            <h3 className="text-xs font-black text-stone-800 mb-3 uppercase tracking-widest text-center">Rutiinien suoritusaste</h3>
                                                             <div className="relative w-28 h-28 flex items-center justify-center">
                                                                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                                                                     <path className="text-stone-200" strokeWidth="4" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
@@ -2560,7 +2560,7 @@ const updatePublicDataProps = (updates) => {
 
                                                         <div className="bg-stone-50 rounded-2xl p-5 border border-stone-200">
                                                             <div className="flex justify-between items-center mb-4 border-b border-stone-200 pb-2">
-                                                                <h3 className="text-xs font-black text-stone-800 uppercase tracking-widest text-center">Asiakastyytyväisyyskysely</h3>
+                                                                <h3 className="text-xs font-black text-stone-800 uppercase tracking-widest text-center">Asiakastyytyväisyys ja palautteet</h3>
                                                                 <button onClick={() => setModals(prev => ({...prev, activityHistory: selectedUserReport.id}))} className="text-[9px] font-bold uppercase tracking-wider text-stone-600 bg-white px-2 py-1.5 rounded-lg border border-stone-200 hover:bg-stone-100 transition-colors">Historia & Peruuta</button>
                                                             </div>
                                                             {latestLogs.length === 0 ? <p className="text-center text-xs font-medium text-stone-500 py-2">Ei asiakaskohtaamisia vielä.</p> : (
@@ -2597,7 +2597,7 @@ const updatePublicDataProps = (updates) => {
                                         {/* Smart Alerts */}
                                         {activeWidgets.includes('sparraus') && (
                                         <div className="bg-gradient-to-br from-[#fdf2f2] to-white rounded-[2rem] p-6 shadow-sm border border-[#fde8e8]">
-                                            <h3 className="text-xs font-black text-[#9b2c2c] mb-4 uppercase tracking-widest flex items-center gap-2"><Sparkles size={16}/> Sparraajan huomiot</h3>
+                                            <h3 className="text-xs font-black text-[#9b2c2c] mb-4 uppercase tracking-widest flex items-center gap-2"><Sparkles size={16}/> Tekoälyn sparraus</h3>
                                             <div className="space-y-3">
                                                 {(Array.isArray(allUserStats) ? allUserStats : []).map(stat => {
                                                     const uTasks = stat.myTasks || [];
@@ -2626,7 +2626,7 @@ const updatePublicDataProps = (updates) => {
 
                                         {activeWidgets.includes('team') && (
                                         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
-                                            <h3 className="text-sm font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Tiimin tilanne</h3>
+                                            <h3 className="text-sm font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Myyjien suoritustaso</h3>
                                             <div className="space-y-4">
                                                 {(!allUserStats || allUserStats.length === 0) ? <p className="text-sm text-stone-400 text-center">Ei dataa tiimistä.</p> : 
                                                 allUserStats.map(stat => {
@@ -2660,7 +2660,7 @@ const updatePublicDataProps = (updates) => {
 
                                         {activeWidgets.includes('fin_revenue') && (
                                             <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
-                                                <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Liikevaihto & Muutos-%</h3>
+                                                <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Tilikauden liikevaihto ja muutos-%</h3>
                                                 <p className="text-[10px] text-stone-500 mb-4 leading-relaxed">Kertoo alueen absoluuttisen liikevaihdon ja prosentuaalisen kehityksen suhteessa edellisten vuosien tilinpäätöksiin.</p>
                                                 <div className="space-y-2">
                                                     {(isSuperAdmin ? activeRegions : activeRegions.filter(rem => rem.id === authSession.regionId)).map(rs => {
@@ -2719,7 +2719,7 @@ const updatePublicDataProps = (updates) => {
 
                                         {activeWidgets.includes('fin_cashflow') && (
                                             <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
-                                                <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Operatiivinen Kassavirta</h3>
+                                                <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Operatiivinen kassavirta</h3>
                                                 <p className="text-[10px] text-stone-500 mb-4 leading-relaxed">Kuvaa liiketoiminnan varsinaista rahavirtaa. Kertoo riittävätkö rahat jokapäiväisen toiminnan pyörittämiseen.</p>
                                                 <div className="space-y-2">
                                                     {(isSuperAdmin ? activeRegions : activeRegions.filter(rem => rem.id === authSession.regionId)).map(rs => {
@@ -2755,7 +2755,7 @@ const updatePublicDataProps = (updates) => {
 
                                         {activeWidgets.includes('fin_quickratio') && (
                                             <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
-                                                <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Quick Ratio</h3>
+                                                <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Maksuvalmius (Quick Ratio)</h3>
                                                 <p className="text-[10px] text-stone-500 mb-4 leading-relaxed">Kuvaa maksuvalmiutta eli yrityksen kykyä selviytyä lyhytaikaisista veloistaan pelkillä rahoitusomaisuuksilla.</p>
                                                 <div className="space-y-2">
                                                     {(isSuperAdmin ? activeRegions : activeRegions.filter(rem => rem.id === authSession.regionId)).map(rs => {
@@ -3417,27 +3417,27 @@ const updatePublicDataProps = (updates) => {
                                 
                                 <div className="space-y-3 mb-6 max-h-[60vh] overflow-y-auto pr-2">
                                     {[
-                                        { id: 'hours', title: 'Tuntikertymä', desc: 'Näyttää toteutuneet tunnit työpöydän pääraporttina.' },
-                                        { id: 'revenue', title: 'Liikevaihtoseuranta', desc: 'Suuntaa-antava euromääräinen liikevaihto.' },
-                                        { id: 'streak', title: 'Tavoiteputki', desc: 'Motivoiva putkiseuranta: tavoitteen saavuttamisen historiadata.' },
-                                        { id: 'tasks', title: 'Tehtävien suoritusaste', desc: 'Aktiivisuusseurannan graafinen donitsi.' },
-                                        { id: 'surveys', title: 'Asiakastyytyväisyyskyselyt', desc: 'NPS-historia ja avoin palaute asiakkailta.' },
-                                        { id: 'sparraus', title: 'Sparraajan huomiot', desc: 'Tekoälyltä sanalliset rutiinihuomiot ja vauhtikatsaukset.' },
+                                        { id: 'hours', title: 'Tuntikertymä', desc: 'Työpöydän päätunnusluku. Näyttää kuluvan kuukauden myytyjen tuntien määrän suhteessa tavoitteeseen.' },
+                                        { id: 'revenue', title: 'Operatiivinen kuukausimyynti', desc: 'Näyttää kuluvan ja menneiden kuukausien suuntaa-antavan euromääräisen myyntikertymän.' },
+                                        { id: 'streak', title: 'Tavoiteputki', desc: 'Näyttää visuaalisesti, kuinka monena peräkkäisenä kuukautena alue on saavuttanut tavoitteensa.' },
+                                        { id: 'tasks', title: 'Rutiinien suoritusaste', desc: 'Kertoo kuinka suuri osa asetetuista rutiineista (esim. soittokierroksista) on tällä hetkellä tehty.' },
+                                        { id: 'surveys', title: 'Asiakastyytyväisyys (NPS)', desc: 'Näyttää listana lähiaikoina toteutuneet asiakaskohtaamiset, NPS-luokitukset ja sanalliset palautteet.' },
+                                        { id: 'sparraus', title: 'Tekoälyn sparraus', desc: 'Koneälyn tuottamat automaattiset huomiot alueesi tai tiimisi rutiineista.' },
                                         ...(isSuperAdmin ? [
-                                            { id: 'overview', title: 'Konsernin yleiskatsaus', desc: 'Globaali yhteenvetotaulu työpöydän huipulla.' },
-                                            { id: 'comp_regions', title: 'Alueiden vertailu', desc: 'Eri alueiden tunnusluvut rinnakkain.' },
-                                            { id: 'risks', title: 'Asiakasriskit ja laajentuminen', desc: 'Tekoälyn varoitukset painepisteistä koko tasolla.' }
+                                            { id: 'overview', title: 'Konsernin tunnusluvut', desc: 'Ylimmän johdon koontinäkymä. Summaa aktiiviset alueet, tunnit ja globaalin NPS-keskiarvon.' },
+                                            { id: 'comp_regions', title: 'Alueiden suoritusvertailu', desc: 'Listaa alueet asettaen ne järjestykseen suorituskyvyn (tuntien) perusteella.' },
+                                            { id: 'risks', title: 'Asiakasriskit ja laajentuminen', desc: 'Varoittaa automaattisesti ylikuumentuvista alueista ja matalan kapasiteetin yksiköistä.' }
                                         ] : []),
                                         ...(isAdmin && !isSuperAdmin ? [
-                                            { id: 'team', title: 'Tiimin tilanne', desc: 'Myyjäkohtaisten tulosten vertailu alueellasi.' }
+                                            { id: 'team', title: 'Myyjien suoritustaso', desc: 'Alueesi työntekijöiden tuloslistaus ohjauksen ja vertailun tueksi.' }
                                         ] : []),
                                         ...(isAdmin ? [
-                                            { id: 'fin_revenue', title: 'Liikevaihto ja muutos-%', desc: 'Kertoo alueen absoluuttisen liikevaihdon ja prosentuaalisen kehityksen.' },
-                                            { id: 'fin_ebitda', title: 'Käyttökate (EBITDA)', desc: 'Kertoo liiketoiminnan tuloksen ennen poistoja ja rahoituseriä. Kuvaa peruskannattavuutta.' },
-                                            { id: 'fin_ebit', title: 'Liiketulos (EBIT)', desc: 'Varsinainen liiketoiminnan tulos poistojen jälkeen.' },
-                                            { id: 'fin_cashflow', title: 'Operatiivinen kassavirta', desc: 'Kuvaa liiketoiminnan varsinaista rahavirtaa. Kertoo riittävätkö rahat pyörittämiseen.' },
-                                            { id: 'fin_equity', title: 'Omavaraisuusaste', desc: 'Mittaa vakavaraisuutta eli kuinka suuri osa varallisuudesta on omaa pääomaa.' },
-                                            { id: 'fin_quickratio', title: 'Quick Ratio', desc: 'Kuvaa maksuvalmiutta eli kykyä selviytyä lyhytaikaisista veloista.' }
+                                            { id: 'fin_revenue', title: 'Tilikauden liikevaihto ja muutos-%', desc: 'Kertoo alueen liikevaihdon ja prosentuaalisen kehityksen suhteessa edelliseen tilikauteen.' },
+                                            { id: 'fin_ebitda', title: 'Käyttökate (EBITDA)', desc: 'Indikoi operatiivisen toiminnan peruskannattavuutta asettaen sen rinnakkain tulosluistoon.' },
+                                            { id: 'fin_ebit', title: 'Liiketulos (EBIT)', desc: 'Liiketoiminnan tulos poistojen jälkeen. Paljastaa miten tuottavaa toiminta on.' },
+                                            { id: 'fin_cashflow', title: 'Operatiivinen kassavirta', desc: 'Kuvaa liiketoiminnan jättämää reaalista rahavirtaa ja kassan riittävyyttä.' },
+                                            { id: 'fin_equity', title: 'Omavaraisuusaste', desc: 'Prosenttiluku vahvistaa, kuinka suuri osa alueen varallisuudesta on rahoitettu omalla pääomalla.' },
+                                            { id: 'fin_quickratio', title: 'Maksuvalmius (Quick Ratio)', desc: 'Happotesti maksuvalmiudelle: kyky selviytyä lyhytaikaisista veloista.' }
                                         ] : [])
                                     ].map(w => (
                                         <div key={w.id} onClick={() => toggleWidget(w.id)} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${activeWidgets.includes(w.id) ? 'bg-white border-[#2f855a] shadow-sm' : 'bg-stone-50 border-stone-200 hover:border-stone-300'}`}>

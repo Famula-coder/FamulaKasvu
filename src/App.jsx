@@ -2621,6 +2621,8 @@ const updatePublicDataProps = (updates) => {
                                 </div>
                             );
                         })()}
+                            </div>
+                        )}
                         
                         {currentTab === 'tools' && (
                             <div className="animate-fade-in">

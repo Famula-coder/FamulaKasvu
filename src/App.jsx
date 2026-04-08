@@ -2152,26 +2152,70 @@ const updatePublicDataProps = (updates) => {
                                     const globalNps = globalNpsCount > 0 ? (globalNpsSum / globalNpsCount).toFixed(1) : '-';
                                     const maxHours = Math.max(...regionStats.map(r => r.hours), 1);
 
+                                    // Superadmin Strategic KPIs
+                                    let cmTargetRev = 0;
+                                    let cmRealizedRev = 0;
+                                    const dCm = new Date();
+                                    const yCm = dCm.getFullYear();
+                                    const qCm = Math.floor(dCm.getMonth() / 3) + 1;
+                                    const moIdxCm = (dCm.getMonth() % 3) + 1;
+
+                                    (marketingPlans || []).filter(p => Number(p.year) === yCm && Number(p.quarter) === qCm).forEach(p => {
+                                        cmTargetRev += Number(p[`targetRev${moIdxCm}`] || 0);
+                                        cmRealizedRev += Number(p[`realizedRev${moIdxCm}`] || 0);
+                                    });
+
+                                    let totalRecurring = 0;
+                                    let totalOneTime = 0;
+                                    (allGlobalStats || []).forEach(st => {
+                                        (st.myTasks || []).forEach(t => {
+                                             if(t.type === 'sale') {
+                                                 if(t.saleType === 'ongoing') totalRecurring += Number(t.hours || 0);
+                                                 else totalOneTime += Number(t.hours || 0);
+                                             }
+                                        });
+                                    });
+                                    const sumSales = totalRecurring + totalOneTime;
+                                    const recurringRatio = sumSales > 0 ? Math.round((totalRecurring / sumSales) * 100) : 0;
+
+                                    let sumDone = 0;
+                                    let sumTarget = 0;
+                                    (allGlobalStats || []).forEach(st => {
+                                        sumTarget += Number(st.taskTarget || 0);
+                                        sumDone += Number(st.tasksDone || 0);
+                                    });
+                                    let activityIndex = sumTarget > 0 ? Math.round((sumDone / sumTarget) * 100) : 0;
+                                    // if activityIndex > 100 then cap to 100 or leave it? usually cap to 100% just in case of over-achievement in context of an index
+                                    if(activityIndex > 100) activityIndex = 100;
+
                                     return (
                                         <div className="mb-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
                                             {/* Global KPIs */}
                                             {activeWidgets.includes('overview') && (
                                                 <div className="bg-stone-900 text-white rounded-[2rem] p-6 shadow-xl relative overflow-hidden lg:col-span-3">
                                                 <div className="relative z-10">
-                                                    <h3 className="text-xs font-black text-stone-400 mb-5 uppercase tracking-widest text-center border-b border-stone-800 pb-3">Konsernin tunnusluvut</h3>
-                                                    <div className="grid grid-cols-2 gap-4 mb-5">
-                                                        <div className="text-center">
-                                                            <p className="text-[10px] font-bold text-stone-400 uppercase mb-1 tracking-wider">Toteutuneet tunnit (edellinen kk)</p>
-                                                            <p className="text-4xl font-black text-white">{globalHours}h</p>
+                                                    <h3 className="text-xs font-black text-stone-400 mb-6 uppercase tracking-widest text-center border-b border-stone-800 pb-3">Konsernin tunnusluvut</h3>
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                                        <div className="text-center p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col justify-center">
+                                                            <p className="text-[9px] font-bold text-stone-400 uppercase mb-2 tracking-wider">Operatiivinen Myynti<br/>(Kuluva kk)</p>
+                                                            <p className={`text-2xl lg:text-3xl font-black ${cmRealizedRev >= cmTargetRev && cmTargetRev > 0 ? 'text-[#e0f8e9]' : 'text-white'}`}>{cmRealizedRev} €</p>
+                                                            <p className="text-[10px] text-stone-500 mt-1">Tavoite: {cmTargetRev} €</p>
                                                         </div>
-                                                        <div className="text-center">
-                                                            <p className="text-[10px] font-bold text-stone-400 uppercase mb-1 tracking-wider">Globaali NPS</p>
-                                                            <p className={`text-4xl font-black ${globalNps >= 9 ? 'text-[#e0f8e9]' : 'text-white'}`}>{globalNps}</p>
+                                                        <div className="text-center p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col justify-center">
+                                                            <p className="text-[9px] font-bold text-stone-400 uppercase mb-2 tracking-wider">MRR-Osuus<br/>(Jatkuva vs Kerta)</p>
+                                                            <p className="text-2xl lg:text-3xl font-black text-white">{recurringRatio} %</p>
+                                                            <p className="text-[10px] text-stone-500 mt-1">Suhdeluku</p>
                                                         </div>
-                                                    </div>
-                                                    <div className="text-center p-4 bg-white/10 rounded-2xl border border-white/10">
-                                                        <p className="text-[10px] font-bold text-stone-400 uppercase mb-1 tracking-wider">Myydyt lisätunnit (tässä kk)</p>
-                                                        <p className="text-3xl font-black text-white">{globalCustomers}h</p>
+                                                        <div className="text-center p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col justify-center">
+                                                            <p className="text-[9px] font-bold text-stone-400 uppercase mb-2 tracking-wider">Aktiivisuusindeksi<br/>(Suoritetut rutiinit)</p>
+                                                            <p className={`text-2xl lg:text-3xl font-black ${activityIndex >= 80 ? 'text-[#e0f8e9]' : 'text-white'}`}>{activityIndex} %</p>
+                                                            <p className="text-[10px] text-stone-500 mt-1">Tavoitevauhti</p>
+                                                        </div>
+                                                        <div className="text-center p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col justify-center">
+                                                            <p className="text-[9px] font-bold text-stone-400 uppercase mb-2 tracking-wider">Globaali NPS<br/>(Laatu)</p>
+                                                            <p className={`text-2xl lg:text-3xl font-black ${globalNps >= 9 ? 'text-[#e0f8e9]' : 'text-white'}`}>{globalNps}</p>
+                                                            <p className="text-[10px] text-stone-500 mt-1">Asiakasuskollisuus</p>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <Globe className="absolute -right-6 -bottom-6 w-40 h-40 text-white opacity-5 pointer-events-none" />
@@ -3317,60 +3361,60 @@ const updatePublicDataProps = (updates) => {
                                             <p className="border-l-4 border-stone-200 pl-3">Olet <strong>Työntekijä (Myyjä)</strong>. Sinun tehtäväsi on kohdata asiakkaita ja palvella heitä parhaalla mahdollisella tavalla.</p>
                                             
                                             <div className="bg-[#f0fdf4] p-5 rounded-2xl border border-[#dcfce7]">
-                                                <h4 className="font-bold text-[#2f855a] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Mic size={14}/> 1. Sanele Kohtaaminen (UUSI)</h4>
-                                                <p className="text-stone-700 text-xs leading-relaxed">Kun lähdet ikäihmisen luota, sinun ei tarvitse näpytellä raportteja. Paina työpöydän punaista **Sanelu** -nappia ja ohjelma purkaa äänestäsi tekstit automaattisesti tapahtumalokeihisi!</p>
+                                                <h4 className="font-bold text-[#2f855a] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><List size={14}/> 1. Tavoitteiden asettaminen (Tarjotin)</h4>
+                                                <p className="text-stone-700 text-xs leading-relaxed">Työpöydälläsi on Tavoitteet-osio. Klikkaa '+ Lisää tavoite tarjottimelle' poimiaksesi uusia rutiineja valmiista kirjastosta. Valitse 'Kiinnitä vakio-rutiiniksi', jolloin se toistuu automaattisesti! Kuittaa valmiit rutiinit suoraan donitsista.</p>
                                             </div>
 
                                             <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
-                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2">2. Tehtävätarjotin</h4>
-                                                <p className="text-stone-600 text-xs leading-relaxed">Joka maanantai sinulle avautuu uudet tavoitteet. Kun hoidat tavoitteen (esim. Ikkunapesun lisämyynti), klikkaa se tehdyksi työpöydän ympyrästä.</p>
+                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><HeartHandshake size={14}/> 2. Kirjaa myynnit ja palautteet</h4>
+                                                <p className="text-stone-600 text-xs leading-relaxed">Käytä työpöydän pääpainikkeita kirjaamaan myynnit (irtotunnit tai jatkuvat) sekä asiakkaiden NPS-arvosanat ja sanalliset palautteet heti tapaamisen jälkeen.</p>
                                             </div>
                                             
                                             <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
-                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2">3. Omat raportit</h4>
-                                                <p className="text-stone-600 text-xs leading-relaxed">Pääset Raportit-välilehdellä seuraamaan huippukätevää rinkulakaaviota viikkosi suorituksista ja selittämään kuinka NPS-pisteesi (asiakastyytyväisyys) kehittyvät livenä korttilistassa!</p>
+                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Activity size={14}/> 3. Henkilökohtaiset Raportit</h4>
+                                                <p className="text-stone-600 text-xs leading-relaxed">Avaa **Muokkaa näkymää** (Raporttipankki) ja valitse ruudullesi esimerkiksi aktiivinen *Tavoiteputki* sekä *Rutiinien suoritusaste*. Näin näet reaaliajassa työnjälkesi!</p>
                                             </div>
                                         </>
                                     )}
 
                                     {authSession.role === 'admin' && (
                                         <>
-                                            <p className="border-l-4 border-stone-200 pl-3">Olet <strong>Aluevetäjä</strong>. Toimit sekä myyjänä että valmentajana tiimillesi omalla alueellasi.</p>
+                                            <p className="border-l-4 border-stone-200 pl-3">Olet <strong>Aluevetäjä</strong>. Toimit valmentajana koko alueesi tiimille ja seuraat taloutta.</p>
                                             
-                                            <div className="bg-[#fdf2f2] p-5 rounded-2xl border border-[#fde8e8]">
-                                                <h4 className="font-bold text-[#9b2c2c] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Sparkles size={14}/> 1. Älykkäät Nostot (Smart Alerts)</h4>
-                                                <p className="text-stone-700 text-xs leading-relaxed">Seuraa Raportit-välilehdellä <b>Sparraajan huomiot</b> -osiota. Ohjelma ilmoittaa jatkossa automaattisesti, jos jollakulla menee loistavasti (NPS 10 putki) tai jos joku kaipaa tukea!</p>
+                                            <div className="bg-[#f0fdf4] p-5 rounded-2xl border border-[#dcfce7]">
+                                                <h4 className="font-bold text-[#2f855a] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><TrendingUp size={14}/> 1. Markkinointi ja Talous</h4>
+                                                <p className="text-stone-700 text-xs leading-relaxed">Siirry **Työkalut → Markkinointisuunnitelmat** syöttääksesi alueesi viralliset tilikauden talousluvut (Liikevaihto, EBITDA). Data ohjaa suoraan Raporttien talousnäkymää!</p>
                                             </div>
 
                                             <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
-                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Target size={14}/> 2. Porautuminen</h4>
-                                                <p className="text-stone-600 text-xs leading-relaxed">Näet kaikkien myyjiesi tiimitulokset Raporteissa. <b>Napsauta kenen tahansa myyjän nimeä</b> siirtyäksesi tutkimaan luottamuksellisesti hänen henkilökohtaista edistymistään ja logejaan.</p>
+                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Target size={14}/> 2. Tiimin Rutiinien Ohjaus</h4>
+                                                <p className="text-stone-600 text-xs leading-relaxed">Lisää työpöydän kautta alueesi tiimiä koskevia tavoitteita. Muista hyödyntää **Kiinnitystä** – kun kiinnität elintärkeän rutiinin, se ilmestyy koko alueesi myyjien donitsiin viikosta toiseen.</p>
                                             </div>
                                             
                                             <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
-                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2">3. Omat Myynnit</h4>
-                                                <p className="text-stone-600 text-xs leading-relaxed">Myös aluevetäjä tekee asiakastyötä. Käytä Työkalut-välilehteä ja sanelinta tismalleen kuten työntekijät omalla kohdallasi kirjatessasi tapahtumia.</p>
+                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Sparkles size={14}/> 3. Raportit & Tiimin Sparraus</h4>
+                                                <p className="text-stone-600 text-xs leading-relaxed">Kokoa Kojelauta Raporttipankista. Ota käyttöön **Myyjien suoritustaso** sekä **Tekoälyn sparraus**, jotka nostavat heti esiin huippusuorittajat ja sparrausta kaipaavat jäsenet.</p>
                                             </div>
                                         </>
                                     )}
 
                                     {authSession.role === 'superadmin' && (
                                         <>
-                                            <p className="border-l-4 border-stone-200 pl-3">Olet <strong>Super Admin (Ylin Johto)</strong>. Sinun tehtäväsi on etsiä parhaita käytäntöjä ja laajentaa Famulan toimintaa valtakunnallisesti.</p>
+                                            <p className="border-l-4 border-stone-200 pl-3">Olet <strong>Super Admin (Ylin Johto)</strong>. Sinun tehtäväsi on johtaa konsernia ja kehittää Famulan toimintaa.</p>
                                             
                                             <div className="bg-[#f0fdf4] p-5 rounded-2xl border border-[#dcfce7]">
-                                                <h4 className="font-bold text-[#2f855a] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Compass size={14}/> 1. Asiakasriskit ja laajentuminen</h4>
-                                                <p className="text-stone-700 text-xs leading-relaxed">Ohjelmisto analysoi livenä kaikkia tilastoja. Näet Raporttien alalaidassa dynaamiset <b>Riskit ja Kehotukset</b>. Voit nopeasti reagoida esimerkiksi heikkoihin NPS-lukemiin Jyväskylässä suuntaamalla sinne koulutusta.</p>
+                                                <h4 className="font-bold text-[#2f855a] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Compass size={14}/> 1. Makrotason Raportit</h4>
+                                                <p className="text-stone-700 text-xs leading-relaxed">Rakenna Raportit-sivulle haluamasi johtotason dashboard. Ota Raporttipankista käyttöön **Konsernin tunnusluvut**, tilinpäätösdata ja alueiden dynaaminen suoritusvertailu.</p>
+                                            </div>
+
+                                            <div className="bg-[#fdf2f2] p-5 rounded-2xl border border-[#fde8e8]">
+                                                <h4 className="font-bold text-[#9b2c2c] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><AlertTriangle size={14}/> 2. Asiakasriskit ja Laajentuminen</h4>
+                                                <p className="text-stone-700 text-xs leading-relaxed">Ota Raporttipankista käyttöön Asiakasriskit-tutka, joka tekoälyä hyödyntäen varoittaa resurssipulasta tai asiakaskadosta poikkeaville alueille automaattisesti.</p>
                                             </div>
 
                                             <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
-                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2">2. Konsernin Koonti</h4>
-                                                <p className="text-stone-600 text-xs leading-relaxed">Tunnit, asiakkaat ja globaali NPS ynnätään täysimittaiseksi dashboardiksi. Alueiden dynaaminen vertailutaulukko näyttää, kuka johtaa liikevaihtokisaa.</p>
-                                            </div>
-
-                                            <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
-                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2">3. Master-Tarjotin</h4>
-                                                <p className="text-stone-600 text-xs leading-relaxed">Oletuksena luot "Uusi Tavoite" napilla (Työkalut välilehti) valtakunnallisia tarjottimia. Kun teet tarjottimen, se ilmestyy automaattisesti koko Famulan kaikkien työntekijöiden näytölle!</p>
+                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Globe size={14}/> 3. Yhtiön Rutiinien Jalkautus</h4>
+                                                <p className="text-stone-600 text-xs leading-relaxed">Kun luot työpöydän tarjottimen kautta tavoitteen ja **Kiinnität sen pysyväksi**, se ilmestyy velvoittavana rutiinina poikkeuksetta koko Suomen myyjien työpöydälle!</p>
                                             </div>
                                         </>
                                     )}

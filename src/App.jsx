@@ -159,6 +159,7 @@ export default function App() {
     const [publicData, setPublicData] = useState({ products: FALLBACK_PRODUCTS, scripts: FALLBACK_SCRIPTS, masterTray: DEFAULT_TRAY_TASKS });
     const [allUserStats, setAllUserStats] = useState([]); 
     const [allGlobalStats, setAllGlobalStats] = useState([]);
+    const [statsLoaded, setStatsLoaded] = useState(false);
     
     // Personal User Data State
     const [userMemos, setUserMemos] = useState([]);
@@ -317,6 +318,7 @@ export default function App() {
             
             const stats = rawStats.filter(s => s.regionId === regionId);
             setAllUserStats(stats);
+            setStatsLoaded(true);
             
             const myStatDoc = stats.find(s => s.id === fbUser.uid);
             if (myStatDoc && myStatDoc.myTasks) {
@@ -344,7 +346,7 @@ export default function App() {
 
     // Ensure my stats doc exists initially, or process an invitation.
     useEffect(() => {
-        if (!fbUser || !allUserStats) return;
+        if (!fbUser || !statsLoaded) return;
 
         // 1. Process potential email invitations
         const existingInvite = allUserStats.find(s => s.isInvite && s.email?.toLowerCase() === fbUser.email?.toLowerCase());
@@ -366,7 +368,7 @@ export default function App() {
                 syncMyStats({ hours: 0, customers: 0, npsSum: 0, npsCount: 0, myTasks: [] });
             }
         }
-    }, [authSession, fbUser, allUserStats]);
+    }, [authSession, fbUser, allUserStats, statsLoaded]);
 
     const showToast = (message, type = 'success') => {
         setToast({ message, type, visible: true });

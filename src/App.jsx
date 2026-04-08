@@ -2508,8 +2508,20 @@ const updatePublicDataProps = (updates) => {
                                     const displayDone = isAdmin && taskCompletionTab === 'tiimi' ? teamDoneTasks : doneTasks;
                                     const progressPercent = displayTotal > 0 ? Math.round((displayDone / displayTotal) * 100) : 0;
                                     
-                                    const userLogs = myStat.logs || [];
-                                    const latestLogs = [...userLogs].sort((a,b) => b.timestamp - a.timestamp).filter(l => l.type === 'survey' || l.type === 'quick_sale' || l.type === 'quick_customer').slice(0, 5);
+                                    let userLogs = myStat.logs || [];
+                                    if (isAdmin && !isSuperAdmin) {
+                                        userLogs = [];
+                                        (allUserStats || []).filter(u => u.regionId === authSession.regionId).forEach(u => {
+                                            (u.logs || []).forEach(l => userLogs.push({...l, workerName: u.name}));
+                                        });
+                                    } else if (isSuperAdmin) {
+                                        userLogs = [];
+                                        (allUserStats || []).forEach(u => {
+                                            (u.logs || []).forEach(l => userLogs.push({...l, workerName: u.name}));
+                                        });
+                                    }
+                                    const latestLogs = [...userLogs].sort((a,b) => b.timestamp - a.timestamp).filter(l => l.type === 'survey' || l.type === 'quick_sale' || l.type === 'quick_customer').slice(0, 10);
+
 
                                     return (
                                         <div className="mb-6 flex flex-col gap-6">
@@ -2561,9 +2573,12 @@ const updatePublicDataProps = (updates) => {
                                                                         <span className="text-[10px] font-bold text-stone-400 uppercase">{new Date(log.timestamp).toLocaleDateString('fi-FI')}</span>
                                                                     </div>
                                                                     
-                                                                    <div className="flex gap-2">
-                                                                        {log.hours > 0 && <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-white border border-stone-200 rounded-md text-stone-600"><Clock className="w-3 h-3 text-[#9b2c2c]"/> {log.hours}h myyty</span>}
-                                                                        {isSurvey && log.nps > 0 && <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 border rounded-md ${npsColor}`}>NPS: {log.nps}</span>}
+                                                                    <div className="flex justify-between items-end">
+                                                                        <div className="flex gap-2 mt-1">
+                                                                            {log.hours > 0 && <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-white border border-stone-200 rounded-md text-stone-600"><Clock className="w-3 h-3 text-[#9b2c2c]"/> {log.hours}h palveltu</span>}
+                                                                            {isSurvey && log.nps > 0 && <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 border rounded-md ${npsColor}`}>NPS: {log.nps}</span>}
+                                                                        </div>
+                                                                        {isAdmin && log.workerName && <span className="text-[10px] font-bold text-stone-500 bg-stone-100 px-2 py-1 rounded border border-stone-200">{log.workerName}</span>}
                                                                     </div>
                                                                 </div>
                                                             );

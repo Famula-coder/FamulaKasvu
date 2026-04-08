@@ -3528,8 +3528,8 @@ const updatePublicDataProps = (updates) => {
                                     {item.type === 'nps' ? (
                                         <div className="w-full pt-4 pb-2 px-1">
                                             <div className="flex justify-between text-xs text-stone-400 font-bold px-1 mb-2"><span>1 (Ei)</span><span>10 (Kyllä)</span></div>
-                                            <input type="range" min="1" max="10" step="1" value={val || 5} className="w-full h-4 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-[#2f855a] z-20" onChange={(e) => updateState({ answers: { ...(answers || {}), [item.id]: parseInt(e.target.value) } })} style={{ opacity: val === 0 ? 0.5 : 1 }} />
-                                            <div className="text-center mt-4 h-8"><span className={`text-4xl font-black ${val === 0 ? 'text-stone-300' : 'text-[#2f855a]'}`}>{val === 0 ? '?' : val}</span></div>
+                                            <input type="range" min="1" max="10" step="1" value={val || 5} className="w-full h-4 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-[#486045] z-20" onChange={(e) => updateState({ answers: { ...(answers || {}), [item.id]: parseInt(e.target.value) } })} style={{ opacity: val === 0 ? 0.5 : 1 }} />
+                                            <div className="text-center mt-4 h-8"><span className={`text-4xl font-black ${val === 0 ? 'text-stone-300' : 'text-[#486045]'}`}>{val === 0 ? '?' : val}</span></div>
                                         </div>
                                     ) : (
                                         <div className="flex justify-between items-center gap-1">
@@ -3545,8 +3545,8 @@ const updatePublicDataProps = (updates) => {
                     })}
                 </div>
                 <div className="pt-4">
-                    <button onClick={() => goToStep('worker')} disabled={!isSurveyComplete} className={`w-full py-4 rounded-2xl font-bold text-xl shadow-xl flex items-center justify-center gap-3 transition-all ${isSurveyComplete ? 'bg-[#2f855a] text-white hover:bg-[#22543d] active:scale-95' : 'bg-stone-200 text-stone-400 cursor-not-allowed'}`}>Jatka <ArrowRight className="w-6 h-6" /></button>
-                    {!isSurveyComplete && <p className="text-center text-[#2f855a] font-bold mt-3">Vastaathan kaikkiin kohtiin.</p>}
+                    <button onClick={() => goToStep('worker')} disabled={!isSurveyComplete} className={`w-full py-4 rounded-2xl font-bold text-xl shadow-xl flex items-center justify-center gap-3 transition-all ${isSurveyComplete ? 'bg-[#486045] text-white hover:bg-[#384c36] active:scale-95' : 'bg-stone-200 text-stone-400 cursor-not-allowed'}`}>Jatka <ArrowRight className="w-6 h-6" /></button>
+                    {!isSurveyComplete && <p className="text-center text-[#486045] font-bold mt-3">Vastaathan kaikkiin kohtiin.</p>}
                 </div>
             </div>
         );
@@ -3666,38 +3666,35 @@ const updatePublicDataProps = (updates) => {
                     </div>
                 )}
 
-                <div className="max-w-md mx-auto w-full flex flex-col justify-center min-h-[100dvh] bg-[#f5f5f4] shadow-2xl relative pb-12">
+                <div className="max-w-md mx-auto w-full flex flex-col min-h-[100dvh] bg-[#f5f5f4] relative shadow-2xl">
                     {step === 'login' && (
-                        <div className="p-4 flex flex-col justify-center grow my-auto">
-                            <div className="w-full bg-[#f5f5f4] rounded-[2.5rem] shadow-2xl overflow-hidden border border-stone-200 animate-fade-in relative z-10">
-                                <button onClick={() => setCurrentView('portal')} className="absolute top-5 left-5 text-stone-500 hover:text-[#2f855a] hover:bg-black/5 p-2 z-20 rounded-full transition-colors"><ChevronLeft size={24} /></button>
-                                <button onClick={() => setCurrentView((authSession && authSession.status === 'active') ? 'portal' : 'simulator_login')} className="absolute top-5 right-5 text-stone-500 hover:text-[#2f855a] hover:bg-black/5 p-2 z-20 rounded-full transition-colors"><Home size={24} /></button>
-                                
-                                <div className="bg-gradient-to-br from-[#22543d] to-[#2f855a] p-10 text-white text-center pt-20 relative flex flex-col items-center">
-                                    <h1 className="text-4xl font-black mb-1 tracking-tighter">Famula</h1>
-                                    <p className="text-[#a7f3d0] font-bold text-xs uppercase tracking-widest">Asiakastyytyväisyys</p>
-                                </div>
-                                
-                                <div className="p-8 space-y-6">
-                                    <div>
-                                        <label className="block text-sm font-bold text-stone-800 mb-2 ml-1">Kenen luona olemme?</label>
-                                        <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                                <User className="h-5 w-5 text-stone-400" />
-                                            </div>
-                                            <input type="text" placeholder="Asiakkaan nimikirjaimet esim. M.M." value={clientInitials} onChange={e => updateState({clientInitials: e.target.value})} className="w-full pl-12 pr-4 py-4 bg-white border border-stone-200 rounded-2xl outline-none text-lg font-bold text-stone-800 shadow-sm focus:border-[#2f855a] focus:ring-4 focus:ring-[#2f855a]/10 transition-all placeholder-stone-400" />
+                        <div className="flex flex-col min-h-screen relative z-10 animate-fade-in">
+                            <div className="bg-[#486045] pt-24 pb-20 px-8 text-white text-center relative flex flex-col items-center">
+                                <button onClick={() => setCurrentView('portal')} className="absolute top-6 left-6 text-white/70 hover:text-white p-2 z-20 rounded-full transition-colors"><ChevronLeft size={28} /></button>
+                                <button onClick={() => setCurrentView((authSession && authSession.status === 'active') ? 'portal' : 'simulator_login')} className="absolute top-6 right-6 text-white/70 hover:text-white p-2 z-20 rounded-full transition-colors"><Home size={28} /></button>
+                                <h1 className="text-4xl font-black mb-1 tracking-tighter">Famula</h1>
+                                <p className="text-[#a5bca2] font-bold text-xs uppercase tracking-widest">Asiakastyytyväisyys</p>
+                            </div>
+                            
+                            <div className="p-8 space-y-6 flex-1 flex flex-col bg-[#f5f5f4] -mt-10 rounded-t-[2.5rem] z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
+                                <div className="mt-4">
+                                    <label className="block text-sm font-bold text-stone-800 mb-3 ml-1">Kenen luona olemme?</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <User className="h-5 w-5 text-stone-400" />
                                         </div>
+                                        <input type="text" placeholder="Asiakkaan nimikirjaimet esim. M.M." value={clientInitials} onChange={e => updateState({clientInitials: e.target.value})} className="w-full pl-12 pr-4 py-4 bg-white border border-stone-200 rounded-2xl outline-none text-lg font-bold text-stone-800 shadow-sm focus:border-[#486045] focus:ring-4 focus:ring-[#486045]/10 transition-all placeholder-stone-400" />
                                     </div>
-                                    <button onClick={() => { updateState({ sessionId: `#${Math.floor(1000 + Math.random() * 9000)}` }); goToStep('customer'); }} disabled={clientInitials.length < 2} className={`w-full py-4 rounded-2xl font-black text-xl shadow-lg mt-4 transition-all duration-300 flex items-center justify-center gap-2 ${clientInitials.length > 1 ? 'bg-gradient-to-r from-[#2f855a] to-[#22543d] text-white hover:scale-[1.02] active:scale-95 hover:shadow-2xl' : 'bg-stone-200 text-stone-400 cursor-not-allowed opacity-70'}`}>
-                                        Aloita kysely {clientInitials.length > 1 && <ArrowRight className="w-5 h-5 animate-pulse"/>}
-                                    </button>
                                 </div>
+                                <button onClick={() => { updateState({ sessionId: `#${Math.floor(1000 + Math.random() * 9000)}` }); goToStep('customer'); }} disabled={clientInitials.length < 2} className={`w-full py-4 rounded-2xl font-black text-xl shadow-lg mt-auto transition-all duration-300 flex items-center justify-center gap-2 ${clientInitials.length > 1 ? 'bg-[#486045] text-white hover:scale-[1.02] active:scale-95 hover:shadow-2xl' : 'bg-stone-200 text-stone-400 cursor-not-allowed opacity-70'}`}>
+                                    Aloita kysely {clientInitials.length > 1 && <ArrowRight className="w-5 h-5 animate-pulse"/>}
+                                </button>
                             </div>
                         </div>
                     )}
                     {step === 'customer' && renderSurveyCustomer()}
                     {step === 'worker' && renderSurveyWorker()}
-                    {step === 'success' && <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-[#22543d] to-[#2f855a] fixed top-0 left-0 w-full z-50 animate-fade-in"><div className="w-full max-w-md bg-[#f5f5f4] rounded-[2.5rem] shadow-2xl p-10 text-center"><button onClick={handleStartSurveyView} className="w-full py-4 bg-stone-900 text-white rounded-2xl font-bold shadow-lg">Uusi kirjaus</button><button onClick={()=>setCurrentView('portal')} className="w-full py-4 mt-4 bg-white text-stone-900 rounded-2xl font-bold shadow-sm">Palaa portaaliin</button></div></div>}
+                    {step === 'success' && <div className="flex items-center justify-center min-h-screen p-4 bg-[#486045] fixed top-0 left-0 w-full z-50 animate-fade-in"><div className="w-full max-w-md bg-[#f5f5f4] rounded-[2.5rem] shadow-2xl p-10 text-center"><button onClick={handleStartSurveyView} className="w-full py-4 bg-stone-900 text-white rounded-2xl font-bold shadow-lg mt-4">Uusi kirjaus</button><button onClick={()=>setCurrentView('portal')} className="w-full py-4 mt-4 bg-white text-stone-900 rounded-2xl font-bold border border-stone-200 shadow-sm">Palaa portaaliin</button></div></div>}
                 </div>
             </div>
         );

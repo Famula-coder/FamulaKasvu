@@ -197,6 +197,12 @@ export default function App() {
     const [isGeneratingRecording, setIsGeneratingRecording] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     
+    // Uudet tilat palkkioraporttiin
+    const [reportTab, setReportTab] = useState('katsaus');
+    const [selectedArchiveMonth, setSelectedArchiveMonth] = useState("");
+    const [payoutBonusAmount, setPayoutBonusAmount] = useState({});
+    const [payoutBonusNote, setPayoutBonusNote] = useState({});
+    
     // History Data Entry (Aluevetäjä)
     const [historyEntry, setHistoryEntry] = useState({ month: new Date().toISOString().slice(0, 7), hours: "", target: "", revenue: "", revenueTarget: "" });
     
@@ -637,11 +643,70 @@ export default function App() {
     };
 
     // GLOBAL TOOLS (Products & Scripts)
-    const updatePublicDataProps = (updates) => {
+const updatePublicDataProps = (updates) => {
         if (!authSession || (authSession.role !== 'admin' && authSession.role !== 'superadmin')) return;
         const newData = { ...publicData, ...updates };
         setPublicData(newData);
         try { setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'globalData', 'main'), newData, { merge: true }).catch(e=>console.warn(e)); } catch(e) {}
+    };
+
+    const addManualBonusToUser = async (userId) => {
+        const amount = payoutBonusAmount[userId];
+        const note = payoutBonusNote[userId];
+        if (!amount || isNaN(amount)) return;
+        const myStat = allUserStats.find(s => s.id === userId);
+        if (!myStat) return;
+        const newLog = { 
+            id: generateId(), 
+            timestamp: Date.now(), 
+            type: 'manual_bonus', 
+            amount: Number(amount), 
+            note: note || 'Manuaalinen lisä/vähennys' 
+        };
+        const updatedLogs = [...(myStat.logs || []), newLog];
+        try {
+            setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', userId), { logs: updatedLogs }, { merge: true });
+            setPayoutBonusAmount(prev => ({...prev, [userId]: ""}));
+            setPayoutBonusNote(prev => ({...prev, [userId]: ""}));
+        } catch(e) {}
+    };
+
+    const markPayoutsAsPaid = async (computedPayouts, totalBonusSum) => {
+        if (!authSession || !isAdmin) return;
+        if (!window.confirm("Kuitataanko kuluva avoin kausi maksetuksi? Näiden kirjausten tiedot lukitaan Maksuarkistoon.")) return;
+        
+        const rId = authSession.regionId;
+        const targetMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+        const archiveId = `payout_${Date.now()}`;
+        
+        const newArchiveEntry = {
+            id: archiveId,
+            month: targetMonth,
+            timestamp: Date.now(),
+            regionId: rId,
+            totalSum: totalBonusSum,
+            payouts: computedPayouts
+        };
+        
+        const currentArchives = publicData.payoutArchives || {};
+        const regionArchives = currentArchives[rId] || [];
+        const updatedArchives = { ...currentArchives, [rId]: [newArchiveEntry, ...regionArchives] };
+        updatePublicDataProps({ payoutArchives: updatedArchives });
+        
+        for (const userPayout of computedPayouts) {
+            const userStat = allUserStats.find(s => s.id === userPayout.userId);
+            if (userStat) {
+                const updatedLogs = (userStat.logs || []).map(log => {
+                    if (!log.payoutId && userPayout.logs.find(l => l.id === log.id)) {
+                        return { ...log, payoutId: archiveId };
+                    }
+                    return log;
+                });
+                try {
+                    setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', userPayout.userId), { logs: updatedLogs }, { merge: true });
+                } catch(e) {}
+            }
+        }
     };
 
     const saveHistoryEntry = () => {
@@ -1028,7 +1093,7 @@ export default function App() {
                             </div>
                         )}
                         
-                        {isSuperAdmin && (
+                        {isSuperAdmin && reportTab === 'katsaus' && (
                             <div className="mb-8 bg-stone-900 border border-stone-800 rounded-3xl p-5 shadow-sm mt-6">
                                 <h3 className="text-xs font-black uppercase text-[#facc15] tracking-widest mb-3">Hallitse alueita (Superadmin)</h3>
                                 <div className="space-y-2">
@@ -1063,7 +1128,7 @@ export default function App() {
                                     <input type="text" name="inviteName" required placeholder="Etunimi Sukunimi" className="flex-1 border border-stone-200 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-[#2f855a]" />
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-3">
-                                    {isSuperAdmin && (
+                                    {isSuperAdmin && reportTab === 'katsaus' && (
                                         <select name="inviteRegion" required className="flex-1 border border-stone-200 rounded-xl px-3 py-2.5 text-sm font-bold text-stone-700 outline-none focus:border-[#2f855a]">
                                             <option value="">-- Valitse alue --</option>
                                             {activeRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
@@ -1079,11 +1144,11 @@ export default function App() {
                             </form>
                         </div>
                         
-                         <div>
-                            <h3 className="text-xs font-black uppercase text-stone-500 tracking-widest mb-3 px-1 mt-6">Aktiiviset työntekijät ({activeUsers.length})</h3>
+                        <div>
+                            <h3 className="text-xs font-black uppercase text-[#2f855a] tracking-widest mb-3 px-1 mt-2">Aktiivinen tiimisi ({activeUsers.length})</h3>
                             <div className="space-y-3">
                                 {activeUsers.map(u => (
-                                    <div key={u.id} className={`bg-white border rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${u.isInvite ? 'border-dashed border-stone-300 opacity-80 bg-stone-50' : 'border-stone-200'}`}>
+                                    <div key={u.id} className={`bg-white border rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${u.isInvite ? 'border-dashed border-stone-300 opacity-80 bg-stone-50' : 'border-[#dcfce7]'}`}>
                                         <div>
                                             <div className="font-bold text-stone-800 flex items-center gap-2 flex-wrap">
                                                 {u.name} 
@@ -1092,25 +1157,24 @@ export default function App() {
                                             </div>
                                             <div className="text-xs text-stone-500 mt-1">{u.email} • {activeRegions.find(r=>r.id===u.regionId)?.name}</div>
                                         </div>
-                                        {isSuperAdmin && (
-                                            <div className="flex gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+                                        <div className="flex gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+                                            {isSuperAdmin && reportTab === 'katsaus' && (
                                                 <select value={u.regionId} onChange={e=>handleAssignRegion(u.id, e.target.value)} className="bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 text-[10px] font-bold text-stone-700 outline-none w-full sm:w-auto">
                                                     {activeRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                                 </select>
+                                            )}
+                                            {(isAdmin || isSuperAdmin) && (
                                                 <select value={u.role} onChange={e=>handleAssignRole(u.id, e.target.value)} className="bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 text-[10px] font-bold text-stone-700 outline-none w-full sm:w-auto">
                                                     <option value="myyja">Myyjä</option>
                                                     <option value="admin">Aluevetäjä</option>
-                                                    <option value="superadmin">Superadmin</option>
+                                                    {isSuperAdmin && <option value="superadmin">Superadmin</option>}
                                                 </select>
-                                                <button onClick={()=>handleDelete(u.id)} className="bg-white border border-[#fde8e8] text-[#9b2c2c] p-1.5 rounded-xl hover:bg-[#fde8e8] transition flex items-center justify-center w-full sm:w-10 sm:h-10"><Trash2 size={14} className="mr-2 sm:mr-0"/><span className="sm:hidden text-xs font-bold">Poista</span></button>
-                                            </div>
-                                        )}
-                                        {isAdmin && !isSuperAdmin && (
-                                            <button onClick={()=>handleDelete(u.id)} className="w-full sm:w-auto bg-white border border-[#fde8e8] text-[#9b2c2c] py-2 px-4 rounded-xl text-xs font-bold hover:bg-[#fde8e8] transition">Poista tiimistä</button>
-                                        )}
+                                            )}
+                                            <button onClick={()=>handleDelete(u.id)} className="bg-white border border-[#fde8e8] text-[#9b2c2c] py-1.5 px-3 rounded-xl hover:bg-[#fde8e8] transition flex items-center justify-center w-full sm:w-auto text-xs font-bold"><Trash2 size={14} className="mr-2"/> Poista tiimistä</button>
+                                        </div>
                                     </div>
                                 ))}
-                                {activeUsers.length === 0 && <p className="text-stone-400 text-sm px-1 py-2">Ei muita aktiivisia työntekijöitä.</p>}
+                                {activeUsers.length === 0 && <p className="text-stone-400 text-sm px-1 py-2">Ei aktiivisia työntekijöitä.</p>}
                             </div>
                         </div>
                     </div>
@@ -1895,25 +1959,37 @@ export default function App() {
 
                         {currentTab === 'reports' && (
                             <div className="animate-fade-in">
-                                <header className="mb-6 mt-2 px-1 flex justify-between items-start">
-                                    <div>
-                                        <h2 className="text-2xl font-black text-stone-900">Raportit</h2>
-                                        <p className="text-sm text-stone-500 font-medium mt-1">{isAdmin ? 'Koko alueen yhdistetty data' : 'Omat tuloksesi'}</p>
+<header className="mb-6 mt-2 flex flex-col gap-4">
+                                    <div className="flex justify-between items-start px-1">
+                                        <div>
+                                            <h2 className="text-2xl font-black text-stone-900">Raportit</h2>
+                                            <p className="text-sm text-stone-500 font-medium mt-1">{isAdmin ? 'Koko alueen yhdistetty data' : 'Omat tuloksesi'}</p>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {(isAdmin || isSuperAdmin) && (
+                                                <button onClick={() => {
+                                                    const rBonuses = publicData?.regionBonuses?.[authSession?.regionId] || { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 };
+                                                    setAdminBonuses(rBonuses);
+                                                    setModals(prev => ({...prev, bonuses: true}));
+                                                }} className="bg-white border border-stone-200 text-[#2f855a] text-xs font-bold px-3 py-2 rounded-xl shadow-sm flex items-center hover:bg-stone-50 transition-colors">
+                                                    <Coins className="w-3.5 h-3.5 mr-1.5"/> Palkkioasetukset
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="flex gap-2">
-                                        {(isAdmin || isSuperAdmin) && (
-                                            <button onClick={() => {
-                                                const rBonuses = publicData?.regionBonuses?.[authSession?.regionId] || { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 };
-                                                setAdminBonuses(rBonuses);
-                                                setModals(prev => ({...prev, bonuses: true}));
-                                            }} className="bg-white border border-stone-200 text-[#2f855a] text-xs font-bold px-3 py-2 rounded-xl shadow-sm flex items-center hover:bg-stone-50 transition-colors">
-                                                <Coins className="w-3.5 h-3.5 mr-1.5"/> Palkkiot
-                                            </button>
-                                        )}
-                                    </div>
+                                    
+                                    {(isAdmin || isSuperAdmin) && (
+                                        <div className="flex bg-stone-200/50 p-1 rounded-xl w-fit">
+                                            <button onClick={() => setReportTab('katsaus')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${reportTab === 'katsaus' ? 'bg-white shadow-sm text-stone-900' : 'text-stone-500 hover:text-stone-800'}`}>Katsaus ja tilastot</button>
+                                            <button onClick={() => setReportTab('palkkiot')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${reportTab === 'palkkiot' ? 'bg-white shadow-sm text-[#2f855a]' : 'text-stone-500 hover:text-[#2f855a]'}`}>Palkkiot & Arkistot</button>
+                                        </div>
+                                    )}
                                 </header>
 
-                                {isSuperAdmin && (() => {
+{reportTab === 'katsaus' && (
+<div>
+
+                                {isSuperAdmin && reportTab === 'katsaus' && (() => {
                                     let globalHours = 0;
                                     let globalCustomers = 0;
                                     let globalNpsSum = 0;
@@ -2410,12 +2486,147 @@ export default function App() {
                         </div>
                     )}
 
+{(isAdmin || isSuperAdmin) && reportTab === 'palkkiot' && (() => {
+                            const bonuses = publicData?.regionBonuses?.[authSession.regionId] || { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 };
+                            const rArchives = (publicData.payoutArchives || {})[authSession.regionId] || [];
+                            const activeArchive = selectedArchiveMonth ? rArchives.find(a => a.id === selectedArchiveMonth) : null;
+                            
+                            // Jos ei arkistoitua kuukautta valittu, lasketaan AVOIN (pending)
+                            let computedPayouts = [];
+                            let totalBonusSum = 0;
+                            
+                            if (activeArchive) {
+                                computedPayouts = activeArchive.payouts;
+                                totalBonusSum = activeArchive.totalSum;
+                            } else {
+                                const teamStats = allUserStats.filter(s => s.regionId === authSession.regionId && (s.status === 'active' || (s.logs && s.logs.length > 0)));
+                                
+                                computedPayouts = teamStats.map(stat => {
+                                    const pendingLogs = (stat.logs || []).filter(l => !l.payoutId);
+                                    let sum = 0;
+                                    let breakdown = { oneTimeH: 0, planH: 0, customers: 0, manual: 0 };
+                                    
+                                    pendingLogs.forEach(log => {
+                                        if (log.type === 'survey') {
+                                            breakdown.planH += (log.planHours || 0);
+                                            breakdown.oneTimeH += (log.oneOffHours || 0);
+                                            sum += (log.planHours || 0) * bonuses.ongoingRate;
+                                            sum += (log.oneOffHours || 0) * bonuses.oneTimeRate;
+                                            if (log.proposalStatus === 'sold') { breakdown.customers += 1; sum += bonuses.customerBonus; }
+                                        } else if (log.type === 'quick_sale') {
+                                            if (log.saleMode === 'oneTime') { breakdown.oneTimeH += log.hours; sum += log.hours * bonuses.oneTimeRate; }
+                                            else { breakdown.planH += log.hours; sum += log.hours * bonuses.ongoingRate; }
+                                        } else if (log.type === 'quick_customer') {
+                                            breakdown.customers += 1; sum += bonuses.customerBonus;
+                                        } else if (log.type === 'manual_bonus') {
+                                            breakdown.manual += (log.amount || 0); sum += (log.amount || 0);
+                                        }
+                                    });
+                                    
+                                    totalBonusSum += sum;
+                                    return { userId: stat.id, name: stat.name, role: stat.role, sum, breakdown, logs: pendingLogs };
+                                }).filter(p => p.logs.length > 0);
+                            }
+
+                            return (
+                                <div className="space-y-6 animate-fade-in pb-12">
+                                    <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-stone-200 shadow-sm">
+                                        <div className="flex flex-col">
+                                            <label className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-1">Näytettävä Jakso</label>
+                                            <select value={selectedArchiveMonth} onChange={e => setSelectedArchiveMonth(e.target.value)} className="bg-stone-50 border border-stone-200 rounded-xl px-4 py-2 font-bold text-stone-800 outline-none focus:ring-2 focus:ring-[#2f855a]">
+                                                <option value="">Avoin, Tarkistamaton</option>
+                                                {rArchives.map(a => <option key={a.id} value={a.id}>Arkistoitu {a.month} ({new Date(a.timestamp).toLocaleDateString('fi')})</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-1">Maksettava Yhteensä</p>
+                                            <p className="text-2xl font-black text-[#2f855a]">{totalBonusSum.toFixed(2)} €</p>
+                                        </div>
+                                    </div>
+                                    
+                                    {!selectedArchiveMonth && computedPayouts.length > 0 && (
+                                        <div className="bg-[#f0fdf4] border border-[#dcfce7] rounded-xl p-4 flex justify-between items-center shadow-sm">
+                                            <div>
+                                                <h4 className="font-bold text-[#22543d]">Avoin kausi valmiina!</h4>
+                                                <p className="text-xs text-[#2f855a] font-medium">Tarkista kaikkien listat. Kun valmista, lukitse jakso kiinni.</p>
+                                            </div>
+                                            <button onClick={() => markPayoutsAsPaid(computedPayouts, totalBonusSum)} className="bg-[#2f855a] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-[#22543d] active:scale-95 transition-all">KUITTAA MAKSETUKSI</button>
+                                        </div>
+                                    )}
+
+                                    {computedPayouts.length === 0 && (
+                                        <div className="text-center py-10 bg-white rounded-2xl border border-stone-200 shadow-sm">
+                                            <p className="text-stone-500 font-bold">Ei palkkiokirjauksia tälle jaksolle.</p>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-4">
+                                        {computedPayouts.map(p => (
+                                            <details key={p.userId} className="group bg-white border border-stone-200 rounded-2xl shadow-sm overflow-hidden" open={!selectedArchiveMonth}>
+                                                <summary className="flex justify-between items-center p-5 cursor-pointer bg-stone-50 group-hover:bg-stone-100 transition-colors">
+                                                    <div>
+                                                        <h3 className="font-bold text-stone-900 text-lg flex items-center gap-2">{p.name} <span className="bg-white border border-stone-200 text-stone-500 text-[10px] uppercase font-bold py-0.5 px-2 rounded-full">{p.role}</span></h3>
+                                                    </div>
+                                                    <div className="font-black text-xl text-[#2f855a]">{p.sum.toFixed(2)} €</div>
+                                                </summary>
+                                                <div className="p-5 border-t border-stone-200">
+                                                    <div className="flex gap-4 mb-4 text-xs font-bold text-stone-600 bg-stone-50 p-3 rounded-xl">
+                                                        <div><span className="text-stone-400">Jatkuva:</span> {p.breakdown.planH}h</div>
+                                                        <div><span className="text-stone-400">Kerta:</span> {p.breakdown.oneTimeH}h</div>
+                                                        <div><span className="text-stone-400">Uudet As:</span> {p.breakdown.customers} kpl</div>
+                                                        <div><span className="text-stone-400">Manuaalinen:</span> {p.breakdown.manual} €</div>
+                                                    </div>
+                                                    
+                                                    <div className="space-y-2 mb-4">
+                                                        {p.logs.map(log => (
+                                                            <div key={log.id} className="flex justify-between items-center p-3 border border-stone-100 bg-white rounded-xl shadow-sm text-sm">
+                                                                <div>
+                                                                    <span className="font-bold text-stone-800">{new Date(log.timestamp).toLocaleDateString('fi')} - </span>
+                                                                    {log.type === 'survey' && <span className="text-stone-600">Asikaskäynti / Kysely (As. {log.clientInitials})</span>}
+                                                                    {log.type === 'quick_sale' && <span className="text-stone-600">Pikakirjaus (Myynti)</span>}
+                                                                    {log.type === 'quick_customer' && <span className="text-stone-600">Pikakirjaus (Uusi asiakas)</span>}
+                                                                    {log.type === 'manual_bonus' && <span className="text-[#9b2c2c] font-bold">{log.note}</span>}
+                                                                </div>
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="flex gap-2">
+                                                                        {log.planHours > 0 && <span className="bg-stone-50 px-2 py-1 rounded text-xs font-bold">{log.planHours}h (J)</span>}
+                                                                        {log.oneOffHours > 0 && <span className="bg-stone-50 px-2 py-1 rounded text-xs font-bold">{log.oneOffHours}h (K)</span>}
+                                                                        {log.hours > 0 && <span className="bg-stone-50 px-2 py-1 rounded text-xs font-bold">{log.hours}h</span>}
+                                                                        {log.proposalStatus === 'sold' && <span className="bg-[#f0fdf4] text-[#2f855a] px-2 py-1 rounded text-xs font-bold">Asiakas +1</span>}
+                                                                        {log.type === 'quick_customer' && <span className="bg-[#f0fdf4] text-[#2f855a] px-2 py-1 rounded text-xs font-bold">Asiakas +1</span>}
+                                                                        {log.amount && <span className="bg-[#fdf2f2] text-[#9b2c2c] px-2 py-1 rounded text-xs font-bold">{log.amount}€</span>}
+                                                                    </div>
+                                                                    {!selectedArchiveMonth && (
+                                                                        <button onClick={() => handleUndoLog(p.userId, log.id)} className="text-stone-400 hover:text-[#9b2c2c] ml-2 p-1.5 rounded bg-stone-50 hover:bg-[#fde8e8] transition"><Trash2 size={16}/></button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    
+                                                    {!selectedArchiveMonth && (
+                                                        <div className="mt-4 p-4 bg-stone-50 border border-stone-200 rounded-xl flex flex-col sm:flex-row gap-3">
+                                                            <input type="number" placeholder="Summa (€)" value={payoutBonusAmount[p.userId] || ""} onChange={e => setPayoutBonusAmount(prev => ({...prev, [p.userId]: e.target.value}))} className="bg-white border border-stone-200 rounded-xl px-3 py-2 text-sm font-bold w-full sm:w-32 outline-none" />
+                                                            <input type="text" placeholder="Selite (esim. Kilometriarviot)" value={payoutBonusNote[p.userId] || ""} onChange={e => setPayoutBonusNote(prev => ({...prev, [p.userId]: e.target.value}))} className="bg-white border border-stone-200 rounded-xl px-3 py-2 text-sm w-full sm:flex-1 outline-none" />
+                                                            <button onClick={() => addManualBonusToUser(p.userId)} className="bg-stone-800 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-black transition-colors whitespace-nowrap"><Plus size={16} className="inline mr-1"/> Lisää/Vähennä</button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </details>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+                        
+                        {currentTab === 'tools' && (
+
                         {currentTab === 'tools' && (
                             <div className="animate-fade-in">
                                 <header className="mb-4 mt-2 px-1 flex justify-between items-center">
                                     <h2 className="text-2xl font-black text-stone-900">Työkalut & Tarjotin</h2>
                                     <div className="flex gap-2">
-                                        {isSuperAdmin && (
+                                        {isSuperAdmin && reportTab === 'katsaus' && (
                                             <button onClick={openAdminTrayModal} className="bg-white border border-stone-200 text-[#9b2c2c] text-xs font-bold px-3 py-2 rounded-xl shadow-sm flex items-center hover:bg-stone-50 transition-colors">
                                                 <Target className="w-3.5 h-3.5 mr-1.5"/> Tarjotin
                                             </button>

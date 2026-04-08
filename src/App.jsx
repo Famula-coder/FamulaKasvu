@@ -2470,8 +2470,9 @@ const updatePublicDataProps = (updates) => {
                                                         <div className="absolute flex flex-col items-center justify-center">
                                                             <span className="text-3xl font-black text-stone-900">{progressPercent}%</span>
                                                             <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider text-center leading-none mt-1">{displayDone} / {displayTotal}<br/>tehty</span>
-                                                        </div>
-                                                    </div>
+                                                </div>
+                                                </div>
+                                                </div>
                                                 </div>
                                             )}
 

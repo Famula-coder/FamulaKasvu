@@ -1246,6 +1246,23 @@ export default function App() {
     const renderMarketingPlans = () => {
         const regionPlans = marketingPlans.filter(p => p.regionId === authSession.regionId).sort((a,b) => b.year - a.year || b.quarter - a.quarter);
         
+        const d = new Date();
+        const currYear = d.getFullYear();
+        const currQuarter = Math.floor(d.getMonth() / 3) + 1;
+        const monthKey = `targetMo${(d.getMonth() % 3) + 1}`;
+        let currTgtHours = 0;
+        regionPlans.filter(p => Number(p.year) === currYear && Number(p.quarter) === currQuarter).forEach(p => {
+            currTgtHours += Number(p[monthKey] || 0);
+        });
+        
+        const validTgt = currTgtHours > 0 ? currTgtHours : (regionPlans.length > 0 ? Number(regionPlans[0][monthKey] || 100) : 100);
+        const currentLevel = getGamificationLevel(validTgt);
+        
+        let nextLevel = null;
+        if (currentLevel.level < GAMIFICATION_LEVELS.length - 1) {
+            nextLevel = GAMIFICATION_LEVELS[currentLevel.level + 1];
+        }
+        
         return (
             <div className="animate-fade-in space-y-6">
                 <header className="flex justify-between items-center mb-6">
@@ -1255,6 +1272,27 @@ export default function App() {
                     </div>
                     <button onClick={() => setShowLevelsInfo(true)} className="w-10 h-10 rounded-full bg-white border border-stone-200 shadow-sm flex items-center justify-center text-[#2f855a] hover:bg-stone-50 transition"><HelpCircle size={20}/></button>
                 </header>
+
+                <div className={`p-4 rounded-2xl border flex flex-col gap-3 ${currentLevel.bgColor} ${currentLevel.border} mb-6 shadow-sm`}>
+                    <div className="flex items-start gap-4">
+                        <div className={`shrink-0 p-3 rounded-full bg-white/60 shadow-sm border border-stone-200/50 text-2xl flex items-center justify-center`}>
+                            {currentLevel.icon}
+                        </div>
+                        <div>
+                            <h4 className={`text-sm font-black uppercase tracking-wider mb-1 ${currentLevel.color}`}>Nykytila: {currentLevel.title}</h4>
+                            <p className="text-xs font-medium leading-relaxed opacity-90 text-stone-700">
+                                Päällä olevan suunnitelman kuluvan kuukauden tavoite on <strong>{validTgt} h</strong>. 
+                                {nextLevel && (
+                                    <> Seuraava taso on <strong className={currentLevel.color}>{nextLevel.title}</strong>, johon vaaditaan aktiivisessa kuukaudessa vähintään {GAMIFICATION_LEVELS[currentLevel.level].maxHours} kohdetuntia.</>
+                                )}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="bg-white/70 rounded-xl p-3 border border-white/60 text-xs text-stone-800 leading-relaxed shadow-sm mt-1">
+                        <h5 className="font-bold mb-1.5 uppercase tracking-wider text-[10px] text-stone-500">AI Analyysin suositukset tälle tilitasolle:</h5>
+                        <div className="opacity-90">{currentLevel.desc}</div>
+                    </div>
+                </div>
 
                 <button onClick={() => {
                     setEditingMarketingPlan({

@@ -193,6 +193,7 @@ export default function App() {
     const [selectedUserReport, setSelectedUserReport] = useState(null);
     const [showHelpModal, setShowHelpModal] = useState(false);
     const [showLevelsInfo, setShowLevelsInfo] = useState(false);
+    const [taskCompletionTab, setTaskCompletionTab] = useState('oma');
     const [isGeneratingRecording, setIsGeneratingRecording] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     
@@ -2186,14 +2187,34 @@ export default function App() {
                                 {(() => {
                                     const totalTasks = myTasks.length;
                                     const doneTasks = myTasks.filter(t => t.done || (t.type === 'pinned' && (t.doneWeeks || []).includes(`${todayInfo.year}-${todayInfo.weekNum}`))).length;
-                                    const progressPercent = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+                                    
+                                    let teamTotalTasks = 0;
+                                    let teamDoneTasks = 0;
+                                    (allUserStats || []).filter(u => u.role !== 'admin' && u.role !== 'superadmin').forEach(u => {
+                                        const uTasks = u.myTasks || [];
+                                        teamTotalTasks += uTasks.length;
+                                        teamDoneTasks += uTasks.filter(t => t.done || (t.type === 'pinned' && (t.doneWeeks || []).includes(`${todayInfo.year}-${todayInfo.weekNum}`))).length;
+                                    });
+
+                                    const displayTotal = isAdmin && taskCompletionTab === 'tiimi' ? teamTotalTasks : totalTasks;
+                                    const displayDone = isAdmin && taskCompletionTab === 'tiimi' ? teamDoneTasks : doneTasks;
+                                    const progressPercent = displayTotal > 0 ? Math.round((displayDone / displayTotal) * 100) : 0;
+                                    
                                     const userLogs = myStat.logs || [];
                                     const latestLogs = [...userLogs].sort((a,b) => b.timestamp - a.timestamp).filter(l => l.type === 'survey' || l.type === 'quick_sale' || l.type === 'quick_customer').slice(0, 5);
 
                                     return (
                                         <div className="mb-6 flex flex-col gap-6">
                                             <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
-                                                <h3 className="text-sm font-black text-stone-800 mb-4 uppercase tracking-widest text-center">Tehtävien suoritusaste</h3>
+                                                <div className="flex justify-between items-center mb-6">
+                                                    <h3 className="text-sm font-black text-stone-800 uppercase tracking-widest">Tehtävien suoritusaste</h3>
+                                                    {isAdmin && (
+                                                        <div className="flex bg-stone-100 p-1 rounded-lg shrink-0">
+                                                            <button onClick={() => setTaskCompletionTab('oma')} className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-wider rounded-md transition-all ${taskCompletionTab === 'oma' ? 'bg-white shadow-sm text-[#9b2c2c]' : 'text-stone-500 hover:text-stone-700'}`}>Oma</button>
+                                                            <button onClick={() => setTaskCompletionTab('tiimi')} className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-wider rounded-md transition-all ${taskCompletionTab === 'tiimi' ? 'bg-white shadow-sm text-[#2f855a]' : 'text-stone-500 hover:text-stone-700'}`}>Tiimi</button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                                 <div className="flex flex-col items-center">
                                                     <div className="relative w-32 h-32 flex items-center justify-center">
                                                         <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
@@ -2202,7 +2223,7 @@ export default function App() {
                                                         </svg>
                                                         <div className="absolute flex flex-col items-center justify-center">
                                                             <span className="text-3xl font-black text-stone-900">{progressPercent}%</span>
-                                                            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">{doneTasks} / {totalTasks} tehty</span>
+                                                            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider text-center leading-none mt-1">{displayDone} / {displayTotal}<br/>tehty</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -2210,7 +2231,7 @@ export default function App() {
 
                                             <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
                                                 <div className="flex justify-between items-center mb-4 border-b border-stone-100 pb-3">
-                                                    <h3 className="text-sm font-black text-stone-800 uppercase tracking-widest text-center">Asiakaskohtaamiset</h3>
+                                                    <h3 className="text-sm font-black text-stone-800 uppercase tracking-widest text-center">Asiakastyytyväisyyskysely</h3>
                                                     <button onClick={() => setModals(prev => ({...prev, activityHistory: fbUser.uid}))} className="text-[10px] font-bold uppercase tracking-wider text-stone-600 bg-stone-100 px-3 py-2 rounded-xl border border-stone-200 hover:bg-stone-200 transition-colors flex items-center">Historia & Peruuta &rarr;</button>
                                                 </div>
                                                 {latestLogs.length === 0 ? <p className="text-center text-sm text-stone-500 py-4">Ei asiakaskohtaamisia vielä.</p> : (
@@ -2290,7 +2311,7 @@ export default function App() {
 
                                                         <div className="bg-stone-50 rounded-2xl p-5 border border-stone-200">
                                                             <div className="flex justify-between items-center mb-4 border-b border-stone-200 pb-2">
-                                                                <h3 className="text-xs font-black text-stone-800 uppercase tracking-widest text-center">Asiakaskohtaamiset</h3>
+                                                                <h3 className="text-xs font-black text-stone-800 uppercase tracking-widest text-center">Asiakastyytyväisyyskysely</h3>
                                                                 <button onClick={() => setModals(prev => ({...prev, activityHistory: selectedUserReport.id}))} className="text-[9px] font-bold uppercase tracking-wider text-stone-600 bg-white px-2 py-1.5 rounded-lg border border-stone-200 hover:bg-stone-100 transition-colors">Historia & Peruuta</button>
                                                             </div>
                                                             {latestLogs.length === 0 ? <p className="text-center text-xs font-medium text-stone-500 py-2">Ei asiakaskohtaamisia vielä.</p> : (

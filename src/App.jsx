@@ -2197,22 +2197,22 @@ const updatePublicDataProps = (updates) => {
                                                     <h3 className="text-xs font-black text-stone-400 mb-6 uppercase tracking-widest text-center border-b border-stone-800 pb-3">Konsernin tunnusluvut</h3>
                                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                                         <div className="text-center p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col justify-center">
-                                                            <p className="text-[9px] font-bold text-stone-400 uppercase mb-2 tracking-wider">Operatiivinen Myynti<br/>(Kuluva kk)</p>
+                                                            <p className="text-[9px] font-bold text-stone-400 uppercase mb-2 tracking-wider">Operatiivinen myynti<br/>(kuluva kk)</p>
                                                             <p className={`text-2xl lg:text-3xl font-black ${cmRealizedRev >= cmTargetRev && cmTargetRev > 0 ? 'text-[#e0f8e9]' : 'text-white'}`}>{cmRealizedRev} €</p>
                                                             <p className="text-[10px] text-stone-500 mt-1">Tavoite: {cmTargetRev} €</p>
                                                         </div>
                                                         <div className="text-center p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col justify-center">
-                                                            <p className="text-[9px] font-bold text-stone-400 uppercase mb-2 tracking-wider">MRR-Osuus<br/>(Jatkuva vs Kerta)</p>
+                                                            <p className="text-[9px] font-bold text-stone-400 uppercase mb-2 tracking-wider">MRR-osuus<br/>(jatkuva vs kerta)</p>
                                                             <p className="text-2xl lg:text-3xl font-black text-white">{recurringRatio} %</p>
                                                             <p className="text-[10px] text-stone-500 mt-1">Suhdeluku</p>
                                                         </div>
                                                         <div className="text-center p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col justify-center">
-                                                            <p className="text-[9px] font-bold text-stone-400 uppercase mb-2 tracking-wider">Aktiivisuusindeksi<br/>(Suoritetut rutiinit)</p>
+                                                            <p className="text-[9px] font-bold text-stone-400 uppercase mb-2 tracking-wider">Aktiivisuusindeksi<br/>(suoritetut rutiinit)</p>
                                                             <p className={`text-2xl lg:text-3xl font-black ${activityIndex >= 80 ? 'text-[#e0f8e9]' : 'text-white'}`}>{activityIndex} %</p>
                                                             <p className="text-[10px] text-stone-500 mt-1">Tavoitevauhti</p>
                                                         </div>
                                                         <div className="text-center p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col justify-center">
-                                                            <p className="text-[9px] font-bold text-stone-400 uppercase mb-2 tracking-wider">Globaali NPS<br/>(Laatu)</p>
+                                                            <p className="text-[9px] font-bold text-stone-400 uppercase mb-2 tracking-wider">Globaali NPS<br/>(laatu)</p>
                                                             <p className={`text-2xl lg:text-3xl font-black ${globalNps >= 9 ? 'text-[#e0f8e9]' : 'text-white'}`}>{globalNps}</p>
                                                             <p className="text-[10px] text-stone-500 mt-1">Asiakasuskollisuus</p>
                                                         </div>
@@ -3358,10 +3358,10 @@ const updatePublicDataProps = (updates) => {
                                 <div className="p-6 space-y-6 text-stone-600 text-sm">
                                     {authSession.role === 'myyja' && (
                                         <>
-                                            <p className="border-l-4 border-stone-200 pl-3">Olet <strong>Työntekijä (Myyjä)</strong>. Sinun tehtäväsi on kohdata asiakkaita ja palvella heitä parhaalla mahdollisella tavalla.</p>
+                                            <p className="border-l-4 border-stone-200 pl-3">Olet <strong>Työntekijä (myyjä)</strong>. Sinun tehtäväsi on kohdata asiakkaita ja palvella heitä parhaalla mahdollisella tavalla.</p>
                                             
                                             <div className="bg-[#f0fdf4] p-5 rounded-2xl border border-[#dcfce7]">
-                                                <h4 className="font-bold text-[#2f855a] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><List size={14}/> 1. Tavoitteiden asettaminen (Tarjotin)</h4>
+                                                <h4 className="font-bold text-[#2f855a] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><List size={14}/> 1. Tavoitteiden asettaminen (tarjotin)</h4>
                                                 <p className="text-stone-700 text-xs leading-relaxed">Työpöydälläsi on Tavoitteet-osio. Klikkaa '+ Lisää tavoite tarjottimelle' poimiaksesi uusia rutiineja valmiista kirjastosta. Valitse 'Kiinnitä vakio-rutiiniksi', jolloin se toistuu automaattisesti! Kuittaa valmiit rutiinit suoraan donitsista.</p>
                                             </div>
 
@@ -3371,8 +3371,8 @@ const updatePublicDataProps = (updates) => {
                                             </div>
                                             
                                             <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
-                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Activity size={14}/> 3. Henkilökohtaiset Raportit</h4>
-                                                <p className="text-stone-600 text-xs leading-relaxed">Avaa **Muokkaa näkymää** (Raporttipankki) ja valitse ruudullesi esimerkiksi aktiivinen *Tavoiteputki* sekä *Rutiinien suoritusaste*. Näin näet reaaliajassa työnjälkesi!</p>
+                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Activity size={14}/> 3. Henkilökohtaiset raportit</h4>
+                                                <p className="text-stone-600 text-xs leading-relaxed">Avaa **Muokkaa näkymää** (raporttipankki) ja valitse ruudullesi esimerkiksi aktiivinen *tavoiteputki* sekä *rutiinien suoritusaste*. Näin näet reaaliajassa työnjälkesi!</p>
                                             </div>
                                         </>
                                     )}
@@ -3382,39 +3382,39 @@ const updatePublicDataProps = (updates) => {
                                             <p className="border-l-4 border-stone-200 pl-3">Olet <strong>Aluevetäjä</strong>. Toimit valmentajana koko alueesi tiimille ja seuraat taloutta.</p>
                                             
                                             <div className="bg-[#f0fdf4] p-5 rounded-2xl border border-[#dcfce7]">
-                                                <h4 className="font-bold text-[#2f855a] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><TrendingUp size={14}/> 1. Markkinointi ja Talous</h4>
-                                                <p className="text-stone-700 text-xs leading-relaxed">Siirry **Työkalut → Markkinointisuunnitelmat** syöttääksesi alueesi viralliset tilikauden talousluvut (Liikevaihto, EBITDA). Data ohjaa suoraan Raporttien talousnäkymää!</p>
+                                                <h4 className="font-bold text-[#2f855a] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><TrendingUp size={14}/> 1. Markkinointi ja talous</h4>
+                                                <p className="text-stone-700 text-xs leading-relaxed">Siirry **Työkalut → Markkinointisuunnitelmat** syöttääksesi alueesi viralliset tilikauden talousluvut (liikevaihto, EBITDA). Data ohjaa suoraan raporttien talousnäkymää!</p>
                                             </div>
 
                                             <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
-                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Target size={14}/> 2. Tiimin Rutiinien Ohjaus</h4>
-                                                <p className="text-stone-600 text-xs leading-relaxed">Lisää työpöydän kautta alueesi tiimiä koskevia tavoitteita. Muista hyödyntää **Kiinnitystä** – kun kiinnität elintärkeän rutiinin, se ilmestyy koko alueesi myyjien donitsiin viikosta toiseen.</p>
+                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Target size={14}/> 2. Tiimin rutiinien ohjaus</h4>
+                                                <p className="text-stone-600 text-xs leading-relaxed">Lisää työpöydän kautta alueesi tiimiä koskevia tavoitteita. Muista hyödyntää **kiinnitystä** – kun kiinnität elintärkeän rutiinin, se ilmestyy koko alueesi myyjien donitsiin viikosta toiseen.</p>
                                             </div>
                                             
                                             <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
-                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Sparkles size={14}/> 3. Raportit & Tiimin Sparraus</h4>
-                                                <p className="text-stone-600 text-xs leading-relaxed">Kokoa Kojelauta Raporttipankista. Ota käyttöön **Myyjien suoritustaso** sekä **Tekoälyn sparraus**, jotka nostavat heti esiin huippusuorittajat ja sparrausta kaipaavat jäsenet.</p>
+                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Sparkles size={14}/> 3. Raportit ja tiimin sparraus</h4>
+                                                <p className="text-stone-600 text-xs leading-relaxed">Kokoa kojelauta raporttipankista. Ota käyttöön **myyjien suoritustaso** sekä **tekoälyn sparraus**, jotka nostavat heti esiin huippusuorittajat ja sparrausta kaipaavat jäsenet.</p>
                                             </div>
                                         </>
                                     )}
 
                                     {authSession.role === 'superadmin' && (
                                         <>
-                                            <p className="border-l-4 border-stone-200 pl-3">Olet <strong>Super Admin (Ylin Johto)</strong>. Sinun tehtäväsi on johtaa konsernia ja kehittää Famulan toimintaa.</p>
+                                            <p className="border-l-4 border-stone-200 pl-3">Olet <strong>Super admin (ylin johto)</strong>. Sinun tehtäväsi on johtaa konsernia ja kehittää Famulan toimintaa.</p>
                                             
                                             <div className="bg-[#f0fdf4] p-5 rounded-2xl border border-[#dcfce7]">
-                                                <h4 className="font-bold text-[#2f855a] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Compass size={14}/> 1. Makrotason Raportit</h4>
-                                                <p className="text-stone-700 text-xs leading-relaxed">Rakenna Raportit-sivulle haluamasi johtotason dashboard. Ota Raporttipankista käyttöön **Konsernin tunnusluvut**, tilinpäätösdata ja alueiden dynaaminen suoritusvertailu.</p>
+                                                <h4 className="font-bold text-[#2f855a] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Compass size={14}/> 1. Makrotason raportit</h4>
+                                                <p className="text-stone-700 text-xs leading-relaxed">Rakenna Raportit-sivulle haluamasi johtotason dashboard. Ota raporttipankista käyttöön **konsernin tunnusluvut**, tilinpäätösdata ja alueiden dynaaminen suoritusvertailu.</p>
                                             </div>
 
                                             <div className="bg-[#fdf2f2] p-5 rounded-2xl border border-[#fde8e8]">
-                                                <h4 className="font-bold text-[#9b2c2c] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><AlertTriangle size={14}/> 2. Asiakasriskit ja Laajentuminen</h4>
-                                                <p className="text-stone-700 text-xs leading-relaxed">Ota Raporttipankista käyttöön Asiakasriskit-tutka, joka tekoälyä hyödyntäen varoittaa resurssipulasta tai asiakaskadosta poikkeaville alueille automaattisesti.</p>
+                                                <h4 className="font-bold text-[#9b2c2c] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><AlertTriangle size={14}/> 2. Asiakasriskit ja laajentuminen</h4>
+                                                <p className="text-stone-700 text-xs leading-relaxed">Ota raporttipankista käyttöön asiakasriskit-tutka, joka tekoälyä hyödyntäen varoittaa resurssipulasta tai asiakaskadosta poikkeaville alueille automaattisesti.</p>
                                             </div>
 
                                             <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
-                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Globe size={14}/> 3. Yhtiön Rutiinien Jalkautus</h4>
-                                                <p className="text-stone-600 text-xs leading-relaxed">Kun luot työpöydän tarjottimen kautta tavoitteen ja **Kiinnität sen pysyväksi**, se ilmestyy velvoittavana rutiinina poikkeuksetta koko Suomen myyjien työpöydälle!</p>
+                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Globe size={14}/> 3. Yhtiön rutiinien jalkautus</h4>
+                                                <p className="text-stone-600 text-xs leading-relaxed">Kun luot työpöydän tarjottimen kautta tavoitteen ja **kiinnität sen pysyväksi**, se ilmestyy velvoittavana rutiinina poikkeuksetta koko Suomen myyjien työpöydälle!</p>
                                             </div>
                                         </>
                                     )}

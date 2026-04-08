@@ -939,7 +939,7 @@ const updatePublicDataProps = (updates) => {
                     <div className="flex justify-between items-center mb-6 mt-4">
                         <h1 className="text-3xl font-black text-stone-900 tracking-tighter">Famula</h1>
                         <div className="flex gap-4">
-                            <button onClick={() => setCurrentView((authSession && authSession.status === 'active') ? 'portal' : 'simulator_login')} className="text-stone-400 hover:text-[#2f855a] transition-colors"><Home size={20}/></button>
+                            <button aria-label="Takaisin" onClick={() => setCurrentView((authSession && authSession.status === 'active') ? 'portal' : 'simulator_login')} className="text-stone-400 hover:text-[#2f855a] transition-colors"><Home size={20}/></button>
                             <button onClick={handleLogout} className="text-stone-400 hover:text-[#9b2c2c] transition-colors"><LogOut size={20}/></button>
                         </div>
                     </div>
@@ -966,24 +966,24 @@ const updatePublicDataProps = (updates) => {
                             <p className="text-stone-500 mb-6 text-sm font-medium tracking-wide">Uusi käyttäjä! Pyydä oikeudet tiimin sovellukseen täyttämällä tiedot.</p>
                             <form onSubmit={handleApplyAccess} className="space-y-4 text-left">
                                 <div>
-                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Koko nimesi</label>
-                                    <input type="text" name="nameInput" required defaultValue={fbUser?.displayName || ''} className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#2f855a]" />
+                                    <label htmlFor="nameInput" className="block text-xs font-bold text-stone-500 uppercase mb-1">Koko nimesi</label>
+                                    <input id="nameInput" type="text" name="nameInput" required defaultValue={fbUser?.displayName || ''} className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#2f855a] focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none" />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Mille alueelle haet?</label>
-                                    <select name="regionSelect" required className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#2f855a]">
+                                    <label htmlFor="regionSelect" className="block text-xs font-bold text-stone-500 uppercase mb-1">Mille alueelle haet?</label>
+                                    <select id="regionSelect" name="regionSelect" required className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#2f855a] focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none">
                                         <option value="">-- Valitse alueasiakkuus --</option>
                                         {activeRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Mitä roolia haet?</label>
-                                    <select name="roleSelect" required className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#2f855a]">
+                                    <label htmlFor="roleSelect" className="block text-xs font-bold text-stone-500 uppercase mb-1">Mitä roolia haet?</label>
+                                    <select id="roleSelect" name="roleSelect" required className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#2f855a] focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none">
                                         <option value="myyja">Myyjä</option>
                                         <option value="admin">Aluevetäjä</option>
                                     </select>
                                 </div>
-                                <button type="submit" className="w-full bg-[#22543d] text-white rounded-2xl py-4 font-bold hover:bg-[#132e21] transition-all flex items-center justify-center shadow-lg active:scale-95 mt-4">
+                                <button type="submit" className="w-full bg-[#22543d] text-white rounded-2xl py-4 font-bold hover:bg-[#132e21] transition-all flex items-center justify-center shadow-lg active:scale-95 mt-4 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#2f855a] focus-visible:outline-none">
                                     Lähetä hakemus <ChevronRight className="ml-2 w-5 h-5"/>
                                 </button>
                             </form>
@@ -1455,24 +1455,24 @@ const updatePublicDataProps = (updates) => {
                         <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20 h-[90vh] overflow-y-auto">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-black text-stone-900">{editingMarketingPlan.id ? 'Muokkaa Suunnitelmaa' : 'Uusi Suunnitelma'}</h3>
-                                <button onClick={() => setMarketingModal(false)} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
+                                <button aria-label="Sulje markkinointisuunnitelma" onClick={() => setMarketingModal(false)} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
                             </div>
                             
                             <div className="space-y-4 mb-6">
                                 <div className="flex gap-4">
                                     <div className="flex-1">
-                                        <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Vuosi</label>
-                                        <input type="number" value={editingMarketingPlan.year} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, year: e.target.value})} className="w-full p-3 bg-white border border-stone-200 rounded-xl font-bold text-stone-800 outline-none" />
+                                        <label htmlFor="reportYear" className="block text-xs font-bold text-stone-500 uppercase mb-1">Vuosi</label>
+                                        <input id="reportYear" type="number" value={editingMarketingPlan.year} focus-visible="true" className="focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none" onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, year: e.target.value})} className="w-full p-3 bg-white border border-stone-200 rounded-xl font-bold text-stone-800 outline-none" />
                                     </div>
                                     <div className="flex-1">
-                                        <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Kvartaali (1-4)</label>
-                                        <input type="number" min="1" max="4" value={editingMarketingPlan.quarter} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, quarter: e.target.value})} className="w-full p-3 bg-white border border-stone-200 rounded-xl font-bold text-stone-800 outline-none" />
+                                        <label htmlFor="reportQuarter" className="block text-xs font-bold text-stone-500 uppercase mb-1">Kvartaali (1-4)</label>
+                                        <input id="reportQuarter" type="number" min="1" max="4" value={editingMarketingPlan.quarter} className="focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none" onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, quarter: e.target.value})} className="w-full p-3 bg-white border border-stone-200 rounded-xl font-bold text-stone-800 outline-none" />
                                     </div>
                                 </div>
                                 
                                 <div className="bg-white p-4 rounded-2xl border border-stone-200">
-                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-2">MUISTIO</label>
-                                    <textarea value={editingMarketingPlan.evaluation} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, evaluation: e.target.value})} placeholder="Vapaa muistio..." className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm font-medium h-24 outline-none"></textarea>
+                                    <label htmlFor="reportMemo" className="block text-xs font-bold text-stone-500 uppercase mb-2">MUISTIO</label>
+                                    <textarea id="reportMemo" value={editingMarketingPlan.evaluation} className="focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none" onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, evaluation: e.target.value})} placeholder="Vapaa muistio..." className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm font-medium h-24 outline-none"></textarea>
                                 </div>
 
                                 <div className="bg-white p-4 rounded-2xl border border-stone-200">
@@ -1503,11 +1503,11 @@ const updatePublicDataProps = (updates) => {
                                 </div>
 
                                 <div className="bg-white p-4 rounded-2xl border border-stone-200 space-y-3">
-                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Markkinointibudjetti (€)</label>
-                                    <div className="flex items-center gap-2"><span className="w-24 text-xs font-bold text-stone-600">Printti:</span><input type="number" value={editingMarketingPlan.budgetPrint} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetPrint: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
-                                    <div className="flex items-center gap-2"><span className="w-24 text-xs font-bold text-stone-600">Digitaali:</span><input type="number" value={editingMarketingPlan.budgetDigital} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetDigital: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
-                                    <div className="flex items-center gap-2"><span className="w-24 text-xs font-bold text-stone-600">Edustus:</span><input type="number" value={editingMarketingPlan.budgetEdustus} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetEdustus: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
-                                    <div className="flex items-center gap-2"><span className="w-24 text-xs font-bold text-stone-600">Muu:</span><input type="number" value={editingMarketingPlan.budgetOther} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetOther: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
+                                    <label id="marketingBudgetGroup" className="block text-xs font-bold text-stone-500 uppercase mb-1">Markkinointibudjetti (€)</label>
+                                    <div className="flex items-center gap-2"><label htmlFor="budgetPrint" className="w-24 text-xs font-bold text-stone-600">Printti:</label><input id="budgetPrint" type="number" value={editingMarketingPlan.budgetPrint} className="focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none" onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetPrint: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
+                                    <div className="flex items-center gap-2"><label htmlFor="budgetDigital" className="w-24 text-xs font-bold text-stone-600">Digitaali:</label><input id="budgetDigital" type="number" value={editingMarketingPlan.budgetDigital} className="focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none" onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetDigital: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
+                                    <div className="flex items-center gap-2"><label htmlFor="budgetEdustus" className="w-24 text-xs font-bold text-stone-600">Edustus:</label><input id="budgetEdustus" type="number" value={editingMarketingPlan.budgetEdustus} className="focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none" onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetEdustus: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
+                                    <div className="flex items-center gap-2"><label htmlFor="budgetOther" className="w-24 text-xs font-bold text-stone-600">Muu:</label><input id="budgetOther" type="number" value={editingMarketingPlan.budgetOther} className="focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none" onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetOther: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
                                 </div>
 
                                 <div className="bg-[#f0fdf4] p-4 rounded-2xl border border-[#dcfce7]">
@@ -1581,7 +1581,7 @@ const updatePublicDataProps = (updates) => {
                                     <h3 className="text-lg font-black text-stone-900">Famulan kasvun portaat</h3>
                                     <p className="text-[10px] uppercase font-bold text-stone-400 tracking-wider mt-1">Ohjelman suoritustasot</p>
                                 </div>
-                                <button onClick={() => setShowLevelsInfo(false)} className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-stone-500 hover:bg-stone-300 transition"><X size={16}/></button>
+                                <button aria-label="Sulje lisätiedot" onClick={() => setShowLevelsInfo(false)} className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-stone-500 hover:bg-stone-300 transition"><X size={16}/></button>
                             </div>
                             <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
                                 {GAMIFICATION_LEVELS.map((lvl, index) => {
@@ -1604,7 +1604,7 @@ const updatePublicDataProps = (updates) => {
                                     );
                                 })}
                             </div>
-                            <button onClick={() => setShowLevelsInfo(false)} className="w-full bg-[#9b2c2c] text-white font-bold py-3.5 rounded-xl mt-5 shadow-sm active:scale-95 transition-transform uppercase tracking-wider text-xs">Selvä</button>
+                            <button aria-label="Sulje lisätiedot" onClick={() => setShowLevelsInfo(false)} className="w-full bg-[#9b2c2c] text-white font-bold py-3.5 rounded-xl mt-5 shadow-sm active:scale-95 transition-transform uppercase tracking-wider text-xs">Selvä</button>
                         </div>
                     </div>
                 )}
@@ -1670,30 +1670,30 @@ const updatePublicDataProps = (updates) => {
                         <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20 h-[90vh] overflow-y-auto">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-black text-stone-900">{editingFinancialStatement.id ? 'Muokkaa Tilinpäätöstä' : 'Uusi Tilinpäätös'}</h3>
-                                <button onClick={() => setFinancialModal(false)} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
+                                <button aria-label="Sulje talousnäkymä" onClick={() => setFinancialModal(false)} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
                             </div>
                             
                             <div className="space-y-4 mb-6">
                                 <div>
-                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Vuosi</label>
+                                    <label htmlFor="reportYear" className="block text-xs font-bold text-stone-500 uppercase mb-1">Vuosi</label>
                                     <input type="number" value={editingFinancialStatement.year} onChange={e=>setEditingFinancialStatement({...editingFinancialStatement, year: e.target.value})} className="w-full p-3 bg-white border border-stone-200 rounded-xl font-bold text-stone-800 outline-none" />
                                 </div>
 
                                 <div className="bg-white p-4 rounded-2xl border border-stone-200 space-y-3">
-                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Liikevaihto & Kassavirta (€ / %)</label>
+                                    <h4 className="block text-xs font-bold text-stone-500 uppercase mb-1">Liikevaihto & Kassavirta (€ / %)</h4>
                                     <div className="flex items-center gap-2"><span className="w-32 text-xs font-bold text-stone-600">Liikevaihto (€):</span><input type="number" value={editingFinancialStatement.revenue} onChange={e=>setEditingFinancialStatement({...editingFinancialStatement, revenue: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
                                     <div className="flex items-center gap-2"><span className="w-32 text-xs font-bold text-stone-600">Muutos (%):</span><input type="number" value={editingFinancialStatement.revChangePerc} onChange={e=>setEditingFinancialStatement({...editingFinancialStatement, revChangePerc: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" placeholder="-2.5 tai 15.0" /></div>
                                     <div className="flex items-center gap-2"><span className="w-32 text-xs font-bold text-stone-600">Op. Kassavirta (€):</span><input type="number" value={editingFinancialStatement.cashflow} onChange={e=>setEditingFinancialStatement({...editingFinancialStatement, cashflow: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
                                 </div>
 
                                 <div className="bg-white p-4 rounded-2xl border border-stone-200 space-y-3">
-                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Kannattavuus (€)</label>
+                                    <h4 className="block text-xs font-bold text-stone-500 uppercase mb-1">Kannattavuus (€)</h4>
                                     <div className="flex items-center gap-2"><span className="w-32 text-xs font-bold text-stone-600">Käyttökate (EBITDA):</span><input type="number" value={editingFinancialStatement.ebitda} onChange={e=>setEditingFinancialStatement({...editingFinancialStatement, ebitda: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
                                     <div className="flex items-center gap-2"><span className="w-32 text-xs font-bold text-stone-600">Liiketulos (EBIT):</span><input type="number" value={editingFinancialStatement.ebit} onChange={e=>setEditingFinancialStatement({...editingFinancialStatement, ebit: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
                                 </div>
 
                                 <div className="bg-white p-4 rounded-2xl border border-stone-200 space-y-3">
-                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Vakavaraisuus ja Maksuvalmius</label>
+                                    <h4 className="block text-xs font-bold text-stone-500 uppercase mb-1">Vakavaraisuus ja Maksuvalmius</h4>
                                     <div className="flex items-center gap-2"><span className="w-32 text-xs font-bold text-stone-600">Omavaraisuusaste (%):</span><input type="number" value={editingFinancialStatement.equityRatio} onChange={e=>setEditingFinancialStatement({...editingFinancialStatement, equityRatio: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
                                     <div className="flex items-center gap-2"><span className="w-32 text-xs font-bold text-stone-600">Quick Ratio:</span><input type="number" step="0.01" value={editingFinancialStatement.quickRatio} onChange={e=>setEditingFinancialStatement({...editingFinancialStatement, quickRatio: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" placeholder="Esim 1.2" /></div>
                                 </div>
@@ -1910,7 +1910,7 @@ const updatePublicDataProps = (updates) => {
                             <div className="animate-fade-in">
                                 <header className="flex justify-between items-center mb-6 mt-2 px-1">
                                     <div className="flex items-center gap-3">
-                                        <button onClick={() => setCurrentWeekOffset(prev => prev - 1)} className="p-2 bg-white rounded-full shadow-sm hover:bg-stone-50 border border-stone-200"><ChevronLeft className="w-5 h-5 text-stone-600"/></button>
+                                        <button aria-label="Edellinen viikko" onClick={() => setCurrentWeekOffset(prev => prev - 1)} className="p-2 bg-white rounded-full shadow-sm hover:bg-stone-50 border border-stone-200"><ChevronLeft className="w-5 h-5 text-stone-600"/></button>
                                         <div className="text-center">
                                             <h1 className="text-xl font-bold text-stone-900 tracking-tight">Viikko {todayInfo.weekNum}</h1>
                                             <p className="text-stone-500 text-xs font-medium">{todayInfo.dateStr}</p>
@@ -2581,7 +2581,7 @@ const updatePublicDataProps = (updates) => {
                                     selectedUserReport ? (
                                         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6 animate-fade-in shadow-xl">
                                             <div className="flex items-center mb-6 border-b border-stone-100 pb-4">
-                                                <button onClick={() => setSelectedUserReport(null)} className="p-2 bg-stone-50 rounded-full hover:bg-stone-200 mr-3 text-stone-600 transition-colors"><ChevronLeft size={18}/></button>
+                                                <button aria-label="Takaisin tiimiin" onClick={() => setSelectedUserReport(null)} className="p-2 bg-stone-50 rounded-full hover:bg-stone-200 mr-3 text-stone-600 transition-colors"><ChevronLeft size={18}/></button>
                                                 <div>
                                                     <h3 className="text-lg font-black text-stone-800">{selectedUserReport.name || 'Nimetön'}</h3>
                                                     <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Porautuminen - Myyjän raportti</p>
@@ -2885,7 +2885,7 @@ const updatePublicDataProps = (updates) => {
                                 <div className="space-y-6 animate-fade-in pb-12">
                                     <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-stone-200 shadow-sm">
                                         <div className="flex flex-col">
-                                            <label className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-1">Näytettävä Jakso</label>
+                                            <label htmlFor="timePeriodSelect" className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-1">Näytettävä Jakso</label>
                                             <select value={selectedArchiveMonth} onChange={e => setSelectedArchiveMonth(e.target.value)} className="bg-stone-50 border border-stone-200 rounded-xl px-4 py-2 font-bold text-stone-800 outline-none focus:ring-2 focus:ring-[#2f855a]">
                                                 <option value="">Avoin, Tarkistamaton</option>
                                                 {rArchives.map(a => <option key={a.id} value={a.id}>Arkistoitu {a.month} ({new Date(a.timestamp).toLocaleDateString('fi')})</option>)}
@@ -3081,9 +3081,9 @@ const updatePublicDataProps = (updates) => {
                                         <div className={`${expandedProductId === p.id || isEditMode ? 'block' : 'hidden'} p-4 bg-white border-t border-stone-100`}>
                                             {isEditMode && canEdit ? (
                                                 <>
-                                                    <label className="text-xs font-bold text-stone-500 uppercase mb-1 block">Sisältö</label>
+                                                    <label htmlFor="adminTaskText" className="text-xs font-bold text-stone-500 uppercase mb-1 block">Sisältö</label>
                                                     <textarea className="w-full p-3 border border-stone-200 rounded-xl mb-3 text-sm focus:border-[#9b2c2c] outline-none" rows="3" value={p.content} onChange={(e) => updateProductField(p.id, 'content', e.target.value, p.isMaster)}></textarea>
-                                                    <label className="text-xs font-bold text-stone-500 uppercase mb-1 block">Myyntilause</label>
+                                                    <label htmlFor="adminTaskPitch" className="text-xs font-bold text-stone-500 uppercase mb-1 block">Myyntilause</label>
                                                     <textarea className="w-full p-3 border border-stone-200 rounded-xl bg-stone-50 text-sm focus:border-[#9b2c2c] outline-none" rows="2" value={p.pitch} onChange={(e) => updateProductField(p.id, 'pitch', e.target.value, p.isMaster)}></textarea>
                                                 </>
                                             ) : (
@@ -3140,19 +3140,19 @@ const updatePublicDataProps = (updates) => {
                             <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-xl font-black text-stone-900">Palkkiot ja Komissiot</h3>
-                                    <button onClick={() => setModals(prev => ({ ...prev, bonuses: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
+                                    <button aria-label="Sulje bonukset" onClick={() => setModals(prev => ({ ...prev, bonuses: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
                                 </div>
                                 <div className="space-y-4 mb-6">
                                     <div>
-                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Irtotuntibonus (€/h)</label>
+                                        <label htmlFor="bonusSingle" className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Irtotuntibonus (€/h)</label>
                                         <input type="number" value={adminBonuses.oneTimeRate} onChange={(e) => setAdminBonuses({...adminBonuses, oneTimeRate: Number(e.target.value)})} className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#9b2c2c]" />
                                     </div>
                                     <div>
-                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Jatkuvan tilauksen bonus (€/h)</label>
+                                        <label htmlFor="bonusRecurring" className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Jatkuvan tilauksen bonus (€/h)</label>
                                         <input type="number" value={adminBonuses.ongoingRate} onChange={(e) => setAdminBonuses({...adminBonuses, ongoingRate: Number(e.target.value)})} className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#9b2c2c]" />
                                     </div>
                                     <div>
-                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Uuden asiakkaan bonus (€)</label>
+                                        <label htmlFor="bonusNewClient" className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Uuden asiakkaan bonus (€)</label>
                                         <input type="number" value={adminBonuses.customerBonus} onChange={(e) => setAdminBonuses({...adminBonuses, customerBonus: Number(e.target.value)})} className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#9b2c2c]" />
                                     </div>
                                 </div>
@@ -3167,7 +3167,7 @@ const updatePublicDataProps = (updates) => {
                             <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-xl font-black text-stone-900">Palkkiot ja Komissiot</h3>
-                                    <button onClick={() => setModals(prev => ({ ...prev, salaryDetails: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
+                                    <button aria-label="Sulje palkkatiedot" onClick={() => setModals(prev => ({ ...prev, salaryDetails: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
                                 </div>
                                 
                                 {(() => {
@@ -3240,7 +3240,7 @@ const updatePublicDataProps = (updates) => {
                                             <h3 className="text-lg font-black text-stone-900">Aktiviteettihistoria</h3>
                                             <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mt-1">{isMe ? 'Omat tapahtumasi' : `${targetStat.name} - Tapahtumat`}</p>
                                         </div>
-                                        <button onClick={() => setModals(prev => ({ ...prev, activityHistory: null }))} className="w-8 h-8 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center hover:bg-stone-200 transition-colors"><X size={16}/></button>
+                                        <button aria-label="Sulje historia" onClick={() => setModals(prev => ({ ...prev, activityHistory: null }))} className="w-8 h-8 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center hover:bg-stone-200 transition-colors"><X size={16}/></button>
                                     </div>
                                     
                                     <div className="p-4 max-h-[60vh] overflow-y-auto space-y-3">
@@ -3295,7 +3295,7 @@ const updatePublicDataProps = (updates) => {
                             <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20 h-[85vh] overflow-y-auto">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-xl font-black text-stone-900">Valtakunnallinen tarjotin</h3>
-                                    <button onClick={() => setModals(prev => ({ ...prev, adminPlan: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
+                                    <button aria-label="Sulje suunnitelma" onClick={() => setModals(prev => ({ ...prev, adminPlan: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
                                 </div>
                                 <div className="mb-6">
                                     <label className="block text-xs font-bold text-stone-500 uppercase mb-2">Lataa tavoitekirjastosta</label>
@@ -3326,7 +3326,7 @@ const updatePublicDataProps = (updates) => {
                             <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-xl font-black text-stone-900">Muokkaa tavoitetta</h3>
-                                    <button onClick={() => setModals(prev => ({ ...prev, editTrayTask: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
+                                    <button aria-label="Sulje tehtävän muokkaus" onClick={() => setModals(prev => ({ ...prev, editTrayTask: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
                                 </div>
                                 <textarea value={editingTrayTask.text} onChange={e => setEditingTrayTask(prev => ({...prev, text: e.target.value}))} className="w-full p-4 bg-white border border-stone-200 focus:border-[#2f855a] rounded-2xl outline-none mb-6 h-32 shadow-sm font-bold text-stone-800"></textarea>
                                 <button onClick={saveEditedTrayTask} className="w-full bg-[#2f855a] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Tallenna Tarjottimelle</button>
@@ -3341,7 +3341,7 @@ const updatePublicDataProps = (updates) => {
                             <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-xl font-black text-stone-900">Lisää oma tavoite</h3>
-                                    <button onClick={() => setModals(prev => ({ ...prev, newTrayTask: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
+                                    <button aria-label="Sulje uusi tehtävä" onClick={() => setModals(prev => ({ ...prev, newTrayTask: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
                                 </div>
                                 <textarea value={newTrayTaskText} onChange={e => setNewTrayTaskText(e.target.value)} placeholder="Mitä haluat saavuttaa?" className="w-full p-4 bg-white border border-stone-200 focus:border-[#2f855a] rounded-2xl outline-none mb-6 h-32 shadow-sm font-bold text-stone-800"></textarea>
                                 <button onClick={saveNewTrayTask} className="w-full bg-[#2f855a] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Lisää tarjottimelle</button>
@@ -3356,7 +3356,7 @@ const updatePublicDataProps = (updates) => {
                             <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-xl font-black text-stone-900">Muokkaa tehtävää</h3>
-                                    <button onClick={() => setModals(prev => ({ ...prev, editTask: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
+                                    <button aria-label="Sulje muokkaus" onClick={() => setModals(prev => ({ ...prev, editTask: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
                                 </div>
                                 <textarea value={editingTaskText} onChange={e=>setEditingTaskText(e.target.value)} className="w-full p-4 bg-white border border-stone-200 focus:border-[#2f855a] rounded-2xl outline-none mb-6 h-32 shadow-sm font-bold text-stone-800"></textarea>
                                 <button onClick={saveEditedMyTask} className="w-full bg-[#2f855a] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Tallenna Muutos</button>
@@ -3372,7 +3372,7 @@ const updatePublicDataProps = (updates) => {
                                         <div className="w-8 h-8 rounded-full bg-[#fdf2f2] text-[#9b2c2c] flex items-center justify-center"><HelpCircle size={18} /></div>
                                         <h3 className="font-black text-lg text-stone-900">Käyttöohjeet {authSession.role === 'myyja' ? '(Myyjä)' : authSession.role === 'admin' ? '(Aluevetäjä)' : '(Johto)'}</h3>
                                     </div>
-                                    <button onClick={() => setShowHelpModal(false)} className="p-2 bg-stone-100 rounded-full text-stone-500 hover:bg-stone-200 transition-colors"><X size={18} /></button>
+                                    <button aria-label="Sulje ohje" onClick={() => setShowHelpModal(false)} className="p-2 bg-stone-100 rounded-full text-stone-500 hover:bg-stone-200 transition-colors"><X size={18} /></button>
                                 </div>
                                 <div className="p-6 space-y-6 text-stone-600 text-sm">
                                     {authSession.role === 'myyja' && (
@@ -3474,7 +3474,7 @@ const updatePublicDataProps = (updates) => {
                             <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-xl font-black text-stone-900">Raporttipankki</h3>
-                                    <button onClick={() => setModals(prev => ({ ...prev, reportBank: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
+                                    <button aria-label="Sulje raporttipankki" onClick={() => setModals(prev => ({ ...prev, reportBank: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
                                 </div>
                                 <p className="text-stone-500 font-medium text-sm mb-6">Valitse mitä raportteja haluat nähdä kojelaudallasi.</p>
                                 
@@ -3514,7 +3514,7 @@ const updatePublicDataProps = (updates) => {
                                         </div>
                                     ))}
                                 </div>
-                                <button onClick={() => setModals(prev => ({ ...prev, reportBank: false }))} className="w-full bg-stone-900 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Valmis</button>
+                                <button aria-label="Sulje raporttipankki" onClick={() => setModals(prev => ({ ...prev, reportBank: false }))} className="w-full bg-stone-900 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Valmis</button>
                             </div>
                         </div>
                     )}
@@ -3677,10 +3677,10 @@ const updatePublicDataProps = (updates) => {
                                     if (step === 'worker') setSurveyState(prev => ({...prev, step: 'customer'}));
                                     else if (step === 'customer') setSurveyState(prev => ({...prev, step: 'login'}));
                                 }} className="hover:text-[#2f855a] transition-colors"><ChevronLeft size={20}/></button>
-                                <button onClick={() => setCurrentView((authSession && authSession.status === 'active') ? 'portal' : 'simulator_login')} className="hover:text-[#2f855a] transition-colors"><Home size={20}/></button>
+                                <button aria-label="Etusivu" onClick={() => setCurrentView((authSession && authSession.status === 'active') ? 'portal' : 'simulator_login')} className="hover:text-[#2f855a] transition-colors"><Home size={20}/></button>
                             </div>
                             <div className="flex flex-col"><span className="font-bold text-stone-900 text-sm tracking-wide">{company}</span></div>
-                            <button onClick={()=>setCurrentView('portal')} className="text-stone-400 hover:text-[#9b2c2c] transition-colors"><X size={20}/></button>
+                            <button aria-label="Takaisin portaaliin" onClick={()=>setCurrentView('portal')} className="text-stone-400 hover:text-[#9b2c2c] transition-colors"><X size={20}/></button>
                         </div>
                     </div>
                 )}
@@ -3689,20 +3689,20 @@ const updatePublicDataProps = (updates) => {
                     {step === 'login' && (
                         <div className="flex flex-col min-h-screen relative z-10 animate-fade-in">
                             <div className="bg-[#486045] pt-24 pb-20 px-8 text-white text-center relative flex flex-col items-center">
-                                <button onClick={() => setCurrentView('portal')} className="absolute top-6 left-6 text-white/70 hover:text-white p-2 z-20 rounded-full transition-colors"><ChevronLeft size={28} /></button>
-                                <button onClick={() => setCurrentView((authSession && authSession.status === 'active') ? 'portal' : 'simulator_login')} className="absolute top-6 right-6 text-white/70 hover:text-white p-2 z-20 rounded-full transition-colors"><Home size={28} /></button>
+                                <button aria-label="Palaa" onClick={() => setCurrentView('portal')} className="absolute top-6 left-6 text-white/70 hover:text-white p-2 z-20 rounded-full transition-colors"><ChevronLeft size={28} /></button>
+                                <button aria-label="Etusivu" onClick={() => setCurrentView((authSession && authSession.status === 'active') ? 'portal' : 'simulator_login')} className="absolute top-6 right-6 text-white/70 hover:text-white p-2 z-20 rounded-full transition-colors"><Home size={28} /></button>
                                 <h1 className="text-4xl font-black mb-1 tracking-tighter">Famula</h1>
                                 <p className="text-[#a5bca2] font-bold text-xs uppercase tracking-widest">Asiakastyytyväisyys</p>
                             </div>
                             
                             <div className="p-8 space-y-6 flex-1 flex flex-col bg-[#f5f5f4] -mt-10 rounded-t-[2.5rem] z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
                                 <div className="mt-4">
-                                    <label className="block text-sm font-bold text-stone-800 mb-3 ml-1">Kenen luona olemme?</label>
+                                    <label htmlFor="customerInitials" className="block text-sm font-bold text-stone-800 mb-3 ml-1">Kenen luona olemme?</label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                             <User className="h-5 w-5 text-stone-400" />
                                         </div>
-                                        <input type="text" placeholder="Asiakkaan nimikirjaimet esim. M.M." value={clientInitials} onChange={e => updateState({clientInitials: e.target.value})} className="w-full pl-12 pr-4 py-4 bg-white border border-stone-200 rounded-2xl outline-none text-lg font-bold text-stone-800 shadow-sm focus:border-[#486045] focus:ring-4 focus:ring-[#486045]/10 transition-all placeholder-stone-400" />
+                                        <input id="customerInitials" type="text" placeholder="Asiakkaan nimikirjaimet esim. M.M." value={clientInitials} onChange={e => updateState({clientInitials: e.target.value})} className="w-full pl-12 pr-4 py-4 bg-white border border-stone-200 rounded-2xl outline-none text-lg font-bold text-stone-800 shadow-sm focus:border-[#486045] focus:ring-4 focus:ring-[#486045]/10 transition-all placeholder-stone-400" />
                                     </div>
                                 </div>
                                 <button onClick={() => { updateState({ sessionId: `#${Math.floor(1000 + Math.random() * 9000)}` }); goToStep('customer'); }} disabled={clientInitials.length < 2} className={`w-full py-4 rounded-2xl font-black text-xl shadow-lg mt-auto transition-all duration-300 flex items-center justify-center gap-2 ${clientInitials.length > 1 ? 'bg-[#486045] text-white hover:scale-[1.02] active:scale-95 hover:shadow-2xl' : 'bg-stone-200 text-stone-400 cursor-not-allowed opacity-70'}`}>

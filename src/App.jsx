@@ -298,7 +298,7 @@ export default function App() {
             } else {
                 setFbUser(null);
                 setAuthSession(null);
-                setCurrentView('simulator_login');
+                setCurrentView((authSession && authSession.status === 'active') ? 'portal' : 'simulator_login');
             }
             setIsAuthenticating(false);
         });
@@ -411,7 +411,7 @@ export default function App() {
     const handleLogout = async () => {
         await signOut(auth);
         setAuthSession(null);
-        setCurrentView('simulator_login');
+        setCurrentView((authSession && authSession.status === 'active') ? 'portal' : 'simulator_login');
     };
 
     // --- DATA ACTIONS ---
@@ -864,7 +864,7 @@ export default function App() {
                     <div className="flex justify-between items-center mb-6 mt-4">
                         <h1 className="text-3xl font-black text-stone-900 tracking-tighter">Famula</h1>
                         <div className="flex gap-4">
-                            <button onClick={() => setCurrentView('simulator_login')} className="text-stone-400 hover:text-[#2f855a] transition-colors"><Home size={20}/></button>
+                            <button onClick={() => setCurrentView((authSession && authSession.status === 'active') ? 'portal' : 'simulator_login')} className="text-stone-400 hover:text-[#2f855a] transition-colors"><Home size={20}/></button>
                             <button onClick={handleLogout} className="text-stone-400 hover:text-[#9b2c2c] transition-colors"><LogOut size={20}/></button>
                         </div>
                     </div>
@@ -872,7 +872,7 @@ export default function App() {
                     {isAlreadyApplied ? (
                         <div className="text-center py-6 animate-fade-in">
                             <Clock className="w-16 h-16 text-stone-400 mx-auto mb-4" />
-                            <h2 className="text-xl font-bold text-stone-800 mb-2">Odottaa Hyväksyntää</h2>
+                            <h2 className="text-xl font-bold text-stone-800 mb-2">Odottaa hyväksyntää</h2>
                             <p className="text-stone-500 text-sm leading-relaxed">
                                 Hakemuksesi alueelle <b>{activeRegions.find(r=>r.id===authSession?.regionId)?.name}</b> on lähetetty! 
                                 Pääset sisään työpöydälle heti kun ohjaaja on kuitannut roolisi aktiiviseksi.
@@ -891,7 +891,7 @@ export default function App() {
                             <p className="text-stone-500 mb-6 text-sm font-medium tracking-wide">Uusi käyttäjä! Pyydä oikeudet tiimin sovellukseen täyttämällä tiedot.</p>
                             <form onSubmit={handleApplyAccess} className="space-y-4 text-left">
                                 <div>
-                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Koko Nimesi</label>
+                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Koko nimesi</label>
                                     <input type="text" name="nameInput" required defaultValue={fbUser?.displayName || ''} className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#2f855a]" />
                                 </div>
                                 <div>
@@ -1030,7 +1030,7 @@ export default function App() {
                         
                         {isSuperAdmin && (
                             <div className="mb-8 bg-stone-900 border border-stone-800 rounded-3xl p-5 shadow-sm mt-6">
-                                <h3 className="text-xs font-black uppercase text-[#facc15] tracking-widest mb-3">Hallitse Alueita (Superadmin)</h3>
+                                <h3 className="text-xs font-black uppercase text-[#facc15] tracking-widest mb-3">Hallitse alueita (Superadmin)</h3>
                                 <div className="space-y-2">
                                     {activeRegions.map(r => (
                                         <div key={r.id} className="flex justify-between items-center bg-stone-800 p-2.5 px-3 rounded-xl border border-stone-700">
@@ -1478,7 +1478,7 @@ export default function App() {
                                 </div>
                             </div>
                             
-                            <button onClick={saveMarketingPlan} className="w-full bg-[#9b2c2c] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform mb-8">Tallenna Suunnitelma</button>
+                            <button onClick={saveMarketingPlan} className="w-full bg-[#9b2c2c] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform mb-8">Tallenna suunnitelma</button>
                         </div>
                     </div>
                 )}
@@ -1489,7 +1489,7 @@ export default function App() {
                         <div className="bg-[#f5f5f4] w-full max-w-md rounded-3xl p-6 shadow-2xl relative z-10 animate-fade-in border border-stone-100">
                             <div className="flex justify-between items-center mb-5">
                                 <div>
-                                    <h3 className="text-lg font-black text-stone-900">Famulan Kasvun Portaat</h3>
+                                    <h3 className="text-lg font-black text-stone-900">Famulan kasvun portaat</h3>
                                     <p className="text-[10px] uppercase font-bold text-stone-400 tracking-wider mt-1">Ohjelman suoritustasot</p>
                                 </div>
                                 <button onClick={() => setShowLevelsInfo(false)} className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-stone-500 hover:bg-stone-300 transition"><X size={16}/></button>
@@ -1731,7 +1731,7 @@ export default function App() {
                                 <div className="bg-gradient-to-br from-[#771d1d] to-[#9b2c2c] text-white rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden group">
                                     <div className="relative z-10">
                                         <div className="flex items-center justify-between mb-2">
-                                            <span className="text-[10px] font-bold uppercase tracking-wider border border-white/30 px-2 py-0.5 rounded opacity-90">Kuukauden Teema</span>
+                                            <span className="text-[10px] font-bold uppercase tracking-wider border border-white/30 px-2 py-0.5 rounded opacity-90">Kuukauden teema</span>
                                             {isAdmin && !isEditingTheme && <button onClick={() => { setEditThemeData({theme: currentMonth?.theme || "", tip: currentMonth?.tip || ""}); setIsEditingTheme(true); }} className="opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-white/20 hover:bg-white/30 rounded-full"><Pen size={14}/></button>}
                                         </div>
                                         {isEditingTheme ? (
@@ -1804,7 +1804,7 @@ export default function App() {
                                 {/* MY DESKTOP (PERSONAL TASKS) */}
                                 <div className="bg-stone-50 rounded-[2rem] p-2 border border-stone-200 shadow-sm">
                                     <div className="text-center pt-4 pb-2">
-                                        <h3 className="font-extrabold text-stone-900 text-lg">Oma Työlista</h3>
+                                        <h3 className="font-extrabold text-stone-900 text-lg">Oma työlista</h3>
                                         <p className="text-[10px] text-[#2f855a] font-bold uppercase tracking-widest mt-1">Viikon valitut tavoitteet</p>
                                     </div>
                                     <div className="mb-2 min-h-[100px] px-2 py-2 space-y-3">
@@ -1949,10 +1949,10 @@ export default function App() {
                                             {/* Global KPIs */}
                                             <div className="bg-stone-900 text-white rounded-[2rem] p-6 shadow-xl mb-6 relative overflow-hidden">
                                                 <div className="relative z-10">
-                                                    <h3 className="text-xs font-black text-stone-400 mb-5 uppercase tracking-widest text-center border-b border-stone-800 pb-3">Konsernin Yleiskatsaus</h3>
+                                                    <h3 className="text-xs font-black text-stone-400 mb-5 uppercase tracking-widest text-center border-b border-stone-800 pb-3">Konsernin yleiskatsaus</h3>
                                                     <div className="grid grid-cols-2 gap-4 mb-5">
                                                         <div className="text-center">
-                                                            <p className="text-[10px] font-bold text-stone-400 uppercase mb-1 tracking-wider">Toteutuneet tunnit (Edellinen Kk)</p>
+                                                            <p className="text-[10px] font-bold text-stone-400 uppercase mb-1 tracking-wider">Toteutuneet tunnit (edellinen kk)</p>
                                                             <p className="text-4xl font-black text-white">{globalHours}h</p>
                                                         </div>
                                                         <div className="text-center">
@@ -1961,7 +1961,7 @@ export default function App() {
                                                         </div>
                                                     </div>
                                                     <div className="text-center p-4 bg-white/10 rounded-2xl border border-white/10">
-                                                        <p className="text-[10px] font-bold text-stone-400 uppercase mb-1 tracking-wider">Myydyt lisätunnit (Tässä Kk)</p>
+                                                        <p className="text-[10px] font-bold text-stone-400 uppercase mb-1 tracking-wider">Myydyt lisätunnit (tässä kk)</p>
                                                         <p className="text-3xl font-black text-white">{globalCustomers}h</p>
                                                     </div>
                                                 </div>
@@ -2002,7 +2002,7 @@ export default function App() {
 
                                             {/* Comparative Analytics */}
                                             <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6">
-                                                <h3 className="text-xs font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Alueiden Vertailu</h3>
+                                                <h3 className="text-xs font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Alueiden vertailu</h3>
                                                 <div className="space-y-4">
                                                     {(() => {
                                                         const statSource = authSession?.role === 'superadmin' && allGlobalStats?.length > 0 ? allGlobalStats : allUserStats;
@@ -2121,7 +2121,7 @@ export default function App() {
                                         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6 relative overflow-hidden">
                                             <div className="flex justify-between items-start mb-5 border-b border-stone-100 pb-4">
                                                 <div>
-                                                    <h3 className="text-lg font-black text-stone-900">Alueen Kasvu & Tavoite</h3>
+                                                    <h3 className="text-lg font-black text-stone-900">Alueen kasvu & tavoite</h3>
                                                     <div className={`mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${gamificationLevel.bgColor} ${gamificationLevel.border} shadow-sm`}>
                                                         <span className="text-base leading-none">{gamificationLevel.icon}</span>
                                                         <span className={`text-[10px] font-black uppercase tracking-widest ${gamificationLevel.color}`}>Taso: {gamificationLevel.title}</span>
@@ -2169,11 +2169,11 @@ export default function App() {
                                     
                                     <div className="grid grid-cols-2 gap-4 mb-4">
                                         <div className="text-center p-5 bg-[#f0fdf4] rounded-2xl border border-[#dcfce7]">
-                                            <p className="text-[10px] font-bold text-[#2f855a] uppercase mb-1 tracking-wider">{isAdmin ? 'Tämän Kk Lisämyynti' : 'Uudet Asiakkaat'}</p>
+                                            <p className="text-[10px] font-bold text-[#2f855a] uppercase mb-1 tracking-wider">{isAdmin ? 'Tämän Kk Lisämyynti' : 'Uudet asiakkaat'}</p>
                                             <p className="text-4xl font-black text-stone-900">{isAdmin ? totalRegionCustomers : myCustomers}{isAdmin && <span className="text-base font-bold text-stone-500 ml-1">h</span>}</p>
                                         </div>
                                         <div className="text-center p-5 bg-[#fdf2f2] rounded-2xl border border-[#fde8e8]">
-                                            <p className="text-[10px] font-bold text-[#9b2c2c] uppercase mb-1 tracking-wider">{isAdmin ? 'Edelt. Kk Toteutuma' : 'Myydyt Tunnit'}</p>
+                                            <p className="text-[10px] font-bold text-[#9b2c2c] uppercase mb-1 tracking-wider">{isAdmin ? 'Edelt. Kk Toteutuma' : 'Myydyt tunnit'}</p>
                                             <p className="text-4xl font-black text-stone-900">{isAdmin ? totalRegionHours : myHours}<span className="text-base font-bold text-stone-500 ml-1">h</span></p>
                                         </div>
                                     </div>
@@ -2272,7 +2272,7 @@ export default function App() {
                                                 <button onClick={() => setSelectedUserReport(null)} className="p-2 bg-stone-50 rounded-full hover:bg-stone-200 mr-3 text-stone-600 transition-colors"><ChevronLeft size={18}/></button>
                                                 <div>
                                                     <h3 className="text-lg font-black text-stone-800">{selectedUserReport.name || 'Nimetön'}</h3>
-                                                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Porautuminen - Myyjän Raportti</p>
+                                                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Porautuminen - Myyjän raportti</p>
                                                 </div>
                                             </div>
                                             {(() => {
@@ -2286,11 +2286,11 @@ export default function App() {
                                                     <div className="flex flex-col gap-5">
                                                         <div className="grid grid-cols-2 gap-3">
                                                             <div className="text-center p-4 bg-[#f0fdf4] rounded-2xl border border-[#dcfce7]">
-                                                                <p className="text-[9px] font-bold text-[#2f855a] uppercase mb-1 tracking-wider">Uudet Asiakkaat</p>
+                                                                <p className="text-[9px] font-bold text-[#2f855a] uppercase mb-1 tracking-wider">Uudet asiakkaat</p>
                                                                 <p className="text-3xl font-black text-stone-900">{selectedUserReport.customers || 0}</p>
                                                             </div>
                                                             <div className="text-center p-4 bg-[#fdf2f2] rounded-2xl border border-[#fde8e8]">
-                                                                <p className="text-[9px] font-bold text-[#9b2c2c] uppercase mb-1 tracking-wider">Myydyt Tunnit</p>
+                                                                <p className="text-[9px] font-bold text-[#9b2c2c] uppercase mb-1 tracking-wider">Myydyt tunnit</p>
                                                                 <p className="text-3xl font-black text-stone-900">{selectedUserReport.hours || 0}<span className="text-sm font-bold text-stone-500 ml-1">h</span></p>
                                                             </div>
                                                         </div>
@@ -2374,7 +2374,7 @@ export default function App() {
                                         </div>
 
                                         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
-                                            <h3 className="text-sm font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Tiimin Tilanne</h3>
+                                            <h3 className="text-sm font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Tiimin tilanne</h3>
                                             <div className="space-y-4">
                                                 {(!allUserStats || allUserStats.length === 0) ? <p className="text-sm text-stone-400 text-center">Ei dataa tiimistä.</p> : 
                                                 allUserStats.map(stat => {
@@ -2426,7 +2426,7 @@ export default function App() {
                                 {/* OMA TARJOTIN (Unified Tray) */}
                                 <div className="bg-stone-50 rounded-[2rem] p-4 border border-stone-200 shadow-sm mb-6">
                                     <div className="mb-4 text-center">
-                                        <h3 className="font-extrabold text-stone-900 text-lg">Myynnin Tarjotin</h3>
+                                        <h3 className="font-extrabold text-stone-900 text-lg">Myynnin tarjotin</h3>
                                         <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest mt-1">Valitse tai luo tavoitteita</p>
                                     </div>
 
@@ -2546,7 +2546,7 @@ export default function App() {
 
                         {currentTab === 'memo' && (
                             <div className="animate-fade-in">
-                                <header className="mb-4 mt-2 px-1"><h2 className="text-2xl font-black text-stone-900">Oma Muistio</h2></header>
+                                <header className="mb-4 mt-2 px-1"><h2 className="text-2xl font-black text-stone-900">Oma muistio</h2></header>
                                 <form onSubmit={addMemo} className="mb-6 relative">
                                     <textarea name="memoInput" className="w-full p-4 pr-14 bg-white border border-stone-200 rounded-2xl focus:border-[#2f855a] outline-none h-32 resize-none shadow-sm text-stone-800 font-medium" placeholder="Kirjoita uusi muistiinpano..."></textarea>
                                     <button type="submit" className="absolute right-3 bottom-3 bg-[#2f855a] w-10 h-10 rounded-xl flex items-center justify-center shadow-md hover:bg-[#22543d] transition-colors"><Plus className="text-white h-5 w-5" /></button>
@@ -2580,15 +2580,15 @@ export default function App() {
                                 </div>
                                 <div className="space-y-4 mb-6">
                                     <div>
-                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Irtotunti Bonus (€/h)</label>
+                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Irtotuntibonus (€/h)</label>
                                         <input type="number" value={adminBonuses.oneTimeRate} onChange={(e) => setAdminBonuses({...adminBonuses, oneTimeRate: Number(e.target.value)})} className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#9b2c2c]" />
                                     </div>
                                     <div>
-                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Jatkuva Tilaus Bonus (€/h)</label>
+                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Jatkuvan tilauksen bonus (€/h)</label>
                                         <input type="number" value={adminBonuses.ongoingRate} onChange={(e) => setAdminBonuses({...adminBonuses, ongoingRate: Number(e.target.value)})} className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#9b2c2c]" />
                                     </div>
                                     <div>
-                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Uusi Asiakas Bonus (€)</label>
+                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Uuden asiakkaan bonus (€)</label>
                                         <input type="number" value={adminBonuses.customerBonus} onChange={(e) => setAdminBonuses({...adminBonuses, customerBonus: Number(e.target.value)})} className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#9b2c2c]" />
                                     </div>
                                 </div>
@@ -2644,7 +2644,7 @@ export default function App() {
 
                                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex justify-between items-center group">
                                                     <div>
-                                                        <div className="text-sm font-black text-stone-800 flex items-center gap-2"><UserPlus className="w-4 h-4 text-stone-600"/> Uusi Asiakas</div>
+                                                        <div className="text-sm font-black text-stone-800 flex items-center gap-2"><UserPlus className="w-4 h-4 text-stone-600"/> Uusi asiakas</div>
                                                         <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Sopimus: {regionBonuses.customerBonus} €/kpl</div>
                                                     </div>
                                                     <span className="text-lg font-black text-stone-900">{monthDetails.customer.toFixed(2)} €</span>
@@ -2689,7 +2689,7 @@ export default function App() {
                                                     <div>
                                                         <div className="flex items-center gap-2 mb-1.5">
                                                             {isSurvey ? <MessageCircle className="w-4 h-4 text-[#2f855a]" /> : <Activity className="w-4 h-4 text-[#9b2c2c]" />}
-                                                            <span className="font-black text-stone-800 text-sm">{isSurvey ? `Asiakaskohtaaminen` : (log.type === 'quick_sale' ? 'Kirjattu Lisämyynti' : 'Uusi Asiakas')}</span>
+                                                            <span className="font-black text-stone-800 text-sm">{isSurvey ? `Asiakaskohtaaminen` : (log.type === 'quick_sale' ? 'Kirjattu lisämyynti' : 'Uusi asiakas')}</span>
                                                         </div>
                                                         <div className="text-xs text-stone-500 font-medium mb-3">
                                                             {new Date(log.timestamp).toLocaleString('fi-FI')}
@@ -2730,18 +2730,18 @@ export default function App() {
                             <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"></div>
                             <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20 h-[85vh] overflow-y-auto">
                                 <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-xl font-black text-stone-900">Valtakunnallinen Tarjotin</h3>
+                                    <h3 className="text-xl font-black text-stone-900">Valtakunnallinen tarjotin</h3>
                                     <button onClick={() => setModals(prev => ({ ...prev, adminPlan: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
                                 </div>
                                 <div className="mb-6">
-                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-2">Lataa Tavoitekirjastosta</label>
+                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-2">Lataa tavoitekirjastosta</label>
                                     <select onChange={e => applyGrowthTemplate(e.target.value)} className="w-full p-4 bg-white border border-stone-300 rounded-2xl font-bold text-stone-800 outline-none focus:border-[#9b2c2c] shadow-sm">
-                                        <option value="">-- Valitse Kasvun Porras / Pohja --</option>
+                                        <option value="">-- Valitse Kasvun porras / pohja --</option>
                                         {GROWTH_TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                                     </select>
                                 </div>
                                 <div className="space-y-3 mb-6">
-                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-2">Muokkaa Tarjotinta (Kaikki näkevät nämä)</label>
+                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-2">Muokkaa tarjotinta (Kaikki näkevät nämä)</label>
                                     {editingPlanTasks.map((task) => (
                                         <div key={task.id} className="flex gap-2">
                                             <input type="text" value={task.text} onChange={e => updatePlanTask(task.id, e.target.value)} className="flex-1 p-4 bg-white border border-stone-200 rounded-2xl text-sm font-bold text-stone-800 shadow-sm focus:border-[#9b2c2c] outline-none" />
@@ -2761,7 +2761,7 @@ export default function App() {
                             <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"></div>
                             <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
                                 <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-xl font-black text-stone-900">Muokkaa Tavoitetta</h3>
+                                    <h3 className="text-xl font-black text-stone-900">Muokkaa tavoitetta</h3>
                                     <button onClick={() => setModals(prev => ({ ...prev, editTrayTask: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
                                 </div>
                                 <textarea value={editingTrayTask.text} onChange={e => setEditingTrayTask(prev => ({...prev, text: e.target.value}))} className="w-full p-4 bg-white border border-stone-200 focus:border-[#2f855a] rounded-2xl outline-none mb-6 h-32 shadow-sm font-bold text-stone-800"></textarea>
@@ -2776,11 +2776,11 @@ export default function App() {
                             <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"></div>
                             <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
                                 <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-xl font-black text-stone-900">Lisää Oma Tavoite</h3>
+                                    <h3 className="text-xl font-black text-stone-900">Lisää oma tavoite</h3>
                                     <button onClick={() => setModals(prev => ({ ...prev, newTrayTask: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
                                 </div>
                                 <textarea value={newTrayTaskText} onChange={e => setNewTrayTaskText(e.target.value)} placeholder="Mitä haluat saavuttaa?" className="w-full p-4 bg-white border border-stone-200 focus:border-[#2f855a] rounded-2xl outline-none mb-6 h-32 shadow-sm font-bold text-stone-800"></textarea>
-                                <button onClick={saveNewTrayTask} className="w-full bg-[#2f855a] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Lisää Tarjottimelle</button>
+                                <button onClick={saveNewTrayTask} className="w-full bg-[#2f855a] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Lisää tarjottimelle</button>
                             </div>
                         </div>
                     )}
@@ -2791,7 +2791,7 @@ export default function App() {
                             <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"></div>
                             <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
                                 <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-xl font-black text-stone-900">Muokkaa Tehtävää</h3>
+                                    <h3 className="text-xl font-black text-stone-900">Muokkaa tehtävää</h3>
                                     <button onClick={() => setModals(prev => ({ ...prev, editTask: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
                                 </div>
                                 <textarea value={editingTaskText} onChange={e=>setEditingTaskText(e.target.value)} className="w-full p-4 bg-white border border-stone-200 focus:border-[#2f855a] rounded-2xl outline-none mb-6 h-32 shadow-sm font-bold text-stone-800"></textarea>
@@ -2826,7 +2826,7 @@ export default function App() {
                                             </div>
                                             
                                             <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
-                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2">3. Omat Raportit</h4>
+                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2">3. Omat raportit</h4>
                                                 <p className="text-stone-600 text-xs leading-relaxed">Pääset Raportit-välilehdellä seuraamaan huippukätevää rinkulakaaviota viikkosi suorituksista ja selittämään kuinka NPS-pisteesi (asiakastyytyväisyys) kehittyvät livenä korttilistassa!</p>
                                             </div>
                                         </>
@@ -3062,7 +3062,7 @@ export default function App() {
                                     if (step === 'worker') setSurveyState(prev => ({...prev, step: 'customer'}));
                                     else if (step === 'customer') setSurveyState(prev => ({...prev, step: 'login'}));
                                 }} className="hover:text-[#2f855a] transition-colors"><ChevronLeft size={20}/></button>
-                                <button onClick={() => setCurrentView('simulator_login')} className="hover:text-[#2f855a] transition-colors"><Home size={20}/></button>
+                                <button onClick={() => setCurrentView((authSession && authSession.status === 'active') ? 'portal' : 'simulator_login')} className="hover:text-[#2f855a] transition-colors"><Home size={20}/></button>
                             </div>
                             <div className="flex flex-col"><span className="font-bold text-stone-900 text-sm tracking-wide">{company}</span></div>
                             <button onClick={()=>setCurrentView('portal')} className="text-stone-400 hover:text-[#9b2c2c] transition-colors"><X size={20}/></button>
@@ -3070,16 +3070,31 @@ export default function App() {
                     </div>
                 )}
 
-                <div className="max-w-md mx-auto w-full bg-[#f5f5f4] min-h-screen relative pb-12 shadow-2xl">
+                <div className="max-w-md mx-auto w-full flex flex-col justify-center min-h-[100dvh] bg-[#f5f5f4] shadow-2xl relative pb-12">
                     {step === 'login' && (
-                        <div className="p-4 flex items-center justify-center min-h-screen bg-[#e7e5e4]">
-                            <div className="w-full bg-[#f5f5f4] rounded-[2.5rem] shadow-2xl overflow-hidden border border-stone-200 animate-fade-in relative">
-                                <button onClick={() => setCurrentView('portal')} className="absolute top-5 left-5 text-white hover:bg-black/40 p-2 z-20 bg-black/20 rounded-full backdrop-blur-sm transition-colors"><ChevronLeft size={24} /></button>
-                                <button onClick={() => setCurrentView('simulator_login')} className="absolute top-5 right-5 text-white hover:bg-black/40 p-2 z-20 bg-black/20 rounded-full backdrop-blur-sm transition-colors"><Home size={24} /></button>
-                                <div className="bg-gradient-to-br from-[#22543d] to-[#2f855a] p-10 text-white text-center pt-16 relative"><h1 className="text-4xl font-extrabold mb-2">Famula</h1><p className="text-[#dcfce7] font-semibold">Palautekysely</p></div>
+                        <div className="p-4 flex flex-col justify-center grow my-auto">
+                            <div className="w-full bg-[#f5f5f4] rounded-[2.5rem] shadow-2xl overflow-hidden border border-stone-200 animate-fade-in relative z-10">
+                                <button onClick={() => setCurrentView('portal')} className="absolute top-5 left-5 text-stone-500 hover:text-[#2f855a] hover:bg-black/5 p-2 z-20 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+                                <button onClick={() => setCurrentView((authSession && authSession.status === 'active') ? 'portal' : 'simulator_login')} className="absolute top-5 right-5 text-stone-500 hover:text-[#2f855a] hover:bg-black/5 p-2 z-20 rounded-full transition-colors"><Home size={24} /></button>
+                                
+                                <div className="bg-gradient-to-br from-[#22543d] to-[#2f855a] p-10 text-white text-center pt-20 relative flex flex-col items-center">
+                                    <h1 className="text-4xl font-black mb-1 tracking-tighter">Famula</h1>
+                                    <p className="text-[#a7f3d0] font-bold text-xs uppercase tracking-widest">Asiakastyytyväisyys</p>
+                                </div>
+                                
                                 <div className="p-8 space-y-6">
-                                    <div><label className="block text-sm font-bold text-stone-800 mb-2">Asiakkaan nimikirjaimet</label><input type="text" placeholder="Esim. M.M." value={clientInitials} onChange={e => updateState({clientInitials: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none text-lg font-bold text-stone-800 shadow-sm focus:border-[#2f855a]" /></div>
-                                    <button onClick={() => { updateState({ sessionId: `#${Math.floor(1000 + Math.random() * 9000)}` }); goToStep('customer'); }} disabled={clientInitials.length < 2} className={`w-full py-4 rounded-2xl font-black text-xl shadow-lg mt-4 ${clientInitials.length > 1 ? 'bg-[#2f855a] text-white' : 'bg-stone-200 text-stone-400 cursor-not-allowed'}`}>Aloita</button>
+                                    <div>
+                                        <label className="block text-sm font-bold text-stone-800 mb-2 ml-1">Kenen luona olemme?</label>
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                <User className="h-5 w-5 text-stone-400" />
+                                            </div>
+                                            <input type="text" placeholder="Asiakkaan nimikirjaimet esim. M.M." value={clientInitials} onChange={e => updateState({clientInitials: e.target.value})} className="w-full pl-12 pr-4 py-4 bg-white border border-stone-200 rounded-2xl outline-none text-lg font-bold text-stone-800 shadow-sm focus:border-[#2f855a] focus:ring-4 focus:ring-[#2f855a]/10 transition-all placeholder-stone-400" />
+                                        </div>
+                                    </div>
+                                    <button onClick={() => { updateState({ sessionId: `#${Math.floor(1000 + Math.random() * 9000)}` }); goToStep('customer'); }} disabled={clientInitials.length < 2} className={`w-full py-4 rounded-2xl font-black text-xl shadow-lg mt-4 transition-all duration-300 flex items-center justify-center gap-2 ${clientInitials.length > 1 ? 'bg-gradient-to-r from-[#2f855a] to-[#22543d] text-white hover:scale-[1.02] active:scale-95 hover:shadow-2xl' : 'bg-stone-200 text-stone-400 cursor-not-allowed opacity-70'}`}>
+                                        Aloita kysely {clientInitials.length > 1 && <ArrowRight className="w-5 h-5 animate-pulse"/>}
+                                    </button>
                                 </div>
                             </div>
                         </div>

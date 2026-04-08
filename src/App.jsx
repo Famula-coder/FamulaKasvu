@@ -180,6 +180,7 @@ export default function App() {
     const [userProducts, setUserProducts] = useState([]); // User's customized products
     const [hiddenMasterProducts, setHiddenMasterProducts] = useState([]); // Hidden global products
     const [marketingPlans, setMarketingPlans] = useState([]); // Marketing plans
+    const [financialStatements, setFinancialStatements] = useState([]); // Financial statements
 
     // UI Modals & Inputs
     const [modals, setModals] = useState({ sales: false, adminPlan: false, editTask: false, editTrayTask: false, newTrayTask: false, bonuses: false, salaryDetails: false, historyEntry: false, activityHistory: null });
@@ -207,8 +208,10 @@ export default function App() {
     const [historyEntry, setHistoryEntry] = useState({ month: new Date().toISOString().slice(0, 7), hours: "", target: "", revenue: "", revenueTarget: "" });
     
     
-    // Marketing Plans State
+    // Marketing Plans & Financial Statements State
     const [marketingModal, setMarketingModal] = useState(false);
+    const [financialModal, setFinancialModal] = useState(false);
+    const [editingFinancialStatement, setEditingFinancialStatement] = useState(null);
     const [editingMarketingPlan, setEditingMarketingPlan] = useState({
         id: '', year: new Date().getFullYear(), quarter: Math.floor((new Date().getMonth() + 3) / 3),
         targetMo1: '', targetMo2: '', targetMo3: '',
@@ -329,6 +332,13 @@ export default function App() {
             const plans = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             setMarketingPlans(plans);
         }, (err) => console.error("Marketing snap error:", err));
+
+        // Fetch Financial Statements
+        const financialRef = collection(db, 'artifacts', appId, 'public', 'data', 'financial_statements');
+        const unsubFinancial = onSnapshot(financialRef, (snap) => {
+            const stmts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            setFinancialStatements(stmts);
+        }, (err) => console.error("Financial statements snap error:", err));
 
         // Fetch All Users Stats for the Region (and Global if superadmin)
         const statsRef = collection(db, 'artifacts', appId, 'public', 'data', 'user_stats');
@@ -1308,6 +1318,21 @@ const updatePublicDataProps = (updates) => {
         showToast("Markkinointisuunnitelma tallennettu!");
     };
 
+    const saveFinancialStatement = async () => {
+        if (!isAdmin) return;
+        const stmtId = editingFinancialStatement.id || `${authSession.regionId}_${editingFinancialStatement.year}`;
+        const stmtData = {
+            ...editingFinancialStatement,
+            regionId: authSession.regionId,
+            timestamp: Date.now()
+        };
+        
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'financial_statements', stmtId), stmtData, { merge: true });
+        
+        setFinancialModal(false);
+        showToast("Tilinpäätös tallennettu!");
+    };
+
     const renderMarketingPlans = () => {
         const regionPlans = marketingPlans.filter(p => p.regionId === authSession.regionId).sort((a,b) => b.year - a.year || b.quarter - a.quarter);
         
@@ -1583,10 +1608,104 @@ const updatePublicDataProps = (updates) => {
                         </div>
                     </div>
                 )}
+
+                <div className="mt-12 pt-8 border-t border-stone-200">
+                    <header className="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 className="text-xl font-black text-stone-900 tracking-tight">Tilinpäätösluvut</h3>
+                            <p className="text-stone-500 text-xs font-bold uppercase tracking-widest mt-1">Vuosittainen talousseuranta</p>
+                        </div>
+                    </header>
+                    <button onClick={() => {
+                        setEditingFinancialStatement({
+                            id: '', year: (new Date().getFullYear()) - 1, 
+                            revenue: '', revChangePerc: '', ebitda: '', ebit: '', cashflow: '', equityRatio: '', quickRatio: ''
+                        });
+                        setFinancialModal(true);
+                    }} className="w-full bg-[#fdf2f2] border border-[#fca5a5] text-[#9b2c2c] rounded-2xl p-4 flex justify-center items-center gap-2 font-black shadow-sm hover:bg-[#fca5a5] transition mb-6">
+                        <Plus size={20} /> Uusi Tilinpäätöskausi (Vuosi)
+                    </button>
+
+                    <div className="space-y-4">
+                        {financialStatements.filter(f => f.regionId === authSession.regionId).sort((a,b) => b.year - a.year).map(stmt => (
+                            <div key={stmt.id} className="bg-white border border-stone-200 rounded-3xl p-5 shadow-sm">
+                                <div className="flex justify-between items-start mb-4 border-b border-stone-100 pb-3">
+                                    <h3 className="font-black text-lg text-stone-900">Tilikausi {stmt.year}</h3>
+                                    <button onClick={() => { setEditingFinancialStatement(stmt); setFinancialModal(true); }} className="p-2 bg-stone-100 rounded-xl hover:bg-stone-200 text-stone-600 transition"><Pen size={16}/></button>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 mb-2">
+                                    <div className="bg-stone-50 p-3 rounded-xl border border-stone-100">
+                                        <p className="text-[9px] font-bold text-stone-500 uppercase tracking-widest mb-1">Liikevaihto & Muutos-%</p>
+                                        <p className="text-sm font-black text-stone-800">{stmt.revenue} € <span className={`text-[10px] ml-1 ${Number(stmt.revChangePerc) >= 0 ? 'text-[#2f855a]' : 'text-[#9b2c2c]'}`}>({stmt.revChangePerc}%)</span></p>
+                                    </div>
+                                    <div className="bg-stone-50 p-3 rounded-xl border border-stone-100">
+                                        <p className="text-[9px] font-bold text-stone-500 uppercase tracking-widest mb-1">Käyttökate (EBITDA)</p>
+                                        <p className="text-sm font-black text-stone-800">{stmt.ebitda} €</p>
+                                    </div>
+                                    <div className="bg-stone-50 p-3 rounded-xl border border-stone-100">
+                                        <p className="text-[9px] font-bold text-stone-500 uppercase tracking-widest mb-1">Liiketulos (EBIT)</p>
+                                        <p className="text-sm font-black text-stone-800">{stmt.ebit} €</p>
+                                    </div>
+                                    <div className="bg-stone-50 p-3 rounded-xl border border-stone-100">
+                                        <p className="text-[9px] font-bold text-stone-500 uppercase tracking-widest mb-1">Op. Kassavirta</p>
+                                        <p className="text-sm font-black text-stone-800">{stmt.cashflow} €</p>
+                                    </div>
+                                    <div className="bg-stone-50 p-3 rounded-xl border border-stone-100">
+                                        <p className="text-[9px] font-bold text-stone-500 uppercase tracking-widest mb-1">Omavaraisuusaste</p>
+                                        <p className="text-sm font-black text-stone-800">{stmt.equityRatio} %</p>
+                                    </div>
+                                    <div className="bg-stone-50 p-3 rounded-xl border border-stone-100">
+                                        <p className="text-[9px] font-bold text-stone-500 uppercase tracking-widest mb-1">Quick Ratio</p>
+                                        <p className="text-sm font-black text-stone-800">{stmt.quickRatio}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {financialModal && editingFinancialStatement && (
+                    <div className="fixed inset-0 z-[60] flex items-end justify-center">
+                        <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setFinancialModal(false)}></div>
+                        <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20 h-[90vh] overflow-y-auto">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-black text-stone-900">{editingFinancialStatement.id ? 'Muokkaa Tilinpäätöstä' : 'Uusi Tilinpäätös'}</h3>
+                                <button onClick={() => setFinancialModal(false)} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
+                            </div>
+                            
+                            <div className="space-y-4 mb-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Vuosi</label>
+                                    <input type="number" value={editingFinancialStatement.year} onChange={e=>setEditingFinancialStatement({...editingFinancialStatement, year: e.target.value})} className="w-full p-3 bg-white border border-stone-200 rounded-xl font-bold text-stone-800 outline-none" />
+                                </div>
+
+                                <div className="bg-white p-4 rounded-2xl border border-stone-200 space-y-3">
+                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Liikevaihto & Kassavirta (€ / %)</label>
+                                    <div className="flex items-center gap-2"><span className="w-32 text-xs font-bold text-stone-600">Liikevaihto (€):</span><input type="number" value={editingFinancialStatement.revenue} onChange={e=>setEditingFinancialStatement({...editingFinancialStatement, revenue: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
+                                    <div className="flex items-center gap-2"><span className="w-32 text-xs font-bold text-stone-600">Muutos (%):</span><input type="number" value={editingFinancialStatement.revChangePerc} onChange={e=>setEditingFinancialStatement({...editingFinancialStatement, revChangePerc: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" placeholder="-2.5 tai 15.0" /></div>
+                                    <div className="flex items-center gap-2"><span className="w-32 text-xs font-bold text-stone-600">Op. Kassavirta (€):</span><input type="number" value={editingFinancialStatement.cashflow} onChange={e=>setEditingFinancialStatement({...editingFinancialStatement, cashflow: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
+                                </div>
+
+                                <div className="bg-white p-4 rounded-2xl border border-stone-200 space-y-3">
+                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Kannattavuus (€)</label>
+                                    <div className="flex items-center gap-2"><span className="w-32 text-xs font-bold text-stone-600">Käyttökate (EBITDA):</span><input type="number" value={editingFinancialStatement.ebitda} onChange={e=>setEditingFinancialStatement({...editingFinancialStatement, ebitda: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
+                                    <div className="flex items-center gap-2"><span className="w-32 text-xs font-bold text-stone-600">Liiketulos (EBIT):</span><input type="number" value={editingFinancialStatement.ebit} onChange={e=>setEditingFinancialStatement({...editingFinancialStatement, ebit: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
+                                </div>
+
+                                <div className="bg-white p-4 rounded-2xl border border-stone-200 space-y-3">
+                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Vakavaraisuus ja Maksuvalmius</label>
+                                    <div className="flex items-center gap-2"><span className="w-32 text-xs font-bold text-stone-600">Omavaraisuusaste (%):</span><input type="number" value={editingFinancialStatement.equityRatio} onChange={e=>setEditingFinancialStatement({...editingFinancialStatement, equityRatio: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
+                                    <div className="flex items-center gap-2"><span className="w-32 text-xs font-bold text-stone-600">Quick Ratio:</span><input type="number" step="0.01" value={editingFinancialStatement.quickRatio} onChange={e=>setEditingFinancialStatement({...editingFinancialStatement, quickRatio: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" placeholder="Esim 1.2" /></div>
+                                </div>
+                            </div>
+                            
+                            <button onClick={saveFinancialStatement} className="w-full bg-[#1e40af] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform mb-8">Tallenna Tilinpäätös</button>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     };
-
     const calculateUserBonuses = (logs, regionBonuses, todayInfo) => {
         let weekBonus = 0;
         let monthBonus = 0;
@@ -1645,7 +1764,7 @@ const updatePublicDataProps = (updates) => {
         const myStatDocForBonus = allUserStats.find(s => s.id === fbUser?.uid) || { logs: [] };
         
         // Widget logic
-        const activeWidgets = myStatDocForBonus.activeWidgets || ['hours', 'risks', 'revenue', 'engagement', 'streak'];
+        const activeWidgets = myStatDocForBonus.activeWidgets || ['hours', 'revenue', 'streak', 'tasks', 'surveys', 'sparraus', 'team', 'overview', 'risks', 'comp_regions'];
         const toggleWidget = (wId) => {
             let nextWidgets = [...activeWidgets];
             if (nextWidgets.includes(wId)) nextWidgets = nextWidgets.filter(w => w !== wId);
@@ -2036,7 +2155,8 @@ const updatePublicDataProps = (updates) => {
                                     return (
                                         <div className="mb-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
                                             {/* Global KPIs */}
-                                            <div className="bg-stone-900 text-white rounded-[2rem] p-6 shadow-xl relative overflow-hidden lg:col-span-3">
+                                            {activeWidgets.includes('overview') && (
+                                                <div className="bg-stone-900 text-white rounded-[2rem] p-6 shadow-xl relative overflow-hidden lg:col-span-3">
                                                 <div className="relative z-10">
                                                     <h3 className="text-xs font-black text-stone-400 mb-5 uppercase tracking-widest text-center border-b border-stone-800 pb-3">Konsernin yleiskatsaus</h3>
                                                     <div className="grid grid-cols-2 gap-4 mb-5">
@@ -2056,6 +2176,7 @@ const updatePublicDataProps = (updates) => {
                                                 </div>
                                                 <Globe className="absolute -right-6 -bottom-6 w-40 h-40 text-white opacity-5 pointer-events-none" />
                                             </div>
+                                            )}
 
                                             {/* AI Risk & Strategy Radar */}
                                             {activeWidgets.includes('risks') && (
@@ -2092,7 +2213,7 @@ const updatePublicDataProps = (updates) => {
                                             )}
 
                                             {/* Comparative Analytics */}
-                                            {activeWidgets.includes('hours') && (
+                                            {activeWidgets.includes('comp_regions') && (
                                                 <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6 lg:col-span-2">
                                                 <h3 className="text-xs font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Alueiden vertailu</h3>
                                                 <div className="space-y-4">
@@ -2232,10 +2353,12 @@ const updatePublicDataProps = (updates) => {
                                     const isPaceGood = totalValidTargets > 0 ? avgPerformance >= 0.8 : true;
                                     
                                     return (
-                                        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6 relative overflow-hidden">
-                                            <div className="flex justify-between items-start mb-5 border-b border-stone-100 pb-4">
-                                                <div>
-                                                    <h3 className="text-lg font-black text-stone-900">Alueen kasvu ja tavoite</h3>
+                                        <>
+                                        {activeWidgets.includes('streak') && (
+                                            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6 relative overflow-hidden">
+                                                <div className="flex justify-between items-start mb-5 border-b border-stone-100 pb-4">
+                                                    <div>
+                                                        <h3 className="text-lg font-black text-stone-900">Alueen kasvu ja tavoite</h3>
                                                     <div className={`mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${gamificationLevel.bgColor} ${gamificationLevel.border} shadow-sm`}>
                                                         <span className="text-base leading-none">{gamificationLevel.icon}</span>
                                                         <span className={`text-[10px] font-black uppercase tracking-widest ${gamificationLevel.color}`}>Taso: {gamificationLevel.title}</span>
@@ -2250,20 +2373,25 @@ const updatePublicDataProps = (updates) => {
                                                             <span className="font-bold uppercase tracking-wider">{m.name} {m.year}</span>
                                                             <span className="font-bold border-b border-stone-200/50 pb-0.5"><span className={m.realized >= m.target && m.target > 0 ? 'text-[#2f855a]' : 'text-stone-800'}>Tot: {m.realized}h</span> <span className="opacity-50 mx-1">/</span> Tav: {m.target}h</span>
                                                         </div>
-                                                        <div className="flex justify-between items-center w-full mt-1 border-t border-stone-200 pt-2">
-                                                            <span className="font-bold uppercase tracking-wider text-[10px] text-stone-400">LIIKEVAIHTO</span>
-                                                            <span className="font-bold border-b border-stone-200/50 pb-0.5 text-[10px]"><span className={m.realizedRev >= m.targetRev && m.targetRev > 0 ? 'text-[#2f855a]' : 'text-stone-800'}>Tot: {m.realizedRev}€</span> <span className="opacity-50 mx-1">/</span> Tav: {m.targetRev}€</span>
-                                                        </div>
+                                                        {activeWidgets.includes('revenue') && (
+                                                            <div className="flex justify-between items-center w-full mt-1 border-t border-stone-200 pt-2">
+                                                                <span className="font-bold uppercase tracking-wider text-[10px] text-stone-400">LIIKEVAIHTO</span>
+                                                                <span className="font-bold border-b border-stone-200/50 pb-0.5 text-[10px]"><span className={m.realizedRev >= m.targetRev && m.targetRev > 0 ? 'text-[#2f855a]' : 'text-stone-800'}>Tot: {m.realizedRev}€</span> <span className="opacity-50 mx-1">/</span> Tav: {m.targetRev}€</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>
+                                            </div>
+                                        )}
 
-                                            <div className={`p-4 rounded-xl border flex items-start gap-4 bg-[#f0fdf4] border-[#dcfce7] text-[#22543d]`}>
+                                        {activeWidgets.includes('sparraus') && (
+                                            <div className={`p-4 rounded-[1.5rem] mb-6 flex items-start gap-4 bg-[#f0fdf4] border border-[#dcfce7] text-[#22543d]`}>
                                                 <div className={`shrink-0 p-2 rounded-full bg-[#2f855a] text-white`}>
                                                     <Sparkles className="w-4 h-4" />
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-xs font-black uppercase tracking-wider mb-1">Sparraaja</h4>
+                                                    <h4 className="text-xs font-black uppercase tracking-wider mb-1">Sparraajan huomiot</h4>
                                                     <p className="text-xs font-medium leading-relaxed opacity-90">
                                                         {gamificationLevel.desc}
                                                     </p>
@@ -2274,7 +2402,8 @@ const updatePublicDataProps = (updates) => {
                                                     )}
                                                 </div>
                                             </div>
-                                        </div>
+                                        )}
+                                        </>
                                     );
                                 })()}
                                 
@@ -2321,8 +2450,9 @@ const updatePublicDataProps = (updates) => {
 
                                     return (
                                         <div className="mb-6 flex flex-col gap-6">
-                                            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
-                                                <div className="flex justify-between items-center mb-6">
+                                            {activeWidgets.includes('tasks') && (
+                                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
+                                                    <div className="flex justify-between items-center mb-6">
                                                     <h3 className="text-sm font-black text-stone-800 uppercase tracking-widest">Tehtävien suoritusaste</h3>
                                                     {isAdmin && (
                                                         <div className="flex bg-stone-100 p-1 rounded-lg shrink-0">
@@ -2343,10 +2473,11 @@ const updatePublicDataProps = (updates) => {
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            )}
 
-                                            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
-                                                <div className="flex justify-between items-center mb-4 border-b border-stone-100 pb-3">
+                                            {activeWidgets.includes('surveys') && (
+                                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
+                                                    <div className="flex justify-between items-center mb-4 border-b border-stone-100 pb-3">
                                                     <h3 className="text-sm font-black text-stone-800 uppercase tracking-widest text-center">Asiakastyytyväisyyskysely</h3>
                                                     <button onClick={() => setModals(prev => ({...prev, activityHistory: fbUser.uid}))} className="text-[10px] font-bold uppercase tracking-wider text-stone-600 bg-stone-100 px-3 py-2 rounded-xl border border-stone-200 hover:bg-stone-200 transition-colors flex items-center">Historia & Peruuta &rarr;</button>
                                                 </div>
@@ -2376,6 +2507,7 @@ const updatePublicDataProps = (updates) => {
                                                     </div>
                                                 )}
                                             </div>
+                                            )}
                                         </div>
                                     );
                                 })()}
@@ -2462,6 +2594,7 @@ const updatePublicDataProps = (updates) => {
                                     ) : (
                                     <div className="flex flex-col gap-6 mb-6">
                                         {/* Smart Alerts */}
+                                        {activeWidgets.includes('sparraus') && (
                                         <div className="bg-gradient-to-br from-[#fdf2f2] to-white rounded-[2rem] p-6 shadow-sm border border-[#fde8e8]">
                                             <h3 className="text-xs font-black text-[#9b2c2c] mb-4 uppercase tracking-widest flex items-center gap-2"><Sparkles size={16}/> Sparraajan huomiot</h3>
                                             <div className="space-y-3">
@@ -2488,7 +2621,9 @@ const updatePublicDataProps = (updates) => {
                                                 )}
                                             </div>
                                         </div>
+                                        )}
 
+                                        {activeWidgets.includes('team') && (
                                         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
                                             <h3 className="text-sm font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Tiimin tilanne</h3>
                                             <div className="space-y-4">
@@ -2520,6 +2655,120 @@ const updatePublicDataProps = (updates) => {
                                                 )})}
                                             </div>
                                         </div>
+                                        )}
+
+                                        {activeWidgets.includes('fin_revenue') && (
+                                            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
+                                                <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Liikevaihto & Muutos-%</h3>
+                                                <p className="text-[10px] text-stone-500 mb-4 leading-relaxed">Kertoo alueen absoluuttisen liikevaihdon ja prosentuaalisen kehityksen suhteessa edellisten vuosien tilinpäätöksiin.</p>
+                                                <div className="space-y-2">
+                                                    {(isSuperAdmin ? activeRegions : activeRegions.filter(rem => rem.id === authSession.regionId)).map(rs => {
+                                                        const stmt = financialStatements.filter(f => f.regionId === rs.id).sort((a,b) => b.year - a.year)[0];
+                                                        return (
+                                                            <div key={rs.id} className="p-3 bg-stone-50 rounded-xl border border-stone-100 flex justify-between items-center">
+                                                                <span className="font-bold text-xs text-stone-700">{rs.name} {stmt ? `(${stmt.year})` : ''}</span>
+                                                                {stmt ? (
+                                                                    <div className="text-right">
+                                                                        <span className="font-black text-sm text-stone-900">{stmt.revenue} €</span>
+                                                                        <span className={`ml-2 text-xs font-bold ${Number(stmt.revChangePerc) >= 0 ? 'text-[#2f855a]' : 'text-[#9b2c2c]'}`}>{stmt.revChangePerc}%</span>
+                                                                    </div>
+                                                                ) : <span className="text-xs text-stone-400">Ei dataa</span>}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {activeWidgets.includes('fin_ebitda') && (
+                                            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
+                                                <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Käyttökate (EBITDA)</h3>
+                                                <p className="text-[10px] text-stone-500 mb-4 leading-relaxed">Kertoo liiketoiminnan tuloksen ennen poistoja ja rahoituseriä. Kuvaa operatiivisen toiminnan peruskannattavuutta.</p>
+                                                <div className="space-y-2">
+                                                    {(isSuperAdmin ? activeRegions : activeRegions.filter(rem => rem.id === authSession.regionId)).map(rs => {
+                                                        const stmt = financialStatements.filter(f => f.regionId === rs.id).sort((a,b) => b.year - a.year)[0];
+                                                        return (
+                                                            <div key={rs.id} className="p-3 bg-stone-50 rounded-xl border border-stone-100 flex justify-between items-center">
+                                                                <span className="font-bold text-xs text-stone-700">{rs.name} {stmt ? `(${stmt.year})` : ''}</span>
+                                                                {stmt ? <span className="font-black text-sm text-stone-900">{stmt.ebitda} €</span> : <span className="text-xs text-stone-400">Ei dataa</span>}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {activeWidgets.includes('fin_ebit') && (
+                                            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
+                                                <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Liiketulos (EBIT)</h3>
+                                                <p className="text-[10px] text-stone-500 mb-4 leading-relaxed">Varsinainen liiketoiminnan tulos poistojen jälkeen, josta näkyy tuottavuus ennen veroja ja rahoituskuluja.</p>
+                                                <div className="space-y-2">
+                                                    {(isSuperAdmin ? activeRegions : activeRegions.filter(rem => rem.id === authSession.regionId)).map(rs => {
+                                                        const stmt = financialStatements.filter(f => f.regionId === rs.id).sort((a,b) => b.year - a.year)[0];
+                                                        return (
+                                                            <div key={rs.id} className="p-3 bg-stone-50 rounded-xl border border-stone-100 flex justify-between items-center">
+                                                                <span className="font-bold text-xs text-stone-700">{rs.name} {stmt ? `(${stmt.year})` : ''}</span>
+                                                                {stmt ? <span className="font-black text-sm text-stone-900">{stmt.ebit} €</span> : <span className="text-xs text-stone-400">Ei dataa</span>}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {activeWidgets.includes('fin_cashflow') && (
+                                            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
+                                                <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Operatiivinen Kassavirta</h3>
+                                                <p className="text-[10px] text-stone-500 mb-4 leading-relaxed">Kuvaa liiketoiminnan varsinaista rahavirtaa. Kertoo riittävätkö rahat jokapäiväisen toiminnan pyörittämiseen.</p>
+                                                <div className="space-y-2">
+                                                    {(isSuperAdmin ? activeRegions : activeRegions.filter(rem => rem.id === authSession.regionId)).map(rs => {
+                                                        const stmt = financialStatements.filter(f => f.regionId === rs.id).sort((a,b) => b.year - a.year)[0];
+                                                        return (
+                                                            <div key={rs.id} className="p-3 bg-stone-50 rounded-xl border border-stone-100 flex justify-between items-center">
+                                                                <span className="font-bold text-xs text-stone-700">{rs.name} {stmt ? `(${stmt.year})` : ''}</span>
+                                                                {stmt ? <span className="font-black text-sm text-stone-900">{stmt.cashflow} €</span> : <span className="text-xs text-stone-400">Ei dataa</span>}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {activeWidgets.includes('fin_equity') && (
+                                            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
+                                                <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Omavaraisuusaste</h3>
+                                                <p className="text-[10px] text-stone-500 mb-4 leading-relaxed">Mittaa vakavaraisuutta eli kuinka suuri osa alueen/yrityksen varallisuudesta on rahoitettu omalla pääomalla velkojen sijaan.</p>
+                                                <div className="space-y-2">
+                                                    {(isSuperAdmin ? activeRegions : activeRegions.filter(rem => rem.id === authSession.regionId)).map(rs => {
+                                                        const stmt = financialStatements.filter(f => f.regionId === rs.id).sort((a,b) => b.year - a.year)[0];
+                                                        return (
+                                                            <div key={rs.id} className="p-3 bg-stone-50 rounded-xl border border-stone-100 flex justify-between items-center">
+                                                                <span className="font-bold text-xs text-stone-700">{rs.name} {stmt ? `(${stmt.year})` : ''}</span>
+                                                                {stmt ? <span className="font-black text-sm text-[#2f855a]">{stmt.equityRatio} %</span> : <span className="text-xs text-stone-400">Ei dataa</span>}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {activeWidgets.includes('fin_quickratio') && (
+                                            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
+                                                <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Quick Ratio</h3>
+                                                <p className="text-[10px] text-stone-500 mb-4 leading-relaxed">Kuvaa maksuvalmiutta eli yrityksen kykyä selviytyä lyhytaikaisista veloistaan pelkillä rahoitusomaisuuksilla.</p>
+                                                <div className="space-y-2">
+                                                    {(isSuperAdmin ? activeRegions : activeRegions.filter(rem => rem.id === authSession.regionId)).map(rs => {
+                                                        const stmt = financialStatements.filter(f => f.regionId === rs.id).sort((a,b) => b.year - a.year)[0];
+                                                        return (
+                                                            <div key={rs.id} className="p-3 bg-stone-50 rounded-xl border border-stone-100 flex justify-between items-center">
+                                                                <span className="font-bold text-xs text-stone-700">{rs.name} {stmt ? `(${stmt.year})` : ''}</span>
+                                                                {stmt ? <span className="font-black text-sm text-stone-900">{stmt.quickRatio}</span> : <span className="text-xs text-stone-400">Ei dataa</span>}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )
                             )}
@@ -3165,12 +3414,30 @@ const updatePublicDataProps = (updates) => {
                                 </div>
                                 <p className="text-stone-500 font-medium text-sm mb-6">Valitse mitä raportteja haluat nähdä kojelaudallasi.</p>
                                 
-                                <div className="space-y-3 mb-6">
+                                <div className="space-y-3 mb-6 max-h-[60vh] overflow-y-auto pr-2">
                                     {[
                                         { id: 'hours', title: 'Tuntikertymä', desc: 'Näyttää toteutuneet tunnit työpöydän pääraporttina.' },
-                                        { id: 'revenue', title: 'Liikevaihtoseuranta', desc: 'Suuntaa-antava euromääräinen liikevaihto tunneista erillisenä raporttina.' },
-                                        { id: 'risks', title: 'Asiakasriskit & Laajentuminen', desc: 'Tekoälyn huomiot aktiivisuuksista ja poistumariskistä.' },
-                                        { id: 'streak', title: 'Tavoiteputki (Streak)', desc: 'Motivoiva putkiseuranta: kuinka monta kautta tavoite on saavutettu.' }
+                                        { id: 'revenue', title: 'Liikevaihtoseuranta', desc: 'Suuntaa-antava euromääräinen liikevaihto.' },
+                                        { id: 'streak', title: 'Tavoiteputki', desc: 'Motivoiva putkiseuranta: tavoitteen saavuttamisen historiadata.' },
+                                        { id: 'tasks', title: 'Tehtävien suoritusaste', desc: 'Aktiivisuusseurannan graafinen donitsi.' },
+                                        { id: 'surveys', title: 'Asiakastyytyväisyyskyselyt', desc: 'NPS-historia ja avoin palaute asiakkailta.' },
+                                        { id: 'sparraus', title: 'Sparraajan huomiot', desc: 'Tekoälyltä sanalliset rutiinihuomiot ja vauhtikatsaukset.' },
+                                        ...(isSuperAdmin ? [
+                                            { id: 'overview', title: 'Konsernin yleiskatsaus', desc: 'Globaali yhteenvetotaulu työpöydän huipulla.' },
+                                            { id: 'comp_regions', title: 'Alueiden vertailu', desc: 'Eri alueiden tunnusluvut rinnakkain.' },
+                                            { id: 'risks', title: 'Asiakasriskit ja laajentuminen', desc: 'Tekoälyn varoitukset painepisteistä koko tasolla.' }
+                                        ] : []),
+                                        ...(isAdmin && !isSuperAdmin ? [
+                                            { id: 'team', title: 'Tiimin tilanne', desc: 'Myyjäkohtaisten tulosten vertailu alueellasi.' }
+                                        ] : []),
+                                        ...(isAdmin ? [
+                                            { id: 'fin_revenue', title: 'Liikevaihto ja muutos-%', desc: 'Kertoo alueen absoluuttisen liikevaihdon ja prosentuaalisen kehityksen.' },
+                                            { id: 'fin_ebitda', title: 'Käyttökate (EBITDA)', desc: 'Kertoo liiketoiminnan tuloksen ennen poistoja ja rahoituseriä. Kuvaa peruskannattavuutta.' },
+                                            { id: 'fin_ebit', title: 'Liiketulos (EBIT)', desc: 'Varsinainen liiketoiminnan tulos poistojen jälkeen.' },
+                                            { id: 'fin_cashflow', title: 'Operatiivinen kassavirta', desc: 'Kuvaa liiketoiminnan varsinaista rahavirtaa. Kertoo riittävätkö rahat pyörittämiseen.' },
+                                            { id: 'fin_equity', title: 'Omavaraisuusaste', desc: 'Mittaa vakavaraisuutta eli kuinka suuri osa varallisuudesta on omaa pääomaa.' },
+                                            { id: 'fin_quickratio', title: 'Quick Ratio', desc: 'Kuvaa maksuvalmiutta eli kykyä selviytyä lyhytaikaisista veloista.' }
+                                        ] : [])
                                     ].map(w => (
                                         <div key={w.id} onClick={() => toggleWidget(w.id)} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${activeWidgets.includes(w.id) ? 'bg-white border-[#2f855a] shadow-sm' : 'bg-stone-50 border-stone-200 hover:border-stone-300'}`}>
                                             <div className="pr-4">

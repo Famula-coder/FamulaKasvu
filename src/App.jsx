@@ -2192,29 +2192,48 @@ const updatePublicDataProps = (updates) => {
                                         <div className="mb-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
                                             {/* Global KPIs */}
                                             {activeWidgets.includes('overview') && (
-                                                <div className="bg-stone-900 text-white rounded-[2rem] p-6 shadow-xl relative overflow-hidden lg:col-span-3">
+                                                <div className="bg-white text-stone-800 rounded-[2rem] p-6 shadow-xl relative overflow-hidden border border-stone-200 lg:col-span-3">
                                                 <div className="relative z-10">
-                                                    <h3 className="text-xs font-black text-stone-400 mb-6 uppercase tracking-widest text-center border-b border-stone-800 pb-3">Konsernin tunnusluvut</h3>
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                                                        <div className="text-center p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col justify-center">
-                                                            <p className="text-[9px] font-bold text-stone-400 uppercase mb-2 tracking-wider">Operatiivinen myynti<br/>(kuluva kk)</p>
-                                                            <p className={`text-2xl lg:text-3xl font-black ${cmRealizedRev >= cmTargetRev && cmTargetRev > 0 ? 'text-[#e0f8e9]' : 'text-white'}`}>{cmRealizedRev} €</p>
-                                                            <p className="text-[10px] text-stone-500 mt-1">Tavoite: {cmTargetRev} €</p>
+                                                    <h3 className="text-xs font-black text-stone-500 mb-6 uppercase tracking-widest text-center border-b border-stone-200 pb-3">Konsernin tunnusluvut</h3>
+                                                    <div className="flex flex-col gap-4 mb-2">
+                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-stone-50 rounded-2xl border border-stone-200 group hover:shadow-md transition-shadow">
+                                                            <div className="mb-2 sm:mb-0">
+                                                                <p className="text-xs font-black text-stone-700 uppercase tracking-wider">Operatiivinen myynti (kuluva kk)</p>
+                                                                <p className="text-[11px] text-stone-500 mt-1 font-medium">Tavoite: {cmTargetRev} €</p>
+                                                            </div>
+                                                            <div className="text-left sm:text-right">
+                                                                <p className={`text-3xl font-black ${cmRealizedRev >= cmTargetRev && cmTargetRev > 0 ? 'text-[#2f855a]' : 'text-stone-900'}`}>{cmRealizedRev} €</p>
+                                                            </div>
                                                         </div>
-                                                        <div className="text-center p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col justify-center">
-                                                            <p className="text-[9px] font-bold text-stone-400 uppercase mb-2 tracking-wider">MRR-osuus<br/>(jatkuva vs kerta)</p>
-                                                            <p className="text-2xl lg:text-3xl font-black text-white">{recurringRatio} %</p>
-                                                            <p className="text-[10px] text-stone-500 mt-1">Suhdeluku</p>
+
+                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-stone-50 rounded-2xl border border-stone-200 group hover:shadow-md transition-shadow">
+                                                            <div className="mb-2 sm:mb-0">
+                                                                <p className="text-xs font-black text-stone-700 uppercase tracking-wider">MRR-osuus (jatkuva vs kerta)</p>
+                                                                <p className="text-[11px] text-stone-500 mt-1 font-medium">Suhdeluku kuukausiraportista</p>
+                                                            </div>
+                                                            <div className="text-left sm:text-right">
+                                                                <p className="text-3xl font-black text-stone-900">{recurringRatio} %</p>
+                                                            </div>
                                                         </div>
-                                                        <div className="text-center p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col justify-center">
-                                                            <p className="text-[9px] font-bold text-stone-400 uppercase mb-2 tracking-wider">Aktiivisuusindeksi<br/>(suoritetut rutiinit)</p>
-                                                            <p className={`text-2xl lg:text-3xl font-black ${activityIndex >= 80 ? 'text-[#e0f8e9]' : 'text-white'}`}>{activityIndex} %</p>
-                                                            <p className="text-[10px] text-stone-500 mt-1">Tavoitevauhti</p>
+
+                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-stone-50 rounded-2xl border border-stone-200 group hover:shadow-md transition-shadow">
+                                                            <div className="mb-2 sm:mb-0">
+                                                                <p className="text-xs font-black text-stone-700 uppercase tracking-wider">Aktiivisuusindeksi</p>
+                                                                <p className="text-[11px] text-stone-500 mt-1 font-medium">Suoritetut rutiinit / tavoitevauhti</p>
+                                                            </div>
+                                                            <div className="text-left sm:text-right">
+                                                                <p className={`text-3xl font-black ${activityIndex >= 80 ? 'text-[#2f855a]' : 'text-stone-900'}`}>{activityIndex} %</p>
+                                                            </div>
                                                         </div>
-                                                        <div className="text-center p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col justify-center">
-                                                            <p className="text-[9px] font-bold text-stone-400 uppercase mb-2 tracking-wider">Globaali NPS<br/>(laatu)</p>
-                                                            <p className={`text-2xl lg:text-3xl font-black ${globalNps >= 9 ? 'text-[#e0f8e9]' : 'text-white'}`}>{globalNps}</p>
-                                                            <p className="text-[10px] text-stone-500 mt-1">Asiakasuskollisuus</p>
+
+                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-stone-50 rounded-2xl border border-stone-200 group hover:shadow-md transition-shadow">
+                                                            <div className="mb-2 sm:mb-0">
+                                                                <p className="text-xs font-black text-stone-700 uppercase tracking-wider">Globaali NPS</p>
+                                                                <p className="text-[11px] text-stone-500 mt-1 font-medium">Yleinen asiakasuskollisuus (laatu)</p>
+                                                            </div>
+                                                            <div className="text-left sm:text-right">
+                                                                <p className={`text-3xl font-black ${globalNps >= 9 ? 'text-[#2f855a]' : 'text-stone-900'}`}>{globalNps}</p>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>

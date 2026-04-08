@@ -27,8 +27,8 @@ const DEFAULT_TRAY_TASKS = [
 
 const GAMIFICATION_LEVELS = [
     { level: 0, maxHours: 100, title: "Aluevaltaaja", icon: "🥉", color: "text-[#cd7f32]", bgColor: "bg-[#cd7f32]/10", border: "border-[#cd7f32]/30", desc: "Perustan rakentaminen. Palkan turvaaminen." },
-    { level: 1, maxHours: 250, title: "Työnjohtaja", icon: "🥈", color: "text-[#71717a]", bgColor: "bg-[#f4f4f5]", border: "border-[#e4e4e7]", desc: "Ensimmäiset työntekijät. Myyntivolyymin kasvatus." },
-    { level: 2, maxHours: 426, title: "Kasvujohtaja", icon: "🥇", color: "text-[#eab308]", bgColor: "bg-[#fefce8]", border: "border-[#fef08a]", desc: "Kuopan ylitys. Ohjaa aikaa lisämyyntiin ja tukemiseen." },
+    { level: 1, maxHours: 250, title: "Työnjohtaja", icon: "🥈", color: "text-[#71717a]", bgColor: "bg-[#f4f4f5]", border: "border-[#e4e4e7]", desc: "Ensimmäiset työntekijät. Palveluvolyymin kasvatus." },
+    { level: 2, maxHours: 426, title: "Kasvujohtaja", icon: "🥇", color: "text-[#eab308]", bgColor: "bg-[#fefce8]", border: "border-[#fef08a]", desc: "Kuopan ylitys. Ohjaa aikaa lisäpalveluin ja tukemiseen." },
     { level: 3, maxHours: Infinity, title: "Omistaja", icon: "💎", color: "text-[#06b6d4]", bgColor: "bg-[#ecfeff]", border: "border-[#a5f3fc]", desc: "Koneisto rullaa. Liiketoiminnan täysi skaalautuminen." }
 ];
 
@@ -39,12 +39,12 @@ const getGamificationLevel = (hours) => {
 const GROWTH_TEMPLATES = [
     { id: '0_perustus', name: "Yleinen: 0. Perustus (0–100 h)", tasks: ["LeadDesk-soitot: 250 kpl / vko", "Kaupan repäisymainokset: 5 kpl / vko", "Asiakaskäynnit: 3-4 kpl / vko", "Sidosryhmätapaamiset (palveluohjaajat): 1 kpl / vko", "Digi- ja lehtimainonnan optimointi: 1 kerta / vko"] },
     { id: '1_ensimmaiset', name: "Yleinen: 1. Ensimmäiset työntekijät (100–250 h)", tasks: ["LeadDesk-soitot: 350 kpl / vko", "Kaupan repäisymainokset: 5 kpl / vko", "Asiakaskäynnit: 4-5 kpl / vko", "Sidosryhmätapaamiset (sote-ammattilaiset): 1-2 kpl / vko", "Rekrytointivalmius / Tiimin ohjaus: 2 h / vko"] },
-    { id: '2_kuoppa', name: "Yleinen: 2. Kuoppa ja osa-aikainen vetäjä (250–360 h)", tasks: ["LeadDesk-soitot: 450 kpl / vko", "Kaupan repäisymainokset: 5 kpl / vko", "Asiakaskäynnit: 4-5 kpl / vko", "Sidosryhmätapaamiset (lääkärit, apteekit): 1-2 kpl / vko", "Omaisviestintä ja lisämyynti nykyasiakkaille", "Rekrytointi ja tiimin hallinta: Säännöllisesti"] },
+    { id: '2_kuoppa', name: "Yleinen: 2. Kuoppa ja osa-aikainen vetäjä (250–360 h)", tasks: ["LeadDesk-soitot: 450 kpl / vko", "Kaupan repäisymainokset: 5 kpl / vko", "Asiakaskäynnit: 4-5 kpl / vko", "Sidosryhmätapaamiset (lääkärit, apteekit): 1-2 kpl / vko", "Omaisviestintä ja lisäpalvelu nykyasiakkaille", "Rekrytointi ja tiimin hallinta: Säännöllisesti"] },
     { id: '3_skaalautuminen', name: "Yleinen: 3. Skaalautuminen (Yli 426 h)", tasks: ["LeadDesk-soitot (Ammattisoittajat): 550 kpl / vko", "Kaupan repäisymainokset: 10 kpl / vko", "Asiakaskäynnit: 5-6 kpl / vko", "Sidosryhmätapaamiset (Vaikuttajat): 2 kpl / vko"] },
     { id: 'uusimaa_1', name: "Uusimaa: Kuukausi 1 (Koneen käynnistys)", tasks: ["LeadDesk-soitot (Uudet kontaktit): 300 kpl / vko", "Kaupan repäisymainokset (Nopea näkyvyys): 10 kpl / vko", "Asiakaskäynnit: 4 kpl / vko", "Sidosryhmätapaamiset (Palveluohjaajat): 2 kpl / vko", "Pyydä suosituksia kaikilta uusilta asiakkailta"] },
     { id: 'oulu_1', name: "Oulu: Kuukausi 1 (Tekemisen meininki)", tasks: ["LeadDesk-soittorutiini ehdottomaksi: 250 kpl / vko", "Kaupan repäisymainokset: 5 kpl / vko", "Asiakaskäynnit: 3-4 kpl / vko", "Sidosryhmätapaamiset (Palveluohjaajat): 1 kpl / vko", "Asiakastyytyväisyys-app heti aktiiviseen käyttöön"] },
     { id: 'lpr_1', name: "Lappeenranta: Kuukausi 1 (Tehon lisäys)", tasks: ["LeadDesk-soitot: 350 kpl / vko (Volyymin nosto)", "Kaupan repäisymainokset: 5 kpl / vko", "Asiakaskäynnit: 4-5 kpl / vko", "Sidosryhmätapaamiset (Sote-ammattilaiset): 1 kpl / vko"] },
-    { id: 'jkl_1', name: "Keski-Suomi: Kuukausi 1 (Kuopan selätys)", tasks: ["LeadDesk-soitot (Poistuman kattaminen): 450 kpl / vko", "Kaupan repäisymainokset: 5 kpl / vko", "Asiakaskäynnit: 4-5 kpl / vko", "Sidosryhmätapaamiset (Lääkärit, apteekit): 1-2 kpl / vko", "Omaisviestintä ja lisämyynti nykyasiakkaille"] }
+    { id: 'jkl_1', name: "Keski-Suomi: Kuukausi 1 (Kuopan selätys)", tasks: ["LeadDesk-soitot (Poistuman kattaminen): 450 kpl / vko", "Kaupan repäisymainokset: 5 kpl / vko", "Asiakaskäynnit: 4-5 kpl / vko", "Sidosryhmätapaamiset (Lääkärit, apteekit): 1-2 kpl / vko", "Omaisviestintä ja lisäpalvelu nykyasiakkaille"] }
 ];
 
 const FALLBACK_PRODUCTS = [
@@ -53,7 +53,7 @@ const FALLBACK_PRODUCTS = [
 ];
 
 const FALLBACK_SCRIPTS = [
-    { id: "leaddesk", title: "LeadDesk - Myyntispiikki", content: "Hei, täällä [Nimi] Famulasta...\nMiten on päivä sujunut?" }
+    { id: "leaddesk", title: "LeadDesk - Avauspuheenvuoro", content: "Hei, täällä [Nimi] Famulasta...\nMiten on päivä sujunut?" }
 ];
 
 const SURVEY_ITEMS = [
@@ -621,7 +621,7 @@ export default function App() {
                 id: generateId(),
                 type: 'survey',
                 nps: 10,
-                feedback: 'Sanelumuistio ja myynti.',
+                feedback: 'Sanelumuistio ja palvelu.',
                 clientInitials: 'T.K.',
                 timestamp: Date.now()
             };
@@ -776,7 +776,7 @@ const updatePublicDataProps = (updates) => {
     };
 
     const addNewProduct = async () => {
-        const newProduct = { id: Date.now(), title: "Uusi Tuote", icon: "Star", content: "Muokkaa sisältöä...", pitch: "Myyntilause..." };
+        const newProduct = { id: Date.now(), title: "Uusi Tuote", icon: "Star", content: "Muokkaa sisältöä...", pitch: "Palvelulupaus..." };
         if (isAdmin && window.confirm("Haluatko lisätä kaikille näkyvän yhteisen Master-kortin (OK) vai vain henkilökohtaisen kortin (Cancel)?")) {
             updatePublicDataProps({ products: [...(publicData.products || []), newProduct] });
         } else {
@@ -979,7 +979,7 @@ const updatePublicDataProps = (updates) => {
                                 <div>
                                     <label htmlFor="roleSelect" className="block text-xs font-bold text-stone-500 uppercase mb-1">Mitä roolia haet?</label>
                                     <select id="roleSelect" name="roleSelect" required className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#2f855a] focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none">
-                                        <option value="myyja">Myyjä</option>
+                                        <option value="myyja">Hoitaja</option>
                                         <option value="admin">Aluevetäjä</option>
                                     </select>
                                 </div>
@@ -1145,7 +1145,7 @@ const updatePublicDataProps = (updates) => {
                                         </select>
                                     )}
                                     <select name="inviteRole" required className="flex-1 border border-stone-200 rounded-xl px-3 py-2.5 text-sm font-bold text-stone-700 outline-none focus:border-[#2f855a]">
-                                        <option value="myyja">Myyjä</option>
+                                        <option value="myyja">Hoitaja</option>
                                         <option value="admin">Aluevetäjä</option>
                                         {isSuperAdmin && <option value="superadmin">Superadmin (Suomi)</option>}
                                     </select>
@@ -1175,7 +1175,7 @@ const updatePublicDataProps = (updates) => {
                                             )}
                                             {(isAdmin || isSuperAdmin) && (
                                                 <select value={u.role} onChange={e=>handleAssignRole(u.id, e.target.value)} className="bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 text-[10px] font-bold text-stone-700 outline-none w-full sm:w-auto">
-                                                    <option value="myyja">Myyjä</option>
+                                                    <option value="myyja">Hoitaja</option>
                                                     <option value="admin">Aluevetäjä</option>
                                                     {isSuperAdmin && <option value="superadmin">Superadmin</option>}
                                                 </select>
@@ -1206,7 +1206,7 @@ const updatePublicDataProps = (updates) => {
                             <h2 className="text-[#fde8e8] text-sm font-medium tracking-widest uppercase mb-1">Palvelut</h2>
                             <h1 className="text-white text-4xl font-bold tracking-tight">Famula</h1>
                             <div className="mt-2 space-x-2">
-                                <span className="inline-block px-2 py-1 bg-white/20 rounded text-xs text-white uppercase tracking-wider">{authSession.role === 'admin' ? 'Aluevetäjä' : authSession.role === 'superadmin' ? 'Super Admin' : 'Myyjä'}</span>
+                                <span className="inline-block px-2 py-1 bg-white/20 rounded text-xs text-white uppercase tracking-wider">{authSession.role === 'admin' ? 'Aluevetäjä' : authSession.role === 'superadmin' ? 'Super Admin' : 'Hoitaja'}</span>
                                 <span className="inline-block px-2 py-1 bg-black/20 rounded text-xs text-white uppercase tracking-wider">{authSession.name}</span>
                             </div>
                         </div>
@@ -1308,7 +1308,7 @@ const updatePublicDataProps = (updates) => {
         if (editingMarketingPlan.selectedTasks.length > 0) {
             // we will mutate masterTray or just the plan itself handles the knowledge.
             // For simplicity, we just save them inside the plan. The global tray needs them to be visible?
-            // Actually, "Kun tallennetaan, kaikki valitut Toimet injektoidaan automaattisesti Myyjien / Kaikkien tarjottimelle" - wait, the user said:
+            // Actually, "Kun tallennetaan, kaikki valitut Toimet injektoidaan automaattisesti Hoitajien / Kaikkien tarjottimelle" - wait, the user said:
             // "Tallennus valittuun alueeseen... Ohjelma listaa kaikki Tarjottimen asiat...".
             // Since it's too complex to push target tasks dynamically to everyone here, let's just save the plan. We can apply it later or the user manages tasks via the tool.
             // Let's just save the plan first.
@@ -1990,7 +1990,7 @@ const updatePublicDataProps = (updates) => {
                                     </button>
                                     <button onClick={() => setModals(prev => ({...prev, sales: true}))} className="col-span-1 flex flex-col items-center justify-center bg-white p-4 rounded-2xl border border-stone-200 shadow-sm active:scale-95 transition hover:shadow-md group h-24">
                                         <div className="w-10 h-10 rounded-full bg-[#fdf2f2] text-[#9b2c2c] flex items-center justify-center mb-2"><Clock size={18} /></div>
-                                        <span className="text-[10px] font-bold text-stone-600 uppercase text-center leading-tight">Lisä-<br/>myynti</span>
+                                        <span className="text-[10px] font-bold text-stone-600 uppercase text-center leading-tight">Lisä-<br/>palvelu</span>
                                     </button>
                                 </div>
 
@@ -2198,7 +2198,7 @@ const updatePublicDataProps = (updates) => {
                                                     <div className="flex flex-col gap-4 mb-2">
                                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-stone-50 rounded-2xl border border-stone-200 group hover:shadow-md transition-shadow">
                                                             <div className="mb-2 sm:mb-0">
-                                                                <p className="text-xs font-black text-stone-700 uppercase tracking-wider">Operatiivinen myynti (kuluva kk)</p>
+                                                                <p className="text-xs font-black text-stone-700 uppercase tracking-wider">Operatiivinen volyymi (kuluva kk)</p>
                                                                 <p className="text-[11px] text-stone-500 mt-1 font-medium">Tavoite: {cmTargetRev} €</p>
                                                             </div>
                                                             <div className="text-left sm:text-right">
@@ -2256,7 +2256,7 @@ const updatePublicDataProps = (updates) => {
                                                                     <div className="p-4 rounded-xl border border-[#dcfce7] bg-[#f0fdf4] flex items-start gap-3">
                                                                         <div className="mt-0.5 text-[#2f855a]"><TrendingUp size={16} /></div>
                                                                         <p className="text-xs font-medium text-stone-700 leading-relaxed">
-                                                                            <b>Kapasiteettivaroitus ({topRegion.name}):</b> Lisämyynti-indeksi käy kuumana. Jos kasvu jatkuu, harkitse uuden työntekijän rekrytointia alueelle turvataksesi palvelutason.
+                                                                            <b>Kapasiteettivaroitus ({topRegion.name}):</b> Lisäpalvelu-indeksi käy kuumana. Jos kasvu jatkuu, harkitse uuden työntekijän rekrytointia alueelle turvataksesi palvelutason.
                                                                         </p>
                                                                     </div>
                                                                 )}
@@ -2361,7 +2361,7 @@ const updatePublicDataProps = (updates) => {
                                             {/* Liikevaihtoseuranta */}
                                             {activeWidgets.includes('revenue') && (
                                                 <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6 lg:col-span-3">
-                                                    <h3 className="text-xs font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Operatiivinen kuukausimyynti</h3>
+                                                    <h3 className="text-xs font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Operatiivinen kuukausivolyymi</h3>
                                                     <div className="grid grid-cols-1 gap-4">
                                                         {(Array.isArray(regionStats) ? regionStats : []).map(rs => {
                                                             const last4Months = getLast4MonthsData(marketingPlans, rs.id);
@@ -2476,7 +2476,7 @@ const updatePublicDataProps = (updates) => {
                                         
                                         <div className="grid grid-cols-2 gap-4 mb-4">
                                             <div className="text-center p-5 bg-[#f0fdf4] rounded-2xl border border-[#dcfce7]">
-                                                <p className="text-[10px] font-bold text-[#2f855a] uppercase mb-1 tracking-wider">{isAdmin ? 'Tämän Kk Lisämyynti' : 'Uudet asiakkaat'}</p>
+                                                <p className="text-[10px] font-bold text-[#2f855a] uppercase mb-1 tracking-wider">{isAdmin ? 'Tämän Kk Lisäpalvelu' : 'Uudet asiakkaat'}</p>
                                                 <p className="text-4xl font-black text-stone-900">{isAdmin ? totalRegionCustomers : myCustomers}{isAdmin && <span className="text-base font-bold text-stone-500 ml-1">h</span>}</p>
                                             </div>
                                             <div className="text-center p-5 bg-[#fdf2f2] rounded-2xl border border-[#fde8e8]">
@@ -2556,7 +2556,7 @@ const updatePublicDataProps = (updates) => {
                                                                     <div className="flex justify-between items-center">
                                                                         <div className="flex items-center gap-2">
                                                                             {isSurvey ? <MessageCircle className="w-4 h-4 text-stone-400" /> : <Activity className="w-4 h-4 text-stone-400" />}
-                                                                            <span className="font-bold text-stone-900 text-sm">{isSurvey ? `Asiakas: ${log.clientInitials}` : (log.type === 'quick_sale' ? 'Lisämyynti (Pika)' : 'Uusi asiakas')}</span>
+                                                                            <span className="font-bold text-stone-900 text-sm">{isSurvey ? `Asiakas: ${log.clientInitials}` : (log.type === 'quick_sale' ? 'Lisäpalvelu (Pika)' : 'Uusi asiakas')}</span>
                                                                         </div>
                                                                         <span className="text-[10px] font-bold text-stone-400 uppercase">{new Date(log.timestamp).toLocaleDateString('fi-FI')}</span>
                                                                     </div>
@@ -2584,7 +2584,7 @@ const updatePublicDataProps = (updates) => {
                                                 <button aria-label="Takaisin tiimiin" onClick={() => setSelectedUserReport(null)} className="p-2 bg-stone-50 rounded-full hover:bg-stone-200 mr-3 text-stone-600 transition-colors"><ChevronLeft size={18}/></button>
                                                 <div>
                                                     <h3 className="text-lg font-black text-stone-800">{selectedUserReport.name || 'Nimetön'}</h3>
-                                                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Porautuminen - Myyjän raportti</p>
+                                                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Porautuminen - Hoitajan raportti</p>
                                                 </div>
                                             </div>
                                             {(() => {
@@ -2637,7 +2637,7 @@ const updatePublicDataProps = (updates) => {
                                                                                 <div className="flex justify-between items-center">
                                                                                     <div className="flex items-center gap-1.5">
                                                                                         {isSurvey ? <MessageCircle className="w-3.5 h-3.5 text-stone-400" /> : <Activity className="w-3.5 h-3.5 text-stone-400" />}
-                                                                                        <span className="font-bold text-stone-900 text-[11px] uppercase tracking-wide">{isSurvey ? `Asiakas: ${log.clientInitials}` : (log.type === 'quick_sale' ? 'Lisämyynti' : 'Uusi asiakas')}</span>
+                                                                                        <span className="font-bold text-stone-900 text-[11px] uppercase tracking-wide">{isSurvey ? `Asiakas: ${log.clientInitials}` : (log.type === 'quick_sale' ? 'Lisäpalvelu' : 'Uusi asiakas')}</span>
                                                                                     </div>
                                                                                     <span className="text-[9px] font-bold text-stone-400 uppercase">{new Date(log.timestamp).toLocaleDateString('fi-FI')}</span>
                                                                                 </div>
@@ -2689,7 +2689,7 @@ const updatePublicDataProps = (updates) => {
 
                                         {activeWidgets.includes('team') && (
                                         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
-                                            <h3 className="text-sm font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Myyjien suoritustaso</h3>
+                                            <h3 className="text-sm font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Hoitajien suoritustaso</h3>
                                             <div className="space-y-4">
                                                 {(!allUserStats || allUserStats.length === 0) ? <p className="text-sm text-stone-400 text-center">Ei dataa tiimistä.</p> : 
                                                 allUserStats.map(stat => {
@@ -2936,7 +2936,7 @@ const updatePublicDataProps = (updates) => {
                                                                 <div>
                                                                     <span className="font-bold text-stone-800">{new Date(log.timestamp).toLocaleDateString('fi')} - </span>
                                                                     {log.type === 'survey' && <span className="text-stone-600">Asikaskäynti / Kysely (As. {log.clientInitials})</span>}
-                                                                    {log.type === 'quick_sale' && <span className="text-stone-600">Pikakirjaus (Myynti)</span>}
+                                                                    {log.type === 'quick_sale' && <span className="text-stone-600">Pikakirjaus (Lisäpalvelu)</span>}
                                                                     {log.type === 'quick_customer' && <span className="text-stone-600">Pikakirjaus (Uusi asiakas)</span>}
                                                                     {log.type === 'manual_bonus' && <span className="text-[#9b2c2c] font-bold">{log.note}</span>}
                                                                 </div>
@@ -3021,14 +3021,14 @@ const updatePublicDataProps = (updates) => {
                                 </div>
                                 
                                 <div className="flex justify-between items-center mb-4 mt-8 px-1 border-t border-stone-200 pt-6">
-                                    <h3 className="text-lg font-black text-stone-900">Myyntimateriaalit</h3>
-                                    <h3 className="text-lg font-black text-stone-900">Myyntimateriaalit</h3>
+                                    <h3 className="text-lg font-black text-stone-900">Tukimateriaalit</h3>
+                                    <h3 className="text-lg font-black text-stone-900">Tukimateriaalit</h3>
                                     <button onClick={() => setIsEditMode(!isEditMode)} className={`w-8 h-8 rounded-full border border-stone-300 flex items-center justify-center text-stone-500 ${isEditMode ? 'bg-[#9b2c2c] text-white border-transparent shadow-md' : 'bg-white'}`}>
                                         {isEditMode ? <Check size={14} /> : <Pen size={14} />}
                                     </button>
                                 </div>
                                 
-                                {isEditMode && <p className="text-xs text-stone-500 text-center mb-4">Muokkaa, piilota ja luo myyntisalkkusi kortteja.</p>}
+                                {isEditMode && <p className="text-xs text-stone-500 text-center mb-4">Muokkaa, piilota ja luo palvelusalkkusi kortteja.</p>}
                                 
                                 {publicData.scripts && publicData.scripts.length > 0 && (
                                     <div className="bg-white rounded-2xl overflow-hidden mb-4 border border-[#fde8e8] shadow-sm">
@@ -3083,7 +3083,7 @@ const updatePublicDataProps = (updates) => {
                                                 <>
                                                     <label htmlFor="adminTaskText" className="text-xs font-bold text-stone-500 uppercase mb-1 block">Sisältö</label>
                                                     <textarea className="w-full p-3 border border-stone-200 rounded-xl mb-3 text-sm focus:border-[#9b2c2c] outline-none" rows="3" value={p.content} onChange={(e) => updateProductField(p.id, 'content', e.target.value, p.isMaster)}></textarea>
-                                                    <label htmlFor="adminTaskPitch" className="text-xs font-bold text-stone-500 uppercase mb-1 block">Myyntilause</label>
+                                                    <label htmlFor="adminTaskPitch" className="text-xs font-bold text-stone-500 uppercase mb-1 block">Palvelulupaus</label>
                                                     <textarea className="w-full p-3 border border-stone-200 rounded-xl bg-stone-50 text-sm focus:border-[#9b2c2c] outline-none" rows="2" value={p.pitch} onChange={(e) => updateProductField(p.id, 'pitch', e.target.value, p.isMaster)}></textarea>
                                                 </>
                                             ) : (
@@ -3200,7 +3200,7 @@ const updatePublicDataProps = (updates) => {
 
                                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex justify-between items-center group">
                                                     <div>
-                                                        <div className="text-sm font-black text-stone-800 flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#9b2c2c]"/> Kertamyynti</div>
+                                                        <div className="text-sm font-black text-stone-800 flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#9b2c2c]"/> Kertapalvelu</div>
                                                         <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Sopimus: {regionBonuses.oneTimeRate} €/h</div>
                                                     </div>
                                                     <span className="text-lg font-black text-stone-900 group-hover:text-[#9b2c2c] transition-colors">{monthDetails.oneTime.toFixed(2)} €</span>
@@ -3253,7 +3253,7 @@ const updatePublicDataProps = (updates) => {
                                                     <div>
                                                         <div className="flex items-center gap-2 mb-1.5">
                                                             {isSurvey ? <MessageCircle className="w-4 h-4 text-[#2f855a]" /> : <Activity className="w-4 h-4 text-[#9b2c2c]" />}
-                                                            <span className="font-black text-stone-800 text-sm">{isSurvey ? `Asiakaskohtaaminen` : (log.type === 'quick_sale' ? 'Kirjattu lisämyynti' : 'Uusi asiakas')}</span>
+                                                            <span className="font-black text-stone-800 text-sm">{isSurvey ? `Asiakaskohtaaminen` : (log.type === 'quick_sale' ? 'Kirjattu lisäpalvelu' : 'Uusi asiakas')}</span>
                                                         </div>
                                                         <div className="text-xs text-stone-500 font-medium mb-3">
                                                             {new Date(log.timestamp).toLocaleString('fi-FI')}
@@ -3349,7 +3349,7 @@ const updatePublicDataProps = (updates) => {
                         </div>
                     )}
 
-                    {/* Myyjä - Edit Oma Tehtävä (Desktop) */}
+                    {/* Hoitaja - Edit Oma Tehtävä (Desktop) */}
                     {modals.editTask && (
                         <div className="fixed inset-0 z-[70] flex items-end justify-center">
                             <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"></div>
@@ -3370,14 +3370,14 @@ const updatePublicDataProps = (updates) => {
                                 <div className="sticky top-0 bg-white border-b border-stone-200 p-5 flex justify-between items-center rounded-t-3xl z-10">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-full bg-[#fdf2f2] text-[#9b2c2c] flex items-center justify-center"><HelpCircle size={18} /></div>
-                                        <h3 className="font-black text-lg text-stone-900">Käyttöohjeet {authSession.role === 'myyja' ? '(Myyjä)' : authSession.role === 'admin' ? '(Aluevetäjä)' : '(Johto)'}</h3>
+                                        <h3 className="font-black text-lg text-stone-900">Käyttöohjeet {authSession.role === 'myyja' ? '(Hoitaja)' : authSession.role === 'admin' ? '(Aluevetäjä)' : '(Johto)'}</h3>
                                     </div>
                                     <button aria-label="Sulje ohje" onClick={() => setShowHelpModal(false)} className="p-2 bg-stone-100 rounded-full text-stone-500 hover:bg-stone-200 transition-colors"><X size={18} /></button>
                                 </div>
                                 <div className="p-6 space-y-6 text-stone-600 text-sm">
                                     {authSession.role === 'myyja' && (
                                         <>
-                                            <p className="border-l-4 border-stone-200 pl-3">Olet <strong>Työntekijä (myyjä)</strong>. Sinun tehtäväsi on kohdata asiakkaita ja palvella heitä parhaalla mahdollisella tavalla.</p>
+                                            <p className="border-l-4 border-stone-200 pl-3">Olet <strong>Työntekijä (hoitaja)</strong>. Sinun tehtäväsi on kohdata asiakkaita ja palvella heitä parhaalla mahdollisella tavalla.</p>
                                             
                                             <div className="bg-[#f0fdf4] p-5 rounded-2xl border border-[#dcfce7]">
                                                 <h4 className="font-bold text-[#2f855a] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><List size={14}/> 1. Tavoitteiden asettaminen (tarjotin)</h4>
@@ -3407,12 +3407,12 @@ const updatePublicDataProps = (updates) => {
 
                                             <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
                                                 <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Target size={14}/> 2. Tiimin rutiinien ohjaus</h4>
-                                                <p className="text-stone-600 text-xs leading-relaxed">Lisää työpöydän kautta alueesi tiimiä koskevia tavoitteita. Muista hyödyntää **kiinnitystä** – kun kiinnität elintärkeän rutiinin, se ilmestyy koko alueesi myyjien donitsiin viikosta toiseen.</p>
+                                                <p className="text-stone-600 text-xs leading-relaxed">Lisää työpöydän kautta alueesi tiimiä koskevia tavoitteita. Muista hyödyntää **kiinnitystä** – kun kiinnität elintärkeän rutiinin, se ilmestyy koko alueesi hoitajien donitsiin viikosta toiseen.</p>
                                             </div>
                                             
                                             <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
                                                 <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Sparkles size={14}/> 3. Raportit ja tiimin sparraus</h4>
-                                                <p className="text-stone-600 text-xs leading-relaxed">Kokoa kojelauta raporttipankista. Ota käyttöön **myyjien suoritustaso** sekä **tekoälyn sparraus**, jotka nostavat heti esiin huippusuorittajat ja sparrausta kaipaavat jäsenet.</p>
+                                                <p className="text-stone-600 text-xs leading-relaxed">Kokoa kojelauta raporttipankista. Ota käyttöön **hoitajien suoritustaso** sekä **tekoälyn sparraus**, jotka nostavat heti esiin huippusuorittajat ja sparrausta kaipaavat jäsenet.</p>
                                             </div>
                                         </>
                                     )}
@@ -3433,7 +3433,7 @@ const updatePublicDataProps = (updates) => {
 
                                             <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
                                                 <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Globe size={14}/> 3. Yhtiön rutiinien jalkautus</h4>
-                                                <p className="text-stone-600 text-xs leading-relaxed">Kun luot työpöydän tarjottimen kautta tavoitteen ja **kiinnität sen pysyväksi**, se ilmestyy velvoittavana rutiinina poikkeuksetta koko Suomen myyjien työpöydälle!</p>
+                                                <p className="text-stone-600 text-xs leading-relaxed">Kun luot työpöydän tarjottimen kautta tavoitteen ja **kiinnität sen pysyväksi**, se ilmestyy velvoittavana rutiinina poikkeuksetta koko Suomen hoitajien työpöydälle!</p>
                                             </div>
                                         </>
                                     )}
@@ -3446,12 +3446,12 @@ const updatePublicDataProps = (updates) => {
                         <div className="fixed inset-0 z-[60] flex items-end justify-center">
                             <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"></div>
                             <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
-                                <h3 className="text-xl font-black text-center text-stone-900 mb-2">Kirjaa lisämyynti</h3>
+                                <h3 className="text-xl font-black text-center text-stone-900 mb-2">Kirjaa lisäpalvelu</h3>
                                 <div className="flex p-1 bg-stone-200/70 rounded-2xl mb-5 mt-4 border border-stone-300 gap-1">
                                     <button onClick={() => setSaleMode('oneTime')} className={`flex-1 text-sm font-bold py-2.5 rounded-xl transition-all shadow-sm ${saleMode === 'oneTime' ? 'bg-white text-[#9b2c2c] ring-1 ring-stone-200' : 'text-stone-500 bg-transparent shadow-none'}`}>Irtotunteja</button>
                                     <button onClick={() => setSaleMode('ongoing')} className={`flex-1 text-sm font-bold py-2.5 rounded-xl transition-all shadow-sm ${saleMode === 'ongoing' ? 'bg-white text-[#2f855a] ring-1 ring-stone-200' : 'text-stone-500 bg-transparent shadow-none'}`}>Jatkuva palv.</button>
                                 </div>
-                                <p className="text-center text-stone-500 text-sm font-medium mb-4">Valitse myyty tuntimäärä:</p>
+                                <p className="text-center text-stone-500 text-sm font-medium mb-4">Valitse palveltu tuntimäärä:</p>
                                 <div className="grid grid-cols-4 gap-3 mb-6">
                                     {[1, 2, 4, 8].map(h => (
                                         <button key={h} onClick={() => handleRecordSale(h)} className={`aspect-square rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${h===8 ? 'border-[#9b2c2c] bg-[#fdf2f2] shadow-sm' : 'border-stone-200 bg-white hover:border-[#9b2c2c]'}`}>
@@ -3480,8 +3480,8 @@ const updatePublicDataProps = (updates) => {
                                 
                                 <div className="space-y-3 mb-6 max-h-[60vh] overflow-y-auto pr-2">
                                     {[
-                                        { id: 'hours', title: 'Tuntikertymä', desc: 'Työpöydän päätunnusluku. Näyttää kuluvan kuukauden myytyjen tuntien määrän suhteessa tavoitteeseen.' },
-                                        { id: 'revenue', title: 'Operatiivinen kuukausimyynti', desc: 'Näyttää kuluvan ja menneiden kuukausien suuntaa-antavan euromääräisen myyntikertymän.' },
+                                        { id: 'hours', title: 'Tuntikertymä', desc: 'Työpöydän päätunnusluku. Näyttää kuluvan kuukauden palveltujen tuntien määrän suhteessa tavoitteeseen.' },
+                                        { id: 'revenue', title: 'Operatiivinen kuukausivolyymi', desc: 'Näyttää kuluvan ja menneiden kuukausien suuntaa-antavan euromääräisen volyymikertymän.' },
                                         { id: 'streak', title: 'Tavoiteputki', desc: 'Näyttää visuaalisesti, kuinka monena peräkkäisenä kuukautena alue on saavuttanut tavoitteensa.' },
                                         { id: 'tasks', title: 'Rutiinien suoritusaste', desc: 'Kertoo kuinka suuri osa asetetuista rutiineista (esim. soittokierroksista) on tällä hetkellä tehty.' },
                                         { id: 'surveys', title: 'Asiakastyytyväisyys (NPS)', desc: 'Näyttää listana lähiaikoina toteutuneet asiakaskohtaamiset, NPS-luokitukset ja sanalliset palautteet.' },
@@ -3492,7 +3492,7 @@ const updatePublicDataProps = (updates) => {
                                             { id: 'risks', title: 'Asiakasriskit ja laajentuminen', desc: 'Varoittaa automaattisesti ylikuumentuvista alueista ja matalan kapasiteetin yksiköistä.' }
                                         ] : []),
                                         ...(isAdmin && !isSuperAdmin ? [
-                                            { id: 'team', title: 'Myyjien suoritustaso', desc: 'Alueesi työntekijöiden tuloslistaus ohjauksen ja vertailun tueksi.' }
+                                            { id: 'team', title: 'Hoitajien suoritustaso', desc: 'Alueesi työntekijöiden tuloslistaus ohjauksen ja vertailun tueksi.' }
                                         ] : []),
                                         ...(isAdmin ? [
                                             { id: 'fin_revenue', title: 'Tilikauden liikevaihto ja muutos-%', desc: 'Kertoo alueen liikevaihdon ja prosentuaalisen kehityksen suhteessa edelliseen tilikauteen.' },
@@ -3627,7 +3627,7 @@ const updatePublicDataProps = (updates) => {
                                         <div className="space-y-2">
                                             <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-white cursor-pointer transition-colors"><input type="radio" checked={surveyState.proposalStatus === 'none'} onChange={() => updateState({proposalStatus: 'none'})} className="w-5 h-5 text-stone-600" /><span className="text-sm text-stone-700 font-medium">Ei kiitos</span></label>
                                             <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-white cursor-pointer transition-colors"><input type="radio" checked={surveyState.proposalStatus === 'interested'} onChange={() => updateState({proposalStatus: 'interested'})} className="w-5 h-5 text-[#9b2c2c]" /><span className="text-sm text-stone-800 font-bold">Kiinnostui (Soittakaa myöhemmin)</span></label>
-                                            <div className="flex items-center justify-between p-3 rounded-xl bg-[#dcfce7] border border-[#2f855a]/30 shadow-sm"><label className="flex items-center gap-3 cursor-pointer flex-1"><input type="radio" checked={surveyState.proposalStatus === 'sold'} onChange={() => updateState({proposalStatus: 'sold'})} className="w-5 h-5 text-[#2f855a] accent-[#2f855a]" /><span className="text-base font-black text-[#22543d]">Myyty!</span></label></div>
+                                            <div className="flex items-center justify-between p-3 rounded-xl bg-[#dcfce7] border border-[#2f855a]/30 shadow-sm"><label className="flex items-center gap-3 cursor-pointer flex-1"><input type="radio" checked={surveyState.proposalStatus === 'sold'} onChange={() => updateState({proposalStatus: 'sold'})} className="w-5 h-5 text-[#2f855a] accent-[#2f855a]" /><span className="text-base font-black text-[#22543d]">Palvelua laajennettu!</span></label></div>
                                         </div>
                                     </>
                                 ) : mediumNeeds.length > 0 ? (
@@ -3638,7 +3638,7 @@ const updatePublicDataProps = (updates) => {
                     </div>
 
                     <div className={`bg-white rounded-[2rem] shadow-xl border border-stone-200 overflow-hidden relative transition-all ${!coach.isSalesRecommended ? '' : ''}`}>
-                        <div className="bg-[#132e21] p-5 border-b border-[#22543d] flex items-center gap-4"><div className="bg-white/10 p-3 rounded-xl text-white shadow-inner"><TrendingUp className="w-6 h-6"/></div><div><h3 className="font-extrabold text-white text-xl leading-none tracking-wide">Lisämyynti</h3><p className="text-[#dcfce7] text-xs mt-1.5 font-medium">Kirjaa sovitut työt</p></div></div>
+                        <div className="bg-[#132e21] p-5 border-b border-[#22543d] flex items-center gap-4"><div className="bg-white/10 p-3 rounded-xl text-white shadow-inner"><TrendingUp className="w-6 h-6"/></div><div><h3 className="font-extrabold text-white text-xl leading-none tracking-wide">Lisäpalvelu</h3><p className="text-[#dcfce7] text-xs mt-1.5 font-medium">Kirjaa sovitut työt</p></div></div>
                         {!coach.isSalesRecommended && <div className="bg-[#fdf2f2] p-5 border-b border-[#fde8e8] text-[#9b2c2c] text-sm font-bold flex items-center gap-3"><AlertTriangle className="w-6 h-6 flex-shrink-0"/><span>Suositus: Keskity ensisijaisesti korjaamiseen. Myy vain, jos tilanne on purettu.</span></div>}
                         <div className="p-6 space-y-6">
                             <div className="bg-stone-50 rounded-2xl p-5 border border-stone-200 shadow-sm">
@@ -3651,7 +3651,7 @@ const updatePublicDataProps = (updates) => {
                             </div>
 
                             <div className="bg-stone-50 rounded-2xl p-5 border border-stone-200 shadow-sm">
-                                <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-2"><Sparkles className="text-[#2f855a] w-5 h-5"/><span className="text-sm font-black text-stone-800 uppercase tracking-wide">Kertamyynti</span></div><span className="text-xs font-bold bg-white text-[#2f855a] px-3 py-1.5 rounded-lg border border-stone-200 shadow-sm">5€ / h bonus</span></div>
+                                <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-2"><Sparkles className="text-[#2f855a] w-5 h-5"/><span className="text-sm font-black text-stone-800 uppercase tracking-wide">Kertapalvelu</span></div><span className="text-xs font-bold bg-white text-[#2f855a] px-3 py-1.5 rounded-lg border border-stone-200 shadow-sm">5€ / h bonus</span></div>
                                 <div className="flex items-center bg-white rounded-xl p-1.5 shadow-sm border border-stone-200 w-full max-w-[200px]">
                                     <button onClick={() => updateState({ oneOffHours: Math.max(0, oneOffHours - 0.5) })} className="w-10 h-10 rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 flex items-center justify-center transition-colors"><Minus className="w-5 h-5"/></button>
                                     <div className="flex-1 text-center font-black text-2xl text-stone-800">{oneOffHours} <span className="text-sm text-stone-400 font-bold">h</span></div>
@@ -3706,7 +3706,7 @@ const updatePublicDataProps = (updates) => {
                                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                                 <User className="h-5 w-5 text-stone-400" />
                                             </div>
-                                            <input id="customerInitials" type="text" placeholder="Asiakkaan nimikirjaimet esim. M.M." value={clientInitials} onChange={e => updateState({clientInitials: e.target.value})} className="w-full pl-12 pr-4 py-4 bg-white border border-stone-200 rounded-2xl outline-none text-lg font-bold text-stone-800 shadow-sm focus:border-[#486045] focus:ring-4 focus:ring-[#486045]/10 transition-all placeholder-stone-400" />
+                                            <input id="customerInitials" type="text" placeholder="Asiakkaan etunimi esim. Matti" value={clientInitials} onChange={e => updateState({clientInitials: e.target.value})} className="w-full pl-12 pr-4 py-4 bg-white border border-stone-200 rounded-2xl outline-none text-lg font-bold text-stone-800 shadow-sm focus:border-[#486045] focus:ring-4 focus:ring-[#486045]/10 transition-all placeholder-stone-400" />
                                         </div>
                                     </div>
                                     <button onClick={() => { updateState({ sessionId: `#${Math.floor(1000 + Math.random() * 9000)}` }); goToStep('customer'); }} disabled={clientInitials.length < 2} className={`w-full py-4 rounded-2xl font-black text-xl shadow-lg mt-auto transition-all duration-300 flex items-center justify-center gap-2 ${clientInitials.length > 1 ? 'bg-[#486045] text-white hover:scale-[1.02] active:scale-95 hover:shadow-2xl' : 'bg-stone-200 text-stone-400 cursor-not-allowed opacity-70'}`}>
@@ -3733,7 +3733,7 @@ const updatePublicDataProps = (updates) => {
                         <select value={authSession.role} onChange={e => setAuthSession({...authSession, role: e.target.value})} className="bg-stone-800 text-white text-[11px] font-bold p-2.5 rounded-lg outline-none border border-stone-700 flex-1 focus:border-[#facc15] transition-colors">
                             <option value="superadmin">Suomi (Superadmin)</option>
                             <option value="admin">Aluevetäjä</option>
-                            <option value="myyja">Myyjä</option>
+                            <option value="myyja">Hoitaja</option>
                         </select>
                         <select value={authSession.regionId} onChange={e => setAuthSession({...authSession, regionId: e.target.value})} className="bg-stone-800 text-white text-[11px] font-bold p-2.5 rounded-lg outline-none border border-stone-700 flex-1 focus:border-[#facc15] transition-colors">
                             {activeRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}

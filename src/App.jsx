@@ -604,7 +604,7 @@ export default function App() {
                 id: generateId(),
                 type: 'survey',
                 nps: 10,
-                feedback: 'AI:n purkama sanelumuistio ja myynti.',
+                feedback: 'Sanelumuistio ja myynti.',
                 clientInitials: 'T.K.',
                 timestamp: Date.now()
             };
@@ -1071,7 +1071,7 @@ export default function App() {
                                     <select name="inviteRole" required className="flex-1 border border-stone-200 rounded-xl px-3 py-2.5 text-sm font-bold text-stone-700 outline-none focus:border-[#2f855a]">
                                         <option value="myyja">Myyjä</option>
                                         <option value="admin">Aluevetäjä</option>
-                                        {isSuperAdmin && <option value="superadmin">Superadmin (Koko Suomi)</option>}
+                                        {isSuperAdmin && <option value="superadmin">Superadmin (Suomi)</option>}
                                     </select>
                                 </div>
                                 <button type="submit" className="w-full bg-[#2f855a] text-white py-3 rounded-xl font-bold shadow-sm hover:bg-[#22543d] transition active:scale-95">Luo työntekijän profiili ennakkoon</button>
@@ -1289,7 +1289,7 @@ export default function App() {
                         </div>
                     </div>
                     <div className="bg-white/70 rounded-xl p-3 border border-white/60 text-xs text-stone-800 leading-relaxed shadow-sm mt-1">
-                        <h5 className="font-bold mb-1.5 uppercase tracking-wider text-[10px] text-stone-500">AI Analyysin suositukset tälle tilitasolle:</h5>
+                        <h5 className="font-bold mb-1.5 uppercase tracking-wider text-[10px] text-stone-500">Keskitymme seuraavaan:</h5>
                         <div className="opacity-90">{currentLevel.desc}</div>
                     </div>
                 </div>
@@ -1989,7 +1989,7 @@ export default function App() {
                                                                     <div className="p-4 rounded-xl border border-stone-200 bg-white flex items-start gap-3">
                                                                         <div className="mt-0.5 text-stone-400"><Activity size={16} /></div>
                                                                         <p className="text-xs font-medium text-stone-700 leading-relaxed">
-                                                                            <b>Asiakasriski ({bottomRegion.name}):</b> Alueen aktiivisuus on matalalla trendikäyrällä suhteessa muihin. AI suosittelee soittokierrosta pitkäaikaisille asiakkaille ja vetäjän sparrausta.
+                                                                            <b>Asiakasriski ({bottomRegion.name}):</b> Alueen aktiivisuus on matalalla trendikäyrällä suhteessa muihin. Järjestelmä suosittelee soittokierrosta pitkäaikaisille asiakkaille ja vetäjän sparrausta.
                                                                         </p>
                                                                     </div>
                                                                 )}
@@ -2069,7 +2069,7 @@ export default function App() {
                                                                             <Sparkles className="w-3 h-3" />
                                                                         </div>
                                                                         <div>
-                                                                            <h4 className="text-[10px] font-black uppercase tracking-wider mb-0.5">AI Analyysi</h4>
+                                                                            <h4 className="text-[10px] font-black uppercase tracking-wider mb-0.5">Tilannekatsaus</h4>
                                                                             <p className="text-[10px] font-medium leading-relaxed opacity-90">
                                                                                 {isPaceGood 
                                                                                   ? (trendIsUp ? 'Vahvassa kasvussa ja tavoitteissa.' : 'Tavoitteissa ollaan, mutta valvo aktiivisuutta.') 
@@ -2827,7 +2827,7 @@ export default function App() {
                                             
                                             <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
                                                 <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2">3. Omat Myynnit</h4>
-                                                <p className="text-stone-600 text-xs leading-relaxed">Myös aluevetäjä tekee asiakastyötä. Käytä Työkalut-välilehteä ja AI-sanelinta tismalleen kuten työntekijät omalla kohdallasi kirjatessasi tapahtumia.</p>
+                                                <p className="text-stone-600 text-xs leading-relaxed">Myös aluevetäjä tekee asiakastyötä. Käytä Työkalut-välilehteä ja sanelinta tismalleen kuten työntekijät omalla kohdallasi kirjatessasi tapahtumia.</p>
                                             </div>
                                         </>
                                     )}
@@ -3078,7 +3078,7 @@ export default function App() {
                     <span className="text-xs font-bold text-[#facc15] uppercase tracking-widest whitespace-nowrap"><Settings className="w-4 h-4 inline mr-1.5 mb-0.5 text-[#facc15] animate-pulse"/> Testitila</span>
                     <div className="flex gap-2 w-full sm:w-auto max-w-md">
                         <select value={authSession.role} onChange={e => setAuthSession({...authSession, role: e.target.value})} className="bg-stone-800 text-white text-[11px] font-bold p-2.5 rounded-lg outline-none border border-stone-700 flex-1 focus:border-[#facc15] transition-colors">
-                            <option value="superadmin">Koko Suomi (Superadmin)</option>
+                            <option value="superadmin">Suomi (Superadmin)</option>
                             <option value="admin">Aluevetäjä</option>
                             <option value="myyja">Myyjä</option>
                         </select>

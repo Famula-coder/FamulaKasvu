@@ -2180,7 +2180,7 @@ const updatePublicDataProps = (updates) => {
 
                                             {/* AI Risk & Strategy Radar */}
                                             {activeWidgets.includes('risks') && (
-                                                <div className="bg-gradient-to-br from-[#f0fdf4] to-white rounded-[2rem] p-6 shadow-sm border border-[#dcfce7] mb-6">
+                                                <div className="bg-gradient-to-br from-[#f0fdf4] to-white rounded-[2rem] p-6 shadow-sm border border-[#dcfce7] lg:col-span-3">
                                                 <h3 className="text-xs font-black text-[#2f855a] mb-4 uppercase tracking-widest flex items-center gap-2"><Compass size={16}/> Asiakasriskit ja laajentuminen</h3>
                                                 <div className="space-y-3">
                                                     {(() => {
@@ -2214,7 +2214,7 @@ const updatePublicDataProps = (updates) => {
 
                                             {/* Comparative Analytics */}
                                             {activeWidgets.includes('comp_regions') && (
-                                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6 lg:col-span-2">
+                                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 lg:col-span-3">
                                                 <h3 className="text-xs font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Alueiden vertailu</h3>
                                                 <div className="space-y-4">
                                                     {(() => {
@@ -2320,9 +2320,9 @@ const updatePublicDataProps = (updates) => {
                                                 </div>
                                             )}
                                             
-                                            <div className="flex items-center gap-2 mb-4">
+                                            <div className="flex items-center gap-2 mb-4 lg:col-span-3 mt-4">
                                                 <span className="h-px bg-stone-300 flex-1"></span>
-                                                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest text-center">Tarkastelussa alue: {activeRegions.find(r=>r.id===authSession.regionId)?.name}</span>
+                                                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest text-center">Oman alueesi erittely: {activeRegions.find(r=>r.id===authSession.regionId)?.name || 'Ei omaa aluetta'}</span>
                                                 <span className="h-px bg-stone-300 flex-1"></span>
                                             </div>
                                         </div>

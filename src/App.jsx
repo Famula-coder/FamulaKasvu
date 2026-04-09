@@ -1056,7 +1056,7 @@ const updatePublicDataProps = (updates) => {
         });
 
         const pendingUsers = usersToManage.filter(u => u.status === 'pending');
-        const activeUsers = usersToManage.filter(u => u.status !== 'pending' && u.id !== fbUser?.uid);
+        const activeUsers = usersToManage.filter(u => u.status !== 'pending');
 
         const handleApprove = async (uid, reqRole) => {
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', uid), { status: 'active', role: reqRole }, { merge: true });
@@ -1113,7 +1113,7 @@ const updatePublicDataProps = (updates) => {
                             <p className="text-stone-500 text-sm">{fbUser?.email}</p>
                             <div className="mt-2 flex gap-2">
                                 <span className="bg-[#f0fdf4] text-[#22543d] px-2 py-1 rounded text-[10px] font-bold uppercase border border-[#dcfce7]">{authSession?.role}</span>
-                                <span className="bg-stone-100 text-stone-600 px-2 py-1 rounded text-[10px] font-bold uppercase border border-stone-200">{authSession?.role === 'superadmin' ? 'KOKO SUOMI (KONSERNI)' : (activeRegions.find(r=>r.id===authSession?.regionId)?.name || authSession?.regionId)}</span>
+                                {/* Aluepilleri poistettu, se on nyt koko ohjelman yläpalkissa */}
                             </div>
                         </div>
                     </div>
@@ -1373,10 +1373,11 @@ const updatePublicDataProps = (updates) => {
 
     const saveFinancialStatement = async () => {
         if (!isAdmin) return;
-        const stmtId = editingFinancialStatement.id || `${authSession.regionId}_${editingFinancialStatement.year}`;
+        const targetRegion = (isSuperAdmin && globalScope.regionId !== 'all') ? globalScope.regionId : authSession?.regionId;
+        const stmtId = editingFinancialStatement.id || `${targetRegion}_${editingFinancialStatement.year}`;
         const stmtData = {
             ...editingFinancialStatement,
-            regionId: authSession.regionId,
+            regionId: targetRegion,
             timestamp: Date.now()
         };
         
@@ -1438,7 +1439,7 @@ const updatePublicDataProps = (updates) => {
                     </div>
                 </div>
 
-                <button onClick={() => {
+                <button disabled={globalScope.regionId === 'all'} onClick={() => {
                     setEditingMarketingPlan({
                         id: '', year: new Date().getFullYear(), quarter: Math.floor((new Date().getMonth() + 3) / 3),
                         targetMo1: '', targetMo2: '', targetMo3: '',
@@ -1450,6 +1451,9 @@ const updatePublicDataProps = (updates) => {
                 }} className="w-full bg-[#fde8e8] border border-[#fca5a5] text-[#9b2c2c] rounded-2xl p-4 flex justify-center items-center gap-2 font-black shadow-sm hover:bg-[#fca5a5] transition">
                     <Plus size={20} /> Uusi Kvartaalisuunnitelma
                 </button>
+                {globalScope.regionId === 'all' && (
+                    <p className="text-xs text-red-600 font-bold text-center mt-2">Valitse alue yläpalkin Kohdistus-valikosta luodaksesi suunnitelman!</p>
+                )}
 
                 <div className="space-y-4">
                     {regionPlans.length === 0 ? (
@@ -1870,7 +1874,14 @@ const updatePublicDataProps = (updates) => {
         const currentMonth = monthsData[currentMonthIdx];
         
         // Calculate Bonuses for Week and Month
-        const myStatDocForBonus = allUserStats.find(s => s.id === fbUser?.uid) || { logs: [] };
+                let targetUserId = fbUser?.uid;
+        if (globalScope.userId !== 'all' && globalScope.userId !== null) {
+            targetUserId = globalScope.userId;
+        } else if (isSuperAdmin && globalScope.regionId !== 'all') {
+            const regionAdmin = allUserStats.find(s => s.regionId === globalScope.regionId && s.role === 'admin');
+            if (regionAdmin) targetUserId = regionAdmin.id;
+        }
+        const myStatDocForBonus = allUserStats.find(s => s.id === targetUserId) || { logs: [] };
         
         // Widget logic
         const activeWidgets = myStatDocForBonus.activeWidgets || ['hours', 'revenue', 'streak', 'tasks', 'surveys', 'sparraus', 'team', 'overview', 'risks', 'comp_regions'];
@@ -1881,7 +1892,8 @@ const updatePublicDataProps = (updates) => {
             syncMyStats({ activeWidgets: nextWidgets });
         };
         
-        const regionBonuses = publicData?.regionBonuses?.[authSession?.regionId] || { oneTimeRate: 5, ongoingRate: 20, customerBonus: 30, newContractRate: 0 };
+                const targetBonusRegion = (isSuperAdmin && globalScope.regionId !== 'all') ? globalScope.regionId : authSession?.regionId;
+        const regionBonuses = publicData?.regionBonuses?.[targetBonusRegion] || { oneTimeRate: 5, ongoingRate: 20, customerBonus: 30, newContractRate: 0 };
         const { weekBonus, monthBonus } = calculateUserBonuses(myStatDocForBonus.logs, regionBonuses, todayInfo);
 
         // Calculate Reports
@@ -3381,7 +3393,8 @@ const updatePublicDataProps = (updates) => {
                                 
                                 {(() => {
                                     const todayInfo = getTodayInfo(0);
-                                    const regionBonuses = publicData?.regionBonuses?.[authSession?.regionId] || { oneTimeRate: 5, ongoingRate: 20, customerBonus: 30, newContractRate: 0 };
+                                            const targetBonusRegion = (isSuperAdmin && globalScope.regionId !== 'all') ? globalScope.regionId : authSession?.regionId;
+        const regionBonuses = publicData?.regionBonuses?.[targetBonusRegion] || { oneTimeRate: 5, ongoingRate: 20, customerBonus: 30, newContractRate: 0 };
                                     const myStat = (Array.isArray(allUserStats) ? allUserStats : []).find(s => s.id === fbUser?.uid) || { logs: [] };
                                     const { monthBonus, monthDetails } = calculateUserBonuses(myStat.logs, regionBonuses, todayInfo);
                                     return (
@@ -3944,7 +3957,8 @@ const updatePublicDataProps = (updates) => {
 
     return (
         <div className="font-sans antialiased bg-[#e7e5e4] min-h-screen flex flex-col">
-            {/* Kaukosäädin siirretty luonnolliseksi osaksi renderTopNav() navigointia */}
+            {/* Superadminin aluehallinta nostettu ylätason työkalupalkiksi! */}
+            {renderGlobalScopeSelector()}
 
             {toast.visible && (
                 <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-[100] w-[90%] max-w-[400px] animate-fade-in">

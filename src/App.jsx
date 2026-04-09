@@ -153,6 +153,18 @@ function getCoachSummary(answers) {
     return { summaryTitle, summaryColor, scriptText, isSalesRecommended };
 }
 
+const getRegionBonusesArray = (publicData, targetBonusRegion) => {
+    const raw = publicData?.regionBonuses?.[targetBonusRegion];
+    if (Array.isArray(raw)) return raw;
+    const oldObj = raw || { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50, newContractRate: 0 };
+    return [
+        { id: 'oneTimeRate', title: 'Lisämyynti käynnillä', desc: 'Jokaisesta lisätunnista kertaluontoisesti.', expectedParams: '€ / lisätunti', value: oldObj.oneTimeRate || 10 },
+        { id: 'ongoingRate', title: 'Sopimuksen parantaminen', desc: 'Lisätty toistuva sovittu viikkotunti.', expectedParams: '€ / lisätunti kk', value: oldObj.ongoingRate || 30 },
+        { id: 'customerBonus', title: 'Uusi tutustumiskäynti', desc: 'Kertabonus toteutuneesta käynnistä.', expectedParams: 'kertabonus', value: oldObj.customerBonus || 50 },
+        { id: 'newContractRate', title: 'Uusi sopimus', desc: 'Aluevetäjä tarkistaa', expectedParams: '€ / sopimus', value: oldObj.newContractRate || 0 }
+    ];
+};
+
 // --- MAIN APP COMPONENT ---
 export default function App() {
     // Auth & Identity State
@@ -660,10 +672,11 @@ export default function App() {
     };
 
     const saveRegionBonuses = () => {
-        const updatedRegionBonuses = { ...(publicData.regionBonuses || {}), [authSession.regionId]: adminBonuses };
+        const targetBonusRegion = (isSuperAdmin && globalScope.regionId !== 'all') ? globalScope.regionId : authSession?.regionId;
+        const updatedRegionBonuses = { ...(publicData.regionBonuses || {}), [targetBonusRegion]: adminBonuses };
         updatePublicDataProps({ regionBonuses: updatedRegionBonuses });
         setModals(prev => ({ ...prev, bonuses: false }));
-        showToast("Alueen komissiot tallennettu!");
+        showToast("Palkkioperusteet tallennettu!");
     };
 
     const handleVoiceRecordMock = () => {
@@ -1116,7 +1129,7 @@ const updatePublicDataProps = (updates) => {
                         <button onClick={() => setUserProfileTab('kayttajat')} className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all ${userProfileTab === 'kayttajat' ? 'bg-white shadow-sm text-stone-800' : 'text-stone-500 hover:text-stone-700'}`}>Käyttäjät</button>
                         <button onClick={() => {
                             const targetBonusRegion = (isSuperAdmin && globalScope.regionId !== 'all') ? globalScope.regionId : authSession?.regionId;
-                            setAdminBonuses(publicData?.regionBonuses?.[targetBonusRegion] || { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50, newContractRate: 0 });
+                            setAdminBonuses(getRegionBonusesArray(publicData, targetBonusRegion));
                             setUserProfileTab('palkitseminen');
                         }} className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all ${userProfileTab === 'palkitseminen' ? 'bg-white shadow-sm text-[#9b2c2c]' : 'text-stone-500 hover:text-stone-700'}`}>Palkitsemisperiaatteet</button>
                     </div>
@@ -1264,22 +1277,48 @@ const updatePublicDataProps = (updates) => {
                             <h3 className="text-xs font-black uppercase text-[#9b2c2c] tracking-widest mb-3 px-1 mt-6">Hoitajien Eurobonukset ({isSuperAdmin && globalScope.regionId !== 'all' ? globalScope.regionId : authSession?.regionId})</h3>
                             <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
                                 <div className="space-y-4 mb-6">
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Lisämyynti käynnillä (€ / lisätunti)</label>
-                                        <input type="number" value={adminBonuses.oneTimeRate} onChange={(e) => setAdminBonuses({...adminBonuses, oneTimeRate: Number(e.target.value)})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 focus:border-[#9b2c2c]" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Sopimuksen parantaminen (€ / lisätunti kk)</label>
-                                        <input type="number" value={adminBonuses.ongoingRate} onChange={(e) => setAdminBonuses({...adminBonuses, ongoingRate: Number(e.target.value)})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 focus:border-[#9b2c2c]" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Uusi tutustumiskäynti (kertabonus €)</label>
-                                        <input type="number" value={adminBonuses.customerBonus} onChange={(e) => setAdminBonuses({...adminBonuses, customerBonus: Number(e.target.value)})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 focus:border-[#9b2c2c]" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Uusi sopimus (€, Aluevetäjä määrittää oletuksen)</label>
-                                        <input type="number" value={adminBonuses.newContractRate || ''} onChange={(e) => setAdminBonuses({...adminBonuses, newContractRate: Number(e.target.value)})} placeholder="Tyhjä / 0" className="w-full p-4 bg-stone-50 border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 focus:border-[#9b2c2c]" />
-                                    </div>
+                                    {Array.isArray(adminBonuses) && adminBonuses.map((bonus, index) => {
+                                        const isCore = ['oneTimeRate', 'ongoingRate', 'customerBonus', 'newContractRate'].includes(bonus.id);
+                                        return (
+                                            <div key={bonus.id} className="p-4 bg-stone-50 border border-stone-200 rounded-2xl relative group">
+                                                {!isCore && (
+                                                    <button onClick={() => setAdminBonuses(adminBonuses.filter((_, i) => i !== index))} className="absolute top-4 right-4 w-6 h-6 bg-white shadow-sm border border-[#fca5a5] text-[#9b2c2c] rounded-full flex items-center justify-center opacity-50 hover:opacity-100 transition"><X size={12}/></button>
+                                                )}
+                                                <input type="text" value={bonus.title} onChange={e => {
+                                                    const newB = [...adminBonuses]; newB[index].title = e.target.value; setAdminBonuses(newB);
+                                                }} className="text-[11px] font-bold text-stone-500 uppercase mb-2 bg-transparent w-full outline-none border-b border-transparent focus:border-stone-300 pointer-events-auto" placeholder="Otsikko..." />
+                                                
+                                                <div className="flex gap-2">
+                                                    <input type="number" value={bonus.value} onChange={e => {
+                                                        const newB = [...adminBonuses]; newB[index].value = Number(e.target.value); setAdminBonuses(newB);
+                                                    }} className="w-24 p-3 bg-white border border-stone-200 rounded-xl outline-none font-black text-[#2f855a] focus:border-[#9b2c2c] text-lg text-center" />
+                                                    <div className="flex-1">
+                                                        <input type="text" value={bonus.unit} onChange={e => {
+                                                            const newB = [...adminBonuses]; newB[index].unit = e.target.value; setAdminBonuses(newB);
+                                                        }} className="w-full p-2 text-xs font-bold bg-white border border-stone-200 rounded-xl outline-none text-stone-600 focus:border-[#9b2c2c]" placeholder="Yksikkö (esim. €/h)" />
+                                                        <input type="text" value={bonus.desc} onChange={e => {
+                                                            const newB = [...adminBonuses]; newB[index].desc = e.target.value; setAdminBonuses(newB);
+                                                        }} className="w-full mt-2 p-2 text-[10px] bg-white border border-stone-200 rounded-xl outline-none text-stone-500 focus:border-[#9b2c2c]" placeholder="Lyhyt selite hoitajalle..." />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="flex justify-between items-center mb-6">
+                                    <button onClick={() => setAdminBonuses([...adminBonuses, { id: 'custom_' + Date.now(), title: 'UUSI BONUSPERUSTE', desc: 'Kuvaile bonusta hoitajille.', unit: 'kertamaksu', value: 50 }])} className="text-xs font-bold text-[#2f855a] hover:text-[#22543d] flex items-center gap-1 bg-[#f0fdf4] px-3 py-2 rounded-xl transition shadow-sm border border-[#dcfce7]">
+                                        <Plus size={14}/> Lisää uusi maksuperuste
+                                    </button>
+                                </div>
+                                
+                                <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-xl flex items-start gap-3 mb-6">
+                                    <AlertTriangle size={18} className="text-orange-600 shrink-0 mt-0.5" />
+                                    <p className="text-[10px] text-orange-800 font-medium leading-relaxed">
+                                        <strong className="block mb-1">Huomioitavaa laskennassa!</strong>
+                                        Ydinbonukset osallistuvat <b>automaattiseen</b> palkanlaskentaan suoraan työpäiväkirjasta. 
+                                        Kaikki vapaavalintaiset (itsekeksityt) bonukset ovat sen sijaan ns. manuaalisia: Ne näkyvät henkilökunnalle ohjeistuksena työpöydällä, mutta <b>esihenkilön on muistettava maksaa ne erikseen</b> palkanmaksun yhteydessä.
+                                    </p>
                                 </div>
                                 <button onClick={saveRegionBonuses} className="w-full bg-[#9b2c2c] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Tallenna Bonussäännöt</button>
                             </div>
@@ -1869,10 +1908,19 @@ const updatePublicDataProps = (updates) => {
             </div>
         );
     };
-    const calculateUserBonuses = (logs, regionBonuses, todayInfo) => {
+    const calculateUserBonuses = (logs, regionBonusesArr, todayInfo) => {
         let weekBonus = 0;
         let monthBonus = 0;
         let monthDetails = { oneTime: 0, ongoing: 0, customer: 0, newContract: 0 };
+        
+        // Handle migration gracefully
+        const getV = (id) => (Array.isArray(regionBonusesArr) ? regionBonusesArr : []).find(b => b.id === id)?.value || 0;
+        const rb = {
+            oneTimeRate: getV('oneTimeRate') || (regionBonusesArr?.oneTimeRate || 0),
+            ongoingRate: getV('ongoingRate') || (regionBonusesArr?.ongoingRate || 0),
+            newContractRate: getV('newContractRate') || (regionBonusesArr?.newContractRate || 0),
+            customerBonus: getV('customerBonus') || (regionBonusesArr?.customerBonus || 0)
+        };
         
         (logs || []).forEach(l => {
             const lDate = new Date(l.timestamp);
@@ -1884,28 +1932,28 @@ const updatePublicDataProps = (updates) => {
 
             if (l.type === 'quick_sale') {
                 if (l.saleMode === 'newContract') {
-                    val = (regionBonuses.newContractRate || 0);
+                    val = rb.newContractRate;
                     type = 'newContract';
                 } else {
-                    val = (l.saleMode === 'ongoing' ? regionBonuses.ongoingRate : regionBonuses.oneTimeRate) * Number(l.hours || 0);
+                    val = (l.saleMode === 'ongoing' ? rb.ongoingRate : rb.oneTimeRate) * Number(l.hours || 0);
                     type = l.saleMode === 'ongoing' ? 'ongoing' : 'oneTime';
                 }
             } else if (l.type === 'quick_customer') {
-                val = regionBonuses.customerBonus;
+                val = rb.customerBonus;
                 type = 'customer';
             } else if (l.type === 'survey') {
                 if (l.planHours) {
-                    const planVal = regionBonuses.ongoingRate * Number(l.planHours);
+                    const planVal = rb.ongoingRate * Number(l.planHours);
                     if (isThisWeek) weekBonus += planVal;
                     if (isThisMonth) { monthBonus += planVal; monthDetails.ongoing += planVal; }
                 }
                 if (l.oneOffHours) {
-                    const oneOffVal = regionBonuses.oneTimeRate * Number(l.oneOffHours);
+                    const oneOffVal = rb.oneTimeRate * Number(l.oneOffHours);
                     if (isThisWeek) weekBonus += oneOffVal;
                     if (isThisMonth) { monthBonus += oneOffVal; monthDetails.oneTime += oneOffVal; }
                 }
                 if (l.proposalStatus === 'sold') {
-                    const custVal = regionBonuses.customerBonus;
+                    const custVal = rb.customerBonus;
                     if (isThisWeek) weekBonus += custVal;
                     if (isThisMonth) { monthBonus += custVal; monthDetails.customer += custVal; }
                 }
@@ -1998,7 +2046,7 @@ const updatePublicDataProps = (updates) => {
         };
         
                 const targetBonusRegion = (isSuperAdmin && globalScope.regionId !== 'all') ? globalScope.regionId : authSession?.regionId;
-        const regionBonuses = publicData?.regionBonuses?.[targetBonusRegion] || { oneTimeRate: 5, ongoingRate: 20, customerBonus: 30, newContractRate: 0 };
+        const regionBonuses = getRegionBonusesArray(publicData, targetBonusRegion);
         const { weekBonus, monthBonus } = calculateUserBonuses(myStatDocForBonus.logs, regionBonuses, todayInfo);
 
         // Calculate Reports
@@ -2215,11 +2263,11 @@ const updatePublicDataProps = (updates) => {
                                         </div>
                                         <div className="bg-stone-800/80 rounded-xl p-2.5 mt-2 flex items-center justify-between border border-stone-700/50">
                                             <div className="flex gap-2.5 text-[9px] font-bold text-stone-400 uppercase tracking-wider">
-                                                <span>Irtotunti: <b className="text-[#fde8e8]">{regionBonuses.oneTimeRate}€</b></span>
+                                                <span>Irtotunti: <b className="text-[#fde8e8]">{regionBonuses.find(b=>b.id==='oneTimeRate')?.value}€</b></span>
                                                 <span className="opacity-30">|</span>
-                                                <span>Jatkuva: <b className="text-[#dcfce7]">{regionBonuses.ongoingRate}€</b></span>
+                                                <span>Jatkuva: <b className="text-[#dcfce7]">{regionBonuses.find(b=>b.id==='ongoingRate')?.value}€</b></span>
                                                 <span className="opacity-30">|</span>
-                                                <span>As.hank.: <b className="text-stone-200">{regionBonuses.customerBonus}€</b></span>
+                                                <span>As.hank.: <b className="text-stone-200">{regionBonuses.find(b=>b.id==='customerBonus')?.value}€</b></span>
                                             </div>
                                             <Coins className="text-[#48bb78] h-4 w-4 opacity-70 group-hover:scale-110 transition-transform" />
                                         </div>
@@ -3488,36 +3536,18 @@ const updatePublicDataProps = (updates) => {
                                     <button aria-label="Sulje" onClick={() => setModals(prev => ({ ...prev, workerBonusesInfo: false }))} className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-stone-500 hover:bg-stone-300 transition-colors"><X size={16}/></button>
                                 </div>
                                 <div className="space-y-4">
-                                    <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm flex items-center justify-between">
-                                        <div>
-                                            <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-1">Lisämyynti käynnillä</p>
-                                            <p className="text-sm font-medium text-stone-800">Jokaisesta lisätunnista kertaluontoisesti.</p>
+                                    {(Array.isArray(regionBonuses) ? regionBonuses : getRegionBonusesArray(publicData, targetBonusRegion)).map((bonus, idx) => (
+                                        <div key={bonus.id || idx} className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm flex items-center justify-between">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-1">{bonus.title}</p>
+                                                <p className="text-sm font-medium text-stone-800">{bonus.desc}</p>
+                                            </div>
+                                            <div className="text-right ml-4 shrink-0">
+                                                <span className="text-2xl font-black text-[#2f855a]">{bonus.value}€</span>
+                                                <span className="block text-[9px] font-bold text-stone-400 uppercase mt-1">{bonus.unit}</span>
+                                            </div>
                                         </div>
-                                        <div className="text-right ml-4 shrink-0">
-                                            <span className="text-2xl font-black text-[#2f855a]">{regionBonuses.oneTimeRate}€</span>
-                                            <span className="block text-[9px] font-bold text-stone-400 uppercase mt-1">/ lisätunti</span>
-                                        </div>
-                                    </div>
-                                    <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm flex items-center justify-between">
-                                        <div>
-                                            <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-1">Sopimuksen parantaminen</p>
-                                            <p className="text-sm font-medium text-stone-800">Lisätty toistuva sovittu viikkotunti.</p>
-                                        </div>
-                                        <div className="text-right ml-4 shrink-0">
-                                            <span className="text-2xl font-black text-[#2f855a]">{regionBonuses.ongoingRate}€</span>
-                                            <span className="block text-[9px] font-bold text-stone-400 uppercase mt-1">/ lisätunti kk</span>
-                                        </div>
-                                    </div>
-                                    <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm flex items-center justify-between">
-                                        <div>
-                                            <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-1">Uusi tutustumiskäynti</p>
-                                            <p className="text-sm font-medium text-stone-800">Kertabonus toteutuneesta käynnistä.</p>
-                                        </div>
-                                        <div className="text-right ml-4 shrink-0">
-                                            <span className="text-2xl font-black text-[#2f855a]">{regionBonuses.customerBonus}€</span>
-                                            <span className="block text-[9px] font-bold text-stone-400 uppercase mt-1">kertabonus</span>
-                                        </div>
-                                    </div>
+                                    ))}
                                 </div>
                                 <div className="mt-6 p-4 bg-[#f0fdf4] rounded-2xl border border-[#dcfce7] flex items-start gap-3">
                                     <div className="bg-white p-2 rounded-full text-[#2f855a] shadow-sm shrink-0"><Check size={16}/></div>
@@ -3540,7 +3570,7 @@ const updatePublicDataProps = (updates) => {
                                 {(() => {
                                     const todayInfo = getTodayInfo(0);
                                             const targetBonusRegion = (isSuperAdmin && globalScope.regionId !== 'all') ? globalScope.regionId : authSession?.regionId;
-        const regionBonuses = publicData?.regionBonuses?.[targetBonusRegion] || { oneTimeRate: 5, ongoingRate: 20, customerBonus: 30, newContractRate: 0 };
+        const regionBonuses = getRegionBonusesArray(publicData, targetBonusRegion);
                                     const myStat = (Array.isArray(allUserStats) ? allUserStats : []).find(s => s.id === fbUser?.uid) || { logs: [] };
                                     const { monthBonus, monthDetails } = calculateUserBonuses(myStat.logs, regionBonuses, todayInfo);
                                     return (
@@ -3561,7 +3591,7 @@ const updatePublicDataProps = (updates) => {
                                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex justify-between items-center group">
                                                     <div>
                                                         <div className="text-sm font-black text-stone-800 flex items-center gap-2"><RefreshCw className="w-4 h-4 text-[#2f855a]"/> Sopimuksen parantaminen</div>
-                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Kertabonus {regionBonuses.ongoingRate} €/lisätunti</div>
+                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Kertabonus {regionBonuses.find(b=>b.id==='ongoingRate')?.value} €/lisätunti</div>
                                                     </div>
                                                     <span className="text-lg font-black text-stone-900 group-hover:text-[#2f855a] transition-colors">{monthDetails.ongoing.toFixed(2)} €</span>
                                                 </div>
@@ -3569,7 +3599,7 @@ const updatePublicDataProps = (updates) => {
                                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex justify-between items-center group">
                                                     <div>
                                                         <div className="text-sm font-black text-stone-800 flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#9b2c2c]"/> Lisämyynti käynnillä</div>
-                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Bonus {regionBonuses.oneTimeRate} €/myyty tunti</div>
+                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Bonus {regionBonuses.find(b=>b.id==='oneTimeRate')?.value} €/myyty tunti</div>
                                                     </div>
                                                     <span className="text-lg font-black text-stone-900 group-hover:text-[#9b2c2c] transition-colors">{monthDetails.oneTime.toFixed(2)} €</span>
                                                 </div>
@@ -3577,7 +3607,7 @@ const updatePublicDataProps = (updates) => {
                                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex justify-between items-center group">
                                                     <div>
                                                         <div className="text-sm font-black text-stone-800 flex items-center gap-2"><UserPlus className="w-4 h-4 text-stone-600"/> Uusi tutustumiskäynti</div>
-                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Kertabonus {regionBonuses.customerBonus} €</div>
+                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Kertabonus {regionBonuses.find(b=>b.id==='customerBonus')?.value} €</div>
                                                     </div>
                                                     <span className="text-lg font-black text-stone-900">{monthDetails.customer.toFixed(2)} €</span>
                                                 </div>
@@ -3585,7 +3615,7 @@ const updatePublicDataProps = (updates) => {
                                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex justify-between items-center group">
                                                     <div>
                                                         <div className="text-sm font-black text-stone-800 flex items-center gap-2"><StickyNote className="w-4 h-4 text-[#facc15]"/> Uusi sopimus</div>
-                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Palkkio: {regionBonuses.newContractRate || 0} € (Vetäjä tarkistaa)</div>
+                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Palkkio: {regionBonuses.find(b=>b.id==='newContractRate')?.value || 0} € (Vetäjä tarkistaa)</div>
                                                     </div>
                                                     <span className="text-lg font-black text-stone-900">{monthDetails.newContract.toFixed(2)} €</span>
                                                 </div>

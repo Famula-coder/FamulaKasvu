@@ -2227,18 +2227,6 @@ const updatePublicDataProps = (updates) => {
                                     <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-[#2f855a] rounded-full blur-3xl opacity-20 pointer-events-none"></div>
                                 </div>
                                 )}
-                                <div className="grid grid-cols-2 gap-3 mb-6">
-                                    <button onClick={handleRecordQuickCustomer} className="col-span-1 flex flex-col items-center justify-center bg-white p-4 rounded-2xl border border-stone-200 shadow-sm active:scale-95 transition hover:shadow-md group h-24">
-                                        <div className="w-10 h-10 rounded-full bg-[#f0fdf4] text-[#2f855a] flex items-center justify-center mb-2"><UserPlus size={18} /></div>
-                                        <span className="text-[10px] font-bold text-stone-600 uppercase text-center leading-tight">Tutustumis-<br/>käynti</span>
-                                    </button>
-                                    <button onClick={() => setModals(prev => ({...prev, sales: true}))} className="col-span-1 flex flex-col items-center justify-center bg-white p-4 rounded-2xl border border-stone-200 shadow-sm active:scale-95 transition hover:shadow-md group h-24">
-                                        <div className="w-10 h-10 rounded-full bg-[#fdf2f2] text-[#9b2c2c] flex items-center justify-center mb-2"><Clock size={18} /></div>
-                                        <span className="text-[10px] font-bold text-stone-600 uppercase text-center leading-tight">Lisä-<br/>palvelu</span>
-                                    </button>
-                                </div>
-
-
                                 {/* Palkitsemisen Info Painike */}
                                 <button onClick={() => setModals(prev => ({...prev, workerBonusesInfo: true}))} className="w-full mb-6 bg-white hover:bg-stone-50 text-stone-800 font-bold py-4 px-5 rounded-2xl shadow-sm border border-stone-200 transition flex justify-between items-center group">
                                     <span className="flex items-center text-sm"><Coins size={18} className="mr-3 text-[#2f855a]" /> Voimassa olevat lisäpalkkiot</span>
@@ -2332,6 +2320,16 @@ const updatePublicDataProps = (updates) => {
                                             });
                                         })()}
                                     </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 mt-6 mb-6">
+                                    <button onClick={handleRecordQuickCustomer} className="col-span-1 flex flex-col items-center justify-center bg-white p-4 rounded-2xl border border-stone-200 shadow-sm active:scale-95 transition hover:shadow-md group h-24">
+                                        <div className="w-10 h-10 rounded-full bg-[#f0fdf4] text-[#2f855a] flex items-center justify-center mb-2"><UserPlus size={18} /></div>
+                                        <span className="text-[10px] font-bold text-stone-600 uppercase text-center leading-tight">Tutustumis-<br/>käynti</span>
+                                    </button>
+                                    <button onClick={() => setModals(prev => ({...prev, sales: true}))} className="col-span-1 flex flex-col items-center justify-center bg-white p-4 rounded-2xl border border-stone-200 shadow-sm active:scale-95 transition hover:shadow-md group h-24">
+                                        <div className="w-10 h-10 rounded-full bg-[#fdf2f2] text-[#9b2c2c] flex items-center justify-center mb-2"><Clock size={18} /></div>
+                                        <span className="text-[10px] font-bold text-stone-600 uppercase text-center leading-tight">Lisä-<br/>palvelu</span>
+                                    </button>
                                 </div>
                             </div>
                         )}

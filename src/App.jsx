@@ -204,7 +204,7 @@ export default function App() {
     const [modals, setModals] = useState({ sales: false, adminPlan: false, editTask: false, editTrayTask: false, newTrayTask: false, bonuses: false, salaryDetails: false, historyEntry: false, activityHistory: null });
     const [customSalesHours, setCustomSalesHours] = useState("");
     const [saleMode, setSaleMode] = useState('oneTime');
-    const [adminBonuses, setAdminBonuses] = useState({ oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 });
+    const [adminBonuses, setAdminBonuses] = useState({ oneTimeRate: 5, ongoingRate: 20, customerBonus: 30, newContractRate: 0 });
     const [editingPlanTasks, setEditingPlanTasks] = useState([]); 
     const [expandedProductId, setExpandedProductId] = useState(null);
     const [isEditingTheme, setIsEditingTheme] = useState(false);
@@ -851,7 +851,7 @@ const updatePublicDataProps = (updates) => {
         const myStat = allUserStats.find(s => s.id === fbUser.uid) || { hours: 0, customers: 0, npsSum: 0, npsCount: 0, myTasks: [] };
         const newLog = { id: generateId(), timestamp: Date.now(), type: 'quick_customer', customers: 1 };
         syncMyStats({ customers: (myStat.customers || 0) + 1, logs: [...(myStat.logs || []), newLog] });
-        showToast("1 Uusi asiakas kirjattu (ja maksuperuste aktivoitu)!");
+        showToast("1 Uusi tutustumiskäynti kirjattu (ja maksuperuste aktivoitu)!");
     };
 
     const handleUndoLog = (userId, logId) => {
@@ -1763,7 +1763,7 @@ const updatePublicDataProps = (updates) => {
     const calculateUserBonuses = (logs, regionBonuses, todayInfo) => {
         let weekBonus = 0;
         let monthBonus = 0;
-        let monthDetails = { oneTime: 0, ongoing: 0, customer: 0 };
+        let monthDetails = { oneTime: 0, ongoing: 0, customer: 0, newContract: 0 };
         
         (logs || []).forEach(l => {
             const lDate = new Date(l.timestamp);
@@ -1774,8 +1774,13 @@ const updatePublicDataProps = (updates) => {
             let type = '';
 
             if (l.type === 'quick_sale') {
-                val = (l.saleMode === 'ongoing' ? regionBonuses.ongoingRate : regionBonuses.oneTimeRate) * Number(l.hours || 0);
-                type = l.saleMode === 'ongoing' ? 'ongoing' : 'oneTime';
+                if (l.saleMode === 'newContract') {
+                    val = (regionBonuses.newContractRate || 0);
+                    type = 'newContract';
+                } else {
+                    val = (l.saleMode === 'ongoing' ? regionBonuses.ongoingRate : regionBonuses.oneTimeRate) * Number(l.hours || 0);
+                    type = l.saleMode === 'ongoing' ? 'ongoing' : 'oneTime';
+                }
             } else if (l.type === 'quick_customer') {
                 val = regionBonuses.customerBonus;
                 type = 'customer';
@@ -1876,7 +1881,7 @@ const updatePublicDataProps = (updates) => {
             syncMyStats({ activeWidgets: nextWidgets });
         };
         
-        const regionBonuses = publicData?.regionBonuses?.[authSession?.regionId] || { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 };
+        const regionBonuses = publicData?.regionBonuses?.[authSession?.regionId] || { oneTimeRate: 5, ongoingRate: 20, customerBonus: 30, newContractRate: 0 };
         const { weekBonus, monthBonus } = calculateUserBonuses(myStatDocForBonus.logs, regionBonuses, todayInfo);
 
         // Calculate Reports
@@ -2090,7 +2095,7 @@ const updatePublicDataProps = (updates) => {
                                 <div className="grid grid-cols-2 gap-3 mb-6">
                                     <button onClick={handleRecordQuickCustomer} className="col-span-1 flex flex-col items-center justify-center bg-white p-4 rounded-2xl border border-stone-200 shadow-sm active:scale-95 transition hover:shadow-md group h-24">
                                         <div className="w-10 h-10 rounded-full bg-[#f0fdf4] text-[#2f855a] flex items-center justify-center mb-2"><UserPlus size={18} /></div>
-                                        <span className="text-[10px] font-bold text-stone-600 uppercase text-center leading-tight">Uusi<br/>Asiakas</span>
+                                        <span className="text-[10px] font-bold text-stone-600 uppercase text-center leading-tight">Tutustumis-<br/>käynti</span>
                                     </button>
                                     <button onClick={() => setModals(prev => ({...prev, sales: true}))} className="col-span-1 flex flex-col items-center justify-center bg-white p-4 rounded-2xl border border-stone-200 shadow-sm active:scale-95 transition hover:shadow-md group h-24">
                                         <div className="w-10 h-10 rounded-full bg-[#fdf2f2] text-[#9b2c2c] flex items-center justify-center mb-2"><Clock size={18} /></div>
@@ -2749,7 +2754,7 @@ const updatePublicDataProps = (updates) => {
                                                                     <div className="flex justify-between items-center">
                                                                         <div className="flex items-center gap-2">
                                                                             {isSurvey ? <MessageCircle className="w-4 h-4 text-stone-400" /> : <Activity className="w-4 h-4 text-stone-400" />}
-                                                                            <span className="font-bold text-stone-900 text-sm">{isSurvey ? `Asiakas: ${log.clientInitials}` : (log.type === 'quick_sale' ? 'Lisäpalvelu (Pika)' : 'Uusi asiakas')}</span>
+                                                                            <span className="font-bold text-stone-900 text-sm">{isSurvey ? `Asiakas: ${log.clientInitials}` : (log.type === 'quick_sale' ? 'Lisämyynti / Parannus' : 'Uusi tutustumiskäynti')}</span>
                                                                         </div>
                                                                         <span className="text-[10px] font-bold text-stone-400 uppercase">{new Date(log.timestamp).toLocaleDateString('fi-FI')}</span>
                                                                     </div>
@@ -2833,7 +2838,7 @@ const updatePublicDataProps = (updates) => {
                                                                                 <div className="flex justify-between items-center">
                                                                                     <div className="flex items-center gap-1.5">
                                                                                         {isSurvey ? <MessageCircle className="w-3.5 h-3.5 text-stone-400" /> : <Activity className="w-3.5 h-3.5 text-stone-400" />}
-                                                                                        <span className="font-bold text-stone-900 text-[11px] uppercase tracking-wide">{isSurvey ? `Asiakas: ${log.clientInitials}` : (log.type === 'quick_sale' ? 'Lisäpalvelu' : 'Uusi asiakas')}</span>
+                                                                                        <span className="font-bold text-stone-900 text-[11px] uppercase tracking-wide">{isSurvey ? `Asiakas: ${log.clientInitials}` : (log.type === 'quick_sale' ? 'Lisämyynti / Parannus' : 'Uusi tutustumiskäynti')}</span>
                                                                                     </div>
                                                                                     <span className="text-[9px] font-bold text-stone-400 uppercase">{new Date(log.timestamp).toLocaleDateString('fi-FI')}</span>
                                                                                 </div>
@@ -3064,6 +3069,7 @@ const updatePublicDataProps = (updates) => {
                                             if (log.proposalStatus === 'sold') { breakdown.customers += 1; sum += bonuses.customerBonus; }
                                         } else if (log.type === 'quick_sale') {
                                             if (log.saleMode === 'oneTime') { breakdown.oneTimeH += log.hours; sum += log.hours * bonuses.oneTimeRate; }
+                                            else if (log.saleMode === 'newContract') { breakdown.planH += log.hours; sum += (bonuses.newContractRate || 0); }
                                             else { breakdown.planH += log.hours; sum += log.hours * bonuses.ongoingRate; }
                                         } else if (log.type === 'quick_customer') {
                                             breakdown.customers += 1; sum += bonuses.customerBonus;
@@ -3340,16 +3346,20 @@ const updatePublicDataProps = (updates) => {
                                 </div>
                                 <div className="space-y-4 mb-6">
                                     <div>
-                                        <label htmlFor="bonusSingle" className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Irtotuntibonus (€/h)</label>
+                                        <label htmlFor="bonusSingle" className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Lisämyynti käynnillä (€ / lisätunti)</label>
                                         <input type="number" value={adminBonuses.oneTimeRate} onChange={(e) => setAdminBonuses({...adminBonuses, oneTimeRate: Number(e.target.value)})} className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#9b2c2c]" />
                                     </div>
                                     <div>
-                                        <label htmlFor="bonusRecurring" className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Jatkuvan tilauksen bonus (€/h)</label>
+                                        <label htmlFor="bonusRecurring" className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Sopimuksen parantaminen (€ / lisätunti kk)</label>
                                         <input type="number" value={adminBonuses.ongoingRate} onChange={(e) => setAdminBonuses({...adminBonuses, ongoingRate: Number(e.target.value)})} className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#9b2c2c]" />
                                     </div>
                                     <div>
-                                        <label htmlFor="bonusNewClient" className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Uuden asiakkaan bonus (€)</label>
+                                        <label htmlFor="bonusNewClient" className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Uusi tutustumiskäynti (kertabonus €)</label>
                                         <input type="number" value={adminBonuses.customerBonus} onChange={(e) => setAdminBonuses({...adminBonuses, customerBonus: Number(e.target.value)})} className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#9b2c2c]" />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="bonusNewContract" className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Uusi sopimus (€, Aluevetäjä määrittää oletuksen)</label>
+                                        <input type="number" value={adminBonuses.newContractRate || ''} onChange={(e) => setAdminBonuses({...adminBonuses, newContractRate: Number(e.target.value)})} placeholder="Tyhjä / 0" className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#9b2c2c]" />
                                     </div>
                                 </div>
                                 <button onClick={saveRegionBonuses} className="w-full bg-[#9b2c2c] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Tallenna Asetukset</button>
@@ -3368,7 +3378,7 @@ const updatePublicDataProps = (updates) => {
                                 
                                 {(() => {
                                     const todayInfo = getTodayInfo(0);
-                                    const regionBonuses = publicData?.regionBonuses?.[authSession?.regionId] || { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 };
+                                    const regionBonuses = publicData?.regionBonuses?.[authSession?.regionId] || { oneTimeRate: 5, ongoingRate: 20, customerBonus: 30, newContractRate: 0 };
                                     const myStat = (Array.isArray(allUserStats) ? allUserStats : []).find(s => s.id === fbUser?.uid) || { logs: [] };
                                     const { monthBonus, monthDetails } = calculateUserBonuses(myStat.logs, regionBonuses, todayInfo);
                                     return (
@@ -3388,26 +3398,34 @@ const updatePublicDataProps = (updates) => {
                                                 
                                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex justify-between items-center group">
                                                     <div>
-                                                        <div className="text-sm font-black text-stone-800 flex items-center gap-2"><RefreshCw className="w-4 h-4 text-[#2f855a]"/> Jatkuva palvelu</div>
-                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Sopimus: {regionBonuses.ongoingRate} €/h</div>
+                                                        <div className="text-sm font-black text-stone-800 flex items-center gap-2"><RefreshCw className="w-4 h-4 text-[#2f855a]"/> Sopimuksen parantaminen</div>
+                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Kertabonus {regionBonuses.ongoingRate} €/lisätunti</div>
                                                     </div>
                                                     <span className="text-lg font-black text-stone-900 group-hover:text-[#2f855a] transition-colors">{monthDetails.ongoing.toFixed(2)} €</span>
                                                 </div>
 
                                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex justify-between items-center group">
                                                     <div>
-                                                        <div className="text-sm font-black text-stone-800 flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#9b2c2c]"/> Kertapalvelu</div>
-                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Sopimus: {regionBonuses.oneTimeRate} €/h</div>
+                                                        <div className="text-sm font-black text-stone-800 flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#9b2c2c]"/> Lisämyynti käynnillä</div>
+                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Bonus {regionBonuses.oneTimeRate} €/myyty tunti</div>
                                                     </div>
                                                     <span className="text-lg font-black text-stone-900 group-hover:text-[#9b2c2c] transition-colors">{monthDetails.oneTime.toFixed(2)} €</span>
                                                 </div>
 
                                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex justify-between items-center group">
                                                     <div>
-                                                        <div className="text-sm font-black text-stone-800 flex items-center gap-2"><UserPlus className="w-4 h-4 text-stone-600"/> Uusi asiakas</div>
-                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Sopimus: {regionBonuses.customerBonus} €/kpl</div>
+                                                        <div className="text-sm font-black text-stone-800 flex items-center gap-2"><UserPlus className="w-4 h-4 text-stone-600"/> Uusi tutustumiskäynti</div>
+                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Kertabonus {regionBonuses.customerBonus} €</div>
                                                     </div>
                                                     <span className="text-lg font-black text-stone-900">{monthDetails.customer.toFixed(2)} €</span>
+                                                </div>
+                                                
+                                                <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex justify-between items-center group">
+                                                    <div>
+                                                        <div className="text-sm font-black text-stone-800 flex items-center gap-2"><StickyNote className="w-4 h-4 text-[#facc15]"/> Uusi sopimus</div>
+                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Palkkio: {regionBonuses.newContractRate || 0} € (Vetäjä tarkistaa)</div>
+                                                    </div>
+                                                    <span className="text-lg font-black text-stone-900">{monthDetails.newContract.toFixed(2)} €</span>
                                                 </div>
                                             </div>
                                         </>
@@ -3449,7 +3467,7 @@ const updatePublicDataProps = (updates) => {
                                                     <div>
                                                         <div className="flex items-center gap-2 mb-1.5">
                                                             {isSurvey ? <MessageCircle className="w-4 h-4 text-[#2f855a]" /> : <Activity className="w-4 h-4 text-[#9b2c2c]" />}
-                                                            <span className="font-black text-stone-800 text-sm">{isSurvey ? `Asiakaskohtaaminen` : (log.type === 'quick_sale' ? 'Kirjattu lisäpalvelu' : 'Uusi asiakas')}</span>
+                                                            <span className="font-black text-stone-800 text-sm">{isSurvey ? `Asiakaskohtaaminen` : (log.type === 'quick_sale' ? (log.saleMode === 'newContract' ? 'Uusi sopimus' : 'Lisämyynti / Parannus') : 'Uusi tutustumiskäynti')}</span>
                                                         </div>
                                                         <div className="text-xs text-stone-500 font-medium mb-3">
                                                             {new Date(log.timestamp).toLocaleString('fi-FI')}
@@ -3644,8 +3662,9 @@ const updatePublicDataProps = (updates) => {
                             <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
                                 <h3 className="text-xl font-black text-center text-stone-900 mb-2">Kirjaa lisäpalvelu</h3>
                                 <div className="flex p-1 bg-stone-200/70 rounded-2xl mb-5 mt-4 border border-stone-300 gap-1">
-                                    <button onClick={() => setSaleMode('oneTime')} className={`flex-1 text-sm font-bold py-2.5 rounded-xl transition-all shadow-sm ${saleMode === 'oneTime' ? 'bg-white text-[#9b2c2c] ring-1 ring-stone-200' : 'text-stone-500 bg-transparent shadow-none'}`}>Irtotunteja</button>
-                                    <button onClick={() => setSaleMode('ongoing')} className={`flex-1 text-sm font-bold py-2.5 rounded-xl transition-all shadow-sm ${saleMode === 'ongoing' ? 'bg-white text-[#2f855a] ring-1 ring-stone-200' : 'text-stone-500 bg-transparent shadow-none'}`}>Jatkuva palv.</button>
+                                    <button onClick={() => setSaleMode('oneTime')} className={`flex-1 text-xs font-bold py-2.5 rounded-xl transition-all shadow-sm ${saleMode === 'oneTime' ? 'bg-white text-[#9b2c2c] ring-1 ring-stone-200' : 'text-stone-500 bg-transparent shadow-none'}`}>Lisämyynti käynnillä</button>
+                                    <button onClick={() => setSaleMode('ongoing')} className={`flex-1 text-xs font-bold py-2.5 rounded-xl transition-all shadow-sm ${saleMode === 'ongoing' ? 'bg-white text-[#2f855a] ring-1 ring-stone-200' : 'text-stone-500 bg-transparent shadow-none'}`}>Sopim. parantaminen</button>
+                                    <button onClick={() => setSaleMode('newContract')} className={`flex-1 text-xs font-bold py-2.5 rounded-xl transition-all shadow-sm ${saleMode === 'newContract' ? 'bg-white text-[#facc15] ring-1 ring-stone-200' : 'text-stone-500 bg-transparent shadow-none'}`}>Uusi Sopimus</button>
                                 </div>
                                 <p className="text-center text-stone-500 text-sm font-medium mb-4">Valitse palveltu tuntimäärä:</p>
                                 <div className="grid grid-cols-4 gap-3 mb-6">

@@ -2531,6 +2531,78 @@ const updatePublicDataProps = (updates) => {
                                     );
                                 })()}
                                 
+
+                                {isAdmin && (() => {
+                                    const yCurr = new Date().getFullYear();
+                                    const yPrev = yCurr - 1;
+                                    const mNamesShort = ["Tam", "Hel", "Maa", "Huh", "Tou", "Kes", "Hei", "Elo", "Syy", "Lok", "Mar", "Jou"];
+                                    
+                                    const annualGraphData = mNamesShort.map((mName, mIdx) => {
+                                        const q = Math.floor(mIdx / 3) + 1;
+                                        const moIdx = (mIdx % 3) + 1;
+                                        let realized = 0; let target = 0; let lastYearRealized = 0;
+                                        
+                                        (marketingPlans || []).forEach(p => {
+                                            if (!activeTrayRegion || activeTrayRegion === 'all' || p.regionId === activeTrayRegion) {
+                                                if (Number(p.year) === yCurr && Number(p.quarter) === q) {
+                                                    realized += Number(p[`realizedRev${moIdx}`] || 0);
+                                                    target += Number(p[`targetRev${moIdx}`] || 0);
+                                                }
+                                                if (Number(p.year) === yPrev && Number(p.quarter) === q) {
+                                                    lastYearRealized += Number(p[`realizedRev${moIdx}`] || 0);
+                                                }
+                                            }
+                                        });
+                                        return { name: mName, realized, target, lastYearRealized };
+                                    });
+                                    
+                                    const maxGraphValue = Math.max(...annualGraphData.map(d => Math.max(d.realized, d.lastYearRealized, d.target))) || 1;
+                                    
+                                    return (
+                                        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6 relative overflow-hidden">
+                                            <h3 className="text-lg font-black text-stone-900 mb-1">Liikevaihdon Trendi ({yCurr})</h3>
+                                            <p className="text-xs text-stone-500 mb-6 flex items-center gap-4">
+                                                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#e5e7eb]"></span> Viime vuosi</span>
+                                                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#2f855a]"></span> Tämä vuosi</span>
+                                                <span className="flex items-center gap-1.5"><span className="w-4 border-t-[3px] border-dashed border-[#facc15]"></span> Tavoite</span>
+                                            </p>
+                                            
+                                            <div className="flex items-end h-48 gap-1.5 sm:gap-3 px-1 w-full mt-8">
+                                                {annualGraphData.map((m, i) => (
+                                                    <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative h-full">
+                                                        <div className="w-full relative flex items-end justify-center h-full">
+                                                            {/* Edellisvuosi */}
+                                                            <div className="absolute w-[90%] sm:w-[70%] bottom-0 bg-stone-200 rounded-t-sm transition-all" style={{height: `${(m.lastYearRealized/maxGraphValue)*100}%`}}></div>
+                                                            {/* Kuluva vuosi */}
+                                                            <div className="absolute w-[90%] sm:w-[70%] bottom-0 bg-[#2f855a] rounded-t-sm z-10 opacity-90 transition-all shadow-md group-hover:opacity-100 group-hover:transform group-hover:-translate-y-1" style={{height: `${(m.realized/maxGraphValue)*100}%`}}></div>
+                                                            {/* Tavoite */}
+                                                            <div className="absolute w-full border-b-[3px] border-dashed border-[#facc15] z-20" style={{bottom: `${(m.target/maxGraphValue)*100}%`}}></div>
+                                                        </div>
+                                                        <span className="text-[10px] sm:text-xs uppercase tracking-tighter text-stone-400 font-bold mt-1 group-hover:text-stone-700 transition-colors">{m.name}</span>
+                                                        
+                                                        {/* Tooltip */}
+                                                        <div className="absolute bottom-full mb-3 bg-stone-900 text-white text-[11px] p-3 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none z-50 whitespace-nowrap transition-all transform scale-95 group-hover:scale-100 border border-stone-700 w-36 -ml-18">
+                                                            <div className="font-bold mb-2 text-center border-b border-stone-700 pb-2 text-[#facc15]">{m.name}kuun liikevaihto</div>
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className="text-stone-400">Toteuma</span>
+                                                                <span className="font-bold">{m.realized.toLocaleString('fi-FI')} €</span>
+                                                            </div>
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className="text-stone-400">Tavoite</span>
+                                                                <span className="font-bold">{m.target.toLocaleString('fi-FI')} €</span>
+                                                            </div>
+                                                            <div className="flex justify-between items-center pt-1 border-t border-stone-700 mt-1">
+                                                                <span className="text-stone-500 text-[9px] uppercase">Edellisvuosi</span>
+                                                                <span className="font-bold text-stone-300 text-[10px]">{m.lastYearRealized.toLocaleString('fi-FI')} €</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
                                 {isAdmin && (() => {
                                     const currTargetHours = getCurrentMonthTarget(marketingPlans, activeTrayRegion);
                                     

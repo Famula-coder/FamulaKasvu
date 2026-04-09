@@ -202,6 +202,11 @@ export default function App() {
 
     // UI Modals & Inputs
     const [modals, setModals] = useState({ sales: false, adminPlan: false, editTask: false, editTrayTask: false, newTrayTask: false, bonuses: false, salaryDetails: false, historyEntry: false, activityHistory: null });
+    const [userProfileTab, setUserProfileTab] = useState('kayttajat');
+    
+    // Dynamic config overrides from DB
+    const activeGamificationLevels = (publicData?.gamificationLevels?.length > 0) ? publicData.gamificationLevels : GAMIFICATION_LEVELS_DEFAULT;
+    
     const [customSalesHours, setCustomSalesHours] = useState("");
     const [saleMode, setSaleMode] = useState('oneTime');
     const [adminBonuses, setAdminBonuses] = useState({ oneTimeRate: 5, ongoingRate: 20, customerBonus: 30, newContractRate: 0 });
@@ -1501,7 +1506,7 @@ const updatePublicDataProps = (updates) => {
         });
         
         const validTgt = currTgtHours > 0 ? currTgtHours : (regionPlans.length > 0 ? Number(regionPlans[0][monthKey] || 100) : 100);
-        const currentLevel = getGamificationLevel(validTgt);
+        const currentLevel = getGamificationLevel(validTgt, activeGamificationLevels);
         
         let nextLevel = null;
         if (currentLevel.level < activeGamificationLevels.length - 1) {

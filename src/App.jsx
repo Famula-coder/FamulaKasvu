@@ -393,10 +393,13 @@ export default function App() {
         const statsRef = collection(db, 'artifacts', appId, 'public', 'data', 'user_stats');
         const unsubStats = onSnapshot(statsRef, (snap) => {
             const rawStats = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            if (authSession.role === 'superadmin') setAllGlobalStats(rawStats);
             
-            const stats = rawStats.filter(s => s.regionId === regionId);
-            setAllUserStats(stats);
+            if (authSession.role === 'superadmin' || authSession.realRole === 'superadmin') {
+                setAllUserStats(rawStats);
+            } else {
+                setAllUserStats(rawStats.filter(s => s.regionId === regionId));
+            }
+
             setStatsLoaded(true);
             
             const myStatDoc = stats.find(s => s.id === fbUser.uid);
@@ -1046,11 +1049,10 @@ const updatePublicDataProps = (updates) => {
     const renderUserProfile = () => {
         // Collect users to display depending on role
         const statsSource = allUserStats;
-        const usersToManage = (Array.isArray(statsSource) ? statsSource : []).filter(u => {
+                const usersToManage = (Array.isArray(statsSource) ? statsSource : []).filter(u => {
+            if (isSuperAdmin) return u.status !== 'rejected';
             if (u.status === 'pending' || u.status === 'active') {
-                if (isSuperAdmin) return true;
                 if (isAdmin && !isSuperAdmin) return u.regionId === (globalScope.regionId !== 'all' ? globalScope.regionId : authSession.regionId) && (u.role === 'myyja' || u.requestedRole === 'myyja');
-                return false;
             }
             return false;
         });
@@ -1126,9 +1128,9 @@ const updatePublicDataProps = (updates) => {
                         <button 
                             onClick={() => {
                                 if (authSession.regionId === 'sandbox_region') {
-                                    setAuthSession(prev => ({ ...prev, regionId: prev.realRegionId, role: prev.realRole }));
+                                    setAuthSession(prev => ({ ...prev, regionId: prev.realRegionId || 'oulu', role: prev.realRole || 'superadmin' }));
                                 } else {
-                                    setAuthSession(prev => ({ ...prev, regionId: 'sandbox_region' }));
+                                    setAuthSession(prev => ({ ...prev, regionId: 'sandbox_region', realRegionId: prev.realRegionId || prev.regionId, realRole: prev.realRole || prev.role }));
                                 }
                             }}
                             className={`w-12 h-6 rounded-full transition-colors relative flex items-center px-1 ${authSession?.regionId === 'sandbox_region' ? 'bg-[#facc15]' : 'bg-stone-300'}`}
@@ -1874,9 +1876,9 @@ const updatePublicDataProps = (updates) => {
                     <button 
                         onClick={() => {
                             if (authSession.regionId === 'sandbox_region') {
-                                setAuthSession(prev => ({ ...prev, regionId: prev.realRegionId, role: prev.realRole }));
+                                setAuthSession(prev => ({ ...prev, regionId: prev.realRegionId || 'oulu', role: prev.realRole || 'superadmin' }));
                             } else {
-                                setAuthSession(prev => ({ ...prev, regionId: 'sandbox_region' }));
+                                setAuthSession(prev => ({ ...prev, regionId: 'sandbox_region', realRegionId: prev.realRegionId || prev.regionId, realRole: prev.realRole || prev.role }));
                             }
                         }}
                         className={`ml-auto flex items-center gap-2 text-[10px] font-bold uppercase transition px-2 py-1 rounded ${authSession?.regionId === 'sandbox_region' ? 'bg-[#facc15] text-stone-900 border border-[#facc15]' : 'border border-stone-700 text-stone-400 hover:text-white'}`}

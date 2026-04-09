@@ -255,9 +255,7 @@ export default function App() {
     const isAdmin = authSession?.role === 'admin' || authSession?.role === 'superadmin';
     const isSuperAdmin = authSession?.role === 'superadmin';
     let activeRegions = Array.isArray(publicData.regions) && publicData.regions.length > 0 ? publicData.regions : FALLBACK_REGIONS;
-    if (!activeRegions.find(r => r.id === 'sandbox_region')) {
-        activeRegions = [{ id: 'sandbox_region', name: 'Harjoitusalue (Testidata)' }, ...activeRegions];
-    }
+
 
     // Unified Tray Computation
     const masterTray = Array.isArray(publicData.masterTray) ? publicData.masterTray : DEFAULT_TRAY_TASKS;
@@ -342,7 +340,7 @@ export default function App() {
                             }
                         }
                         
-                        setAuthSession({ name, role, regionId, realRole: role, realRegionId: regionId, status, email: u.email, hasData, dbStatus });
+                        setAuthSession({ name, role, regionId, status, email: u.email, hasData, dbStatus });
                         
                         if (status === 'active') {
                             setCurrentView(prev => prev === 'pending_access' || prev === 'simulator_login' ? 'portal' : prev);
@@ -394,7 +392,7 @@ export default function App() {
         const unsubStats = onSnapshot(statsRef, (snap) => {
             const rawStats = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             
-            if (authSession.role === 'superadmin' || authSession.realRole === 'superadmin') {
+            if (authSession.role === 'superadmin') {
                 setAllUserStats(rawStats);
             } else {
                 setAllUserStats(rawStats.filter(s => s.regionId === regionId));
@@ -462,7 +460,7 @@ export default function App() {
         const name = e.target.elements.nameInput?.value || "Testi";
         const regionId = e.target.elements.regionSelect?.value || "uusimaa";
         const role = e.target.elements.roleSelect?.value || "myyja";
-        setAuthSession({ name, role, regionId, realRole: role, realRegionId: regionId });
+        setAuthSession({ name, role, regionId });
         setCurrentView('portal');
         showToast(`Tervetuloa kehitystilaan ${name}!`);
     };
@@ -1114,30 +1112,13 @@ const updatePublicDataProps = (updates) => {
                             <h3 className="font-bold text-lg text-stone-800">{fbUser?.displayName || authSession?.name}</h3>
                             <p className="text-stone-500 text-sm">{fbUser?.email}</p>
                             <div className="mt-2 flex gap-2">
-                                <span className="bg-[#f0fdf4] text-[#22543d] px-2 py-1 rounded text-[10px] font-bold uppercase border border-[#dcfce7]">{authSession?.realRole}</span>
-                                <span className="bg-stone-100 text-stone-600 px-2 py-1 rounded text-[10px] font-bold uppercase border border-stone-200">{authSession?.realRole === 'superadmin' ? 'KOKO SUOMI (KONSERNI)' : (activeRegions.find(r=>r.id===authSession?.regionId)?.name || authSession?.regionId)}</span>
+                                <span className="bg-[#f0fdf4] text-[#22543d] px-2 py-1 rounded text-[10px] font-bold uppercase border border-[#dcfce7]">{authSession?.role}</span>
+                                <span className="bg-stone-100 text-stone-600 px-2 py-1 rounded text-[10px] font-bold uppercase border border-stone-200">{authSession?.role === 'superadmin' ? 'KOKO SUOMI (KONSERNI)' : (activeRegions.find(r=>r.id===authSession?.regionId)?.name || authSession?.regionId)}</span>
                             </div>
                         </div>
                     </div>
                     
-                    <div className="mt-4 p-4 rounded-xl border border-stone-200 bg-stone-50 flex items-center justify-between">
-                        <div>
-                            <h4 className="font-bold text-sm text-stone-800">Harjoitusalue</h4>
-                            <p className="text-[10px] text-stone-500">Kokeile ohjelmaa riskittä. Tietoja ei huomioida raporteissa.</p>
-                        </div>
-                        <button 
-                            onClick={() => {
-                                if (authSession.regionId === 'sandbox_region') {
-                                    setAuthSession(prev => ({ ...prev, regionId: prev.realRegionId || 'oulu', role: prev.realRole || 'superadmin' }));
-                                } else {
-                                    setAuthSession(prev => ({ ...prev, regionId: 'sandbox_region', realRegionId: prev.realRegionId || prev.regionId, realRole: prev.realRole || prev.role }));
-                                }
-                            }}
-                            className={`w-12 h-6 rounded-full transition-colors relative flex items-center px-1 ${authSession?.regionId === 'sandbox_region' ? 'bg-[#facc15]' : 'bg-stone-300'}`}
-                        >
-                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${authSession?.regionId === 'sandbox_region' ? 'translate-x-6' : 'translate-x-0'}`} />
-                        </button>
-                    </div>
+                    
                     
                     {!isSuperAdmin && (
                         <div className="mt-6 pt-6 border-t border-stone-100 space-y-3">
@@ -1873,18 +1854,6 @@ const updatePublicDataProps = (updates) => {
                 )}
                 
                 {isSuperAdmin && (
-                    <button 
-                        onClick={() => {
-                            if (authSession.regionId === 'sandbox_region') {
-                                setAuthSession(prev => ({ ...prev, regionId: prev.realRegionId || 'oulu', role: prev.realRole || 'superadmin' }));
-                            } else {
-                                setAuthSession(prev => ({ ...prev, regionId: 'sandbox_region', realRegionId: prev.realRegionId || prev.regionId, realRole: prev.realRole || prev.role }));
-                            }
-                        }}
-                        className={`ml-auto flex items-center gap-2 text-[10px] font-bold uppercase transition px-2 py-1 rounded ${authSession?.regionId === 'sandbox_region' ? 'bg-[#facc15] text-stone-900 border border-[#facc15]' : 'border border-stone-700 text-stone-400 hover:text-white'}`}
-                    >
-                        <Activity size={12} /> Testitila
-                    </button>
                 )}
             </div>
         );
@@ -3954,35 +3923,8 @@ const updatePublicDataProps = (updates) => {
 
     return (
         <div className="font-sans antialiased bg-[#e7e5e4] min-h-screen flex flex-col">
-                {(authSession?.regionId === 'sandbox_region' && currentView !== 'simulator_login') && (
-                    <div className="w-full bg-[#facc15] text-stone-900 text-[10px] font-black uppercase tracking-widest text-center py-1 sticky top-0 z-[101] flex items-center justify-center shadow-md">
-                        <Activity className="w-3 h-3 mr-2 animate-pulse"/> Olet harjoitusalueella (Simulaatio) <Activity className="w-3 h-3 ml-2 animate-pulse"/>
-                    </div>
-                )}
-
             {(authSession?.status === 'active' && currentView !== 'simulator_login' && isAdmin) && renderGlobalScopeSelector()}
 
-            {(authSession?.realRole === 'superadmin' && currentView !== 'simulator_login' && (authSession.regionId === 'sandbox_region' || authSession.role !== authSession.realRole || authSession.regionId !== authSession.realRegionId)) && (
-                <div className="w-full bg-stone-900 text-white p-3 flex flex-col sm:flex-row items-center justify-center z-[100] shadow-md gap-3 sticky top-0 border-b border-stone-800">
-                    <span className="text-xs font-bold text-[#facc15] uppercase tracking-widest whitespace-nowrap"><Settings className="w-4 h-4 inline mr-1.5 mb-0.5 text-[#facc15] animate-pulse"/> Testitila</span>
-                    <div className="flex gap-2 w-full sm:w-auto max-w-md">
-                        <select value={authSession.role} onChange={e => setAuthSession({...authSession, role: e.target.value})} className="bg-stone-800 text-white text-[11px] font-bold p-2.5 rounded-lg outline-none border border-stone-700 flex-1 focus:border-[#facc15] transition-colors">
-                            <option value="superadmin">Suomi (Superadmin)</option>
-                            <option value="admin">Aluevetäjä</option>
-                            <option value="myyja">Hoitaja</option>
-                        </select>
-                        <select value={authSession.regionId} onChange={e => setAuthSession({...authSession, regionId: e.target.value})} className="bg-stone-800 text-white text-[11px] font-bold p-2.5 rounded-lg outline-none border border-stone-700 flex-1 focus:border-[#facc15] transition-colors">
-                            {activeRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                        </select>
-                        <button 
-                            onClick={() => setAuthSession(prev => ({ ...prev, regionId: prev.realRegionId || 'oulu', role: prev.realRole || 'superadmin' }))} 
-                            className="bg-[#facc15] text-stone-900 text-xs font-black px-4 py-1.5 rounded-lg hover:bg-yellow-300 transition-colors ml-2 shadow-sm whitespace-nowrap"
-                        >
-                            POISTU
-                        </button>
-                    </div>
-                </div>
-            )}
             {toast.visible && (
                 <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-[100] w-[90%] max-w-[400px] animate-fade-in">
                     <div className="bg-[#132e21] text-white p-4 px-6 rounded-2xl shadow-2xl flex items-center border border-[#22543d]">

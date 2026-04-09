@@ -157,7 +157,24 @@ function getCoachSummary(answers) {
 export default function App() {
     // Auth & Identity State
     const [fbUser, setFbUser] = useState(null);
-    const [authSession, setAuthSession] = useState(null); // Simulator session
+    const [authSession, setAuthSession] = useState(null);
+
+    // --- GLOBAL SCOPE HIERARCHY ---
+    const initialGlobalScope = { level: authSession?.role === 'superadmin' ? 'suomi' : (authSession?.role === 'admin' ? 'region' : 'user'), regionId: authSession?.regionId || null, userId: null };
+    const [globalScope, setGlobalScope] = useState(initialGlobalScope);
+    
+    useEffect(() => {
+        if (authSession && !globalScope.regionId) {
+            setGlobalScope({
+                level: authSession.role === 'superadmin' ? 'suomi' : (authSession.role === 'admin' ? 'region' : 'user'),
+                regionId: authSession.role === 'superadmin' ? 'all' : authSession.regionId,
+                userId: authSession.role === 'superadmin' || authSession.role === 'admin' ? 'all' : authSession.name
+            });
+        }
+    }, [authSession]);
+    // ----------------------------
+    
+ // Simulator session
     const [isAuthenticating, setIsAuthenticating] = useState(true);
 
     // View State
@@ -246,10 +263,20 @@ export default function App() {
     const safeUserHiddenTasks = Array.isArray(userHiddenMasterTasks) ? userHiddenMasterTasks : [];
     const safeUserCustomTray = Array.isArray(userCustomTray) ? userCustomTray : [];
     
+
+    const activeTrayRegion = (isAdmin && globalScope.regionId !== 'all') ? globalScope.regionId : authSession?.regionId;
+    const activeTrayUser = (isAdmin && globalScope.userId !== 'all') ? globalScope.userId : authSession?.name;
+
     const unifiedTray = [
-        ...masterTray.filter(t => t && t.id && !safeUserHiddenTasks.includes(t.id)).map(t => ({...t, isMaster: true})),
+        ...masterTray.filter(t => {
+            if (!t || !t.id || safeUserHiddenTasks.includes(t.id)) return false;
+            if (t.regionId && t.regionId !== 'all' && t.regionId !== activeTrayRegion) return false;
+            if (t.workerId && t.workerId !== 'all' && t.workerId !== activeTrayUser) return false;
+            return true;
+        }).map(t => ({...t, isMaster: true})),
         ...safeUserCustomTray.map(t => ({...t, isMaster: false}))
     ];
+
 
     // Unified Products Computation
     const masterProducts = Array.isArray(publicData.products) ? publicData.products : FALLBACK_PRODUCTS;
@@ -1004,7 +1031,7 @@ const updatePublicDataProps = (updates) => {
         const usersToManage = (Array.isArray(statsSource) ? statsSource : []).filter(u => {
             if (u.status === 'pending' || u.status === 'active') {
                 if (isSuperAdmin) return true;
-                if (isAdmin && !isSuperAdmin) return u.regionId === authSession.regionId && (u.role === 'myyja' || u.requestedRole === 'myyja');
+                if (isAdmin && !isSuperAdmin) return u.regionId === (globalScope.regionId !== 'all' ? globalScope.regionId : authSession.regionId) && (u.role === 'myyja' || u.requestedRole === 'myyja');
                 return false;
             }
             return false;
@@ -1126,7 +1153,7 @@ const updatePublicDataProps = (updates) => {
                             </div>
                         )}
                         
-                        {isSuperAdmin && reportTab === 'katsaus' && (
+                        {isSuperAdmin && globalScope.level === 'suomi' && reportTab === 'katsaus' && (
                             <div className="mb-8 bg-stone-900 border border-stone-800 rounded-3xl p-5 shadow-sm mt-6">
                                 <h3 className="text-xs font-black uppercase text-[#facc15] tracking-widest mb-3">Hallitse alueita (Superadmin)</h3>
                                 <div className="space-y-2">
@@ -1161,7 +1188,7 @@ const updatePublicDataProps = (updates) => {
                                     <input type="text" name="inviteName" required placeholder="Etunimi Sukunimi" className="flex-1 border border-stone-200 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-[#2f855a]" />
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-3">
-                                    {isSuperAdmin && reportTab === 'katsaus' && (
+                                    {isSuperAdmin && globalScope.level === 'suomi' && reportTab === 'katsaus' && (
                                         <select name="inviteRegion" required className="flex-1 border border-stone-200 rounded-xl px-3 py-2.5 text-sm font-bold text-stone-700 outline-none focus:border-[#2f855a]">
                                             <option value="">-- Valitse alue --</option>
                                             {activeRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
@@ -1191,7 +1218,7 @@ const updatePublicDataProps = (updates) => {
                                             <div className="text-xs text-stone-500 mt-1">{u.email} • {activeRegions.find(r=>r.id===u.regionId)?.name}</div>
                                         </div>
                                         <div className="flex gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
-                                            {isSuperAdmin && reportTab === 'katsaus' && (
+                                            {isSuperAdmin && globalScope.level === 'suomi' && reportTab === 'katsaus' && (
                                                 <select value={u.regionId} onChange={e=>handleAssignRegion(u.id, e.target.value)} className="bg-stone-50 border border-stone-200 rounded-xl px-2 py-1.5 text-[10px] font-bold text-stone-700 outline-none w-full sm:w-auto">
                                                     {activeRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                                 </select>
@@ -1240,7 +1267,8 @@ const updatePublicDataProps = (updates) => {
                     <p className="text-[#fde8e8] text-opacity-90 mt-2 text-sm">Valitse työkalu alta aloittaaksesi.</p>
                 </header>
 
-                <main className="flex-1 px-6 -mt-6 relative z-20 space-y-4 pb-8">
+{renderGlobalScopeSelector()}
+                <main className="flex-1 px-6 relative z-20 space-y-4 pb-8">
                     {/* 1. Myynnin työpöytä */}
                     <div onClick={() => { setCurrentView('manager'); setCurrentTab('dashboard'); }} className="block group relative cursor-pointer">
                         <div className="absolute inset-0 bg-[#771d1d] rounded-2xl transform translate-y-2 opacity-20 blur transition duration-300 group-hover:translate-y-3 group-hover:opacity-30"></div>
@@ -1318,7 +1346,7 @@ const updatePublicDataProps = (updates) => {
     
     const saveMarketingPlan = async () => {
         if (!isAdmin) return;
-        const activeMarketingRegionId = isSuperAdmin && targetRegionId ? targetRegionId : authSession?.regionId;
+        const activeMarketingRegionId = globalScope.regionId !== 'all' ? globalScope.regionId : authSession?.regionId;
         const planId = editingMarketingPlan.id || `${activeMarketingRegionId}_Q${editingMarketingPlan.quarter}_${editingMarketingPlan.year}`;
         const planData = {
             ...editingMarketingPlan,
@@ -1358,7 +1386,7 @@ const updatePublicDataProps = (updates) => {
     };
 
     const renderMarketingPlans = () => {
-        const activeMarketingRegionId = isSuperAdmin && targetRegionId ? targetRegionId : authSession?.regionId;
+        const activeMarketingRegionId = globalScope.regionId !== 'all' ? globalScope.regionId : authSession?.regionId;
         const regionPlans = marketingPlans.filter(p => p.regionId === activeMarketingRegionId).sort((a,b) => b.year - a.year || b.quarter - a.quarter);
         
         const d = new Date();
@@ -1791,6 +1819,54 @@ const updatePublicDataProps = (updates) => {
         return { weekBonus, monthBonus, monthDetails };
     };
 
+    
+    const renderGlobalScopeSelector = () => {
+        if (!isAdmin || currentView !== 'manager') return null;
+        
+        const availableRegions = isSuperAdmin ? [{id: 'all', name: 'Koko Suomi (Konsernitila)'}, ...activeRegions] : activeRegions.filter(r => r.id === authSession.regionId);
+        const usersInScope = allUserStats.filter(u => globalScope.regionId === 'all' ? true : u.regionId === globalScope.regionId);
+        
+        return (
+            <div className="bg-stone-900 border-b border-stone-800 px-6 py-2 shadow-sm flex flex-col sm:flex-row gap-3 items-center z-40 relative">
+                <span className="text-[10px] uppercase font-black tracking-widest text-stone-500 hidden sm:inline"><Activity className="w-3 h-3 inline mr-1 mb-0.5"/> Kohdistus:</span>
+                
+                <select 
+                    value={globalScope.regionId || 'all'}
+                    onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === 'all') {
+                            setGlobalScope({ level: 'suomi', regionId: 'all', userId: 'all' });
+                        } else {
+                            setGlobalScope({ level: 'region', regionId: val, userId: 'all' });
+                        }
+                    }}
+                    className="bg-stone-800 text-white font-bold text-xs p-2 outline-none rounded-lg border border-stone-700 flex-1 w-full max-w-xs focus:border-[#facc15] transition-colors"
+                    disabled={!isSuperAdmin}
+                >
+                    {availableRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+
+                {globalScope.regionId !== 'all' && (
+                    <select
+                        value={globalScope.userId || 'all'}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === 'all') {
+                                setGlobalScope(prev => ({ ...prev, level: 'region', userId: 'all' }));
+                            } else {
+                                setGlobalScope(prev => ({ ...prev, level: 'user', userId: val }));
+                            }
+                        }}
+                        className="bg-stone-800 text-white font-bold text-xs p-2 outline-none rounded-lg border border-stone-700 flex-1 w-full max-w-xs focus:border-[#facc15] transition-colors"
+                    >
+                        <option value="all">Koko aluetiimi</option>
+                        {usersInScope.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+                    </select>
+                )}
+            </div>
+        );
+    };
+
     const renderManager = () => {
         const todayInfo = getTodayInfo(currentWeekOffset * 7);
         const currentMonthIdx = todayInfo.monthIdx;
@@ -1906,8 +1982,8 @@ const updatePublicDataProps = (updates) => {
             return total || 100; // default to avoid zero
         };
 
-        let totalRegionHours = getPreviousMonthRealizedTotal(marketingPlans, authSession.regionId);
-        let totalRegionCustomers = getCurrentMonthSalesHours(allUserStats, authSession.regionId);
+        let totalRegionHours = getPreviousMonthRealizedTotal(marketingPlans, globalScope.regionId !== 'all' ? globalScope.regionId : authSession.regionId);
+        let totalRegionCustomers = getCurrentMonthSalesHours(allUserStats, globalScope.regionId !== 'all' ? globalScope.regionId : authSession.regionId);
 
         const myStat = (Array.isArray(allUserStats) ? allUserStats : []).find(s => s.id === fbUser?.uid) || { hours: 0, customers: 0, myTasks: [], logs: [] };
         const myHours = myStat.hours || 0;
@@ -2158,7 +2234,7 @@ const updatePublicDataProps = (updates) => {
 {reportTab === 'katsaus' && (
 <div>
 
-                                {isSuperAdmin && reportTab === 'katsaus' && (() => {
+                                {isSuperAdmin && globalScope.level === 'suomi' && reportTab === 'katsaus' && (() => {
                                     let globalHours = 0;
                                     let globalCustomers = 0;
                                     let globalNpsSum = 0;
@@ -2546,12 +2622,12 @@ const updatePublicDataProps = (updates) => {
                                     const progressPercent = displayTotal > 0 ? Math.round((displayDone / displayTotal) * 100) : 0;
                                     
                                     let userLogs = myStat.logs || [];
-                                    if (isAdmin && !isSuperAdmin) {
+                                    if (isAdmin && globalScope.level === 'region') {
                                         userLogs = [];
-                                        (allUserStats || []).filter(u => u.regionId === authSession.regionId).forEach(u => {
+                                        (allUserStats || []).filter(u => u.regionId === (globalScope.regionId !== 'all' ? globalScope.regionId : authSession.regionId)).forEach(u => {
                                             (u.logs || []).forEach(l => userLogs.push({...l, workerName: u.name}));
                                         });
-                                    } else if (isSuperAdmin) {
+                                    } else if (isSuperAdmin && globalScope.level === 'suomi') {
                                         userLogs = [];
                                         (allUserStats || []).forEach(u => {
                                             (u.logs || []).forEach(l => userLogs.push({...l, workerName: u.name}));
@@ -3031,7 +3107,7 @@ const updatePublicDataProps = (updates) => {
                                 <header className="mb-4 mt-2 px-1 flex justify-between items-center">
                                     <h2 className="text-2xl font-black text-stone-900">Työkalut & Tarjotin</h2>
                                     <div className="flex gap-2">
-                                        {isSuperAdmin && reportTab === 'katsaus' && (
+                                        {isSuperAdmin && globalScope.level === 'suomi' && reportTab === 'katsaus' && (
                                             <button onClick={openAdminTrayModal} className="bg-white border border-stone-200 text-[#9b2c2c] text-xs font-bold px-3 py-2 rounded-xl shadow-sm flex items-center hover:bg-stone-50 transition-colors">
                                                 <Target className="w-3.5 h-3.5 mr-1.5"/> Tarjotin
                                             </button>

@@ -2002,19 +2002,19 @@ const updatePublicDataProps = (updates) => {
             <div className="min-h-screen bg-[#e7e5e4] font-sans pb-[90px] relative">
                 <div className="max-w-[480px] mx-auto bg-[#f5f5f4] min-h-screen shadow-lg relative">
                     <div className="bg-white px-4 py-3 flex justify-between items-center border-b border-stone-200 shadow-sm relative z-20">
-                        <div className="flex gap-4">
+                        <div className="flex gap-2">
                             <button onClick={() => setCurrentView('portal')} title="Kotiin" className="text-stone-500 hover:text-[#9b2c2c] flex items-center justify-center transition-colors bg-stone-100 hover:bg-white p-2 rounded-full border border-transparent hover:border-stone-200 focus:outline-none"><Home className="h-4 w-4"/></button>
                             {currentTab !== 'dashboard' && (
-                                <button onClick={() => setCurrentTab('dashboard')} className="text-stone-600 hover:text-[#9b2c2c] flex items-center text-[10px] font-black transition-colors uppercase bg-stone-200/50 hover:bg-white px-2.5 py-1.5 rounded border border-transparent hover:border-stone-200 focus:outline-none"><ChevronLeft className="h-3 w-3 mr-0.5"/> Työpöytä</button>
+                                <button onClick={() => setCurrentTab('dashboard')} className="text-stone-600 hover:text-[#9b2c2c] flex items-center text-[9px] font-black transition-colors uppercase bg-stone-200/50 hover:bg-white px-2 py-1 rounded-full border border-transparent hover:border-stone-200 focus:outline-none whitespace-nowrap"><ChevronLeft className="h-3 w-3 mr-0.5"/> Työpöytä</button>
                             )}
                         </div>
-                        <div className="flex items-center gap-2">
-                            <button onClick={() => setShowHelpModal(true)} className="text-stone-400 hover:text-[#9b2c2c] transition-colors"><HelpCircle size={18} /></button>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                            <button onClick={() => setShowHelpModal(true)} className="text-stone-400 hover:text-[#9b2c2c] transition-colors"><HelpCircle size={16} /></button>
                             {isAdmin && (() => {
                                 const currTgtHours = getCurrentMonthTarget(marketingPlans, activeTrayRegion);
                                 const lvl = getGamificationLevel(currTgtHours);
                                 return (
-                                    <span className={`text-[10px] ${lvl.bgColor} ${lvl.color} px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${lvl.border} flex items-center gap-1`} title={lvl.desc}>
+                                    <span className={`text-[9px] ${lvl.bgColor} ${lvl.color} px-2 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${lvl.border} flex items-center gap-1 shrink-0 whitespace-nowrap`} title={lvl.desc}>
                                         <span className="text-xs">{lvl.icon}</span> {lvl.title}
                                     </span>
                                 );
@@ -2027,7 +2027,7 @@ const updatePublicDataProps = (updates) => {
                                         if (val === 'all') setGlobalScope({ level: 'suomi', regionId: 'all', userId: 'all' });
                                         else setGlobalScope({ level: 'region', regionId: val, userId: 'all' });
                                     }}
-                                    className="text-xs bg-stone-100 text-[#9b2c2c] px-3 py-1 rounded-full font-bold uppercase tracking-wider outline-none border border-stone-200 cursor-pointer shadow-sm focus:ring-2 focus:ring-[#fca5a5]"
+                                    className="text-[9px] bg-stone-100 text-[#9b2c2c] pl-2 pr-6 py-1 rounded-full font-bold uppercase tracking-wider outline-none border border-stone-200 cursor-pointer shadow-sm focus:ring-2 focus:ring-[#fca5a5] max-w-[110px] text-ellipsis appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%228%22%20height%3D%226%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M_.5%20.5l3.5%204%203.5-4%22%20stroke%3D%22%239b2c2c%22%20stroke-width%3D%221.5%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat shrink-0" style={{backgroundPosition: 'right 0.5rem center', backgroundSize: '8px 6px'}}
                                 >
                                     <option value="all">Koko Suomi</option>
                                     {activeRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}

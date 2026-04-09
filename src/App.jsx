@@ -2038,11 +2038,16 @@ const updatePublicDataProps = (updates) => {
         
         // Widget logic
         const activeWidgets = myStatDocForBonus.activeWidgets || ['hours', 'revenue', 'streak', 'tasks', 'surveys', 'sparraus', 'team', 'overview', 'risks', 'comp_regions'];
+        const widgetOrder = myStatDocForBonus.widgetOrder || {};
+        
         const toggleWidget = (wId) => {
             let nextWidgets = [...activeWidgets];
             if (nextWidgets.includes(wId)) nextWidgets = nextWidgets.filter(w => w !== wId);
             else nextWidgets.push(wId);
             syncMyStats({ activeWidgets: nextWidgets });
+        };
+        const updateWidgetOrder = (wId, newRank) => {
+            syncMyStats({ widgetOrder: { ...widgetOrder, [wId]: newRank } });
         };
         
                 const targetBonusRegion = (isSuperAdmin && globalScope.regionId !== 'all') ? globalScope.regionId : authSession?.regionId;
@@ -2485,7 +2490,7 @@ const updatePublicDataProps = (updates) => {
                                         <div className="mb-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
                                             {/* Global KPIs */}
                                             {activeWidgets.includes('overview') && (
-                                                <div className="bg-white text-stone-800 rounded-[2rem] p-6 shadow-xl relative overflow-hidden border border-stone-200 lg:col-span-3">
+<div style={{ order: widgetOrder['overview'] || 99 }} className="bg-white text-stone-800 rounded-[2rem] p-6 shadow-xl relative overflow-hidden border border-stone-200 lg:col-span-3">
                                                 <div className="relative z-10">
                                                     <h3 className="text-xs font-black text-stone-500 mb-6 uppercase tracking-widest text-center border-b border-stone-200 pb-3">Konsernin tunnusluvut</h3>
                                                     <div className="flex flex-col gap-4 mb-2">
@@ -2540,7 +2545,7 @@ const updatePublicDataProps = (updates) => {
 
                                             {/* AI Risk & Strategy Radar */}
                                             {activeWidgets.includes('risks') && (
-                                                <div className="bg-gradient-to-br from-[#f0fdf4] to-white rounded-[2rem] p-6 shadow-sm border border-[#dcfce7] lg:col-span-3">
+<div style={{ order: widgetOrder['risks'] || 99 }} className="bg-gradient-to-br from-[#f0fdf4] to-white rounded-[2rem] p-6 shadow-sm border border-[#dcfce7] lg:col-span-3">
                                                 <h3 className="text-xs font-black text-[#2f855a] mb-4 uppercase tracking-widest flex items-center gap-2"><Compass size={16}/> Asiakasriskit ja laajentuminen</h3>
                                                 <div className="space-y-3">
                                                     {(() => {
@@ -2574,7 +2579,7 @@ const updatePublicDataProps = (updates) => {
 
                                             {/* Comparative Analytics */}
                                             {activeWidgets.includes('comp_regions') && (
-                                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 lg:col-span-3">
+<div style={{ order: widgetOrder['comp_regions'] || 99 }} className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 lg:col-span-3">
                                                 <h3 className="text-xs font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Alueiden suoritusvertailu</h3>
                                                 <div className="space-y-4">
                                                     {(() => {
@@ -2657,7 +2662,7 @@ const updatePublicDataProps = (updates) => {
 
                                             {/* Liikevaihtoseuranta */}
                                             {activeWidgets.includes('revenue') && (
-                                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6 lg:col-span-3">
+<div style={{ order: widgetOrder['revenue'] || 99 }} className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6 lg:col-span-3">
                                                     <h3 className="text-xs font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Operatiivinen kuukausivolyymi</h3>
                                                     <div className="grid grid-cols-1 gap-4">
                                                         {(Array.isArray(regionStats) ? regionStats : []).map(rs => {
@@ -2787,7 +2792,7 @@ const updatePublicDataProps = (updates) => {
                                     return (
                                         <>
                                         {activeWidgets.includes('streak') && (
-                                            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6 relative overflow-hidden">
+<div style={{ order: widgetOrder['streak'] || 99 }} className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6 relative overflow-hidden">
                                                 <div className="flex justify-between items-start mb-5 border-b border-stone-100 pb-4">
                                                     <div>
                                                         <h3 className="text-lg font-black text-stone-900">Alueen kasvu ja tavoite</h3>
@@ -2806,7 +2811,7 @@ const updatePublicDataProps = (updates) => {
                                                             <span className="font-bold border-b border-stone-200/50 pb-0.5"><span className={m.realized >= m.target && m.target > 0 ? 'text-[#2f855a]' : 'text-stone-800'}>Tot: {m.realized}h</span> <span className="opacity-50 mx-1">/</span> Tav: {m.target}h</span>
                                                         </div>
                                                         {activeWidgets.includes('revenue') && (
-                                                            <div className="flex justify-between items-center w-full mt-1 border-t border-stone-200 pt-2">
+<div style={{ order: widgetOrder['revenue'] || 99 }} className="flex justify-between items-center w-full mt-1 border-t border-stone-200 pt-2">
                                                                 <span className="font-bold uppercase tracking-wider text-[10px] text-stone-400">LIIKEVAIHTO</span>
                                                                 <span className="font-bold border-b border-stone-200/50 pb-0.5 text-[10px]"><span className={m.realizedRev >= m.targetRev && m.targetRev > 0 ? 'text-[#2f855a]' : 'text-stone-800'}>Tot: {m.realizedRev}€</span> <span className="opacity-50 mx-1">/</span> Tav: {m.targetRev}€</span>
                                                             </div>
@@ -2818,7 +2823,7 @@ const updatePublicDataProps = (updates) => {
                                         )}
 
                                         {activeWidgets.includes('sparraus') && (
-                                            <div className={`p-4 rounded-[1.5rem] mb-6 flex items-start gap-4 bg-[#f0fdf4] border border-[#dcfce7] text-[#22543d]`}>
+<div style={{ order: widgetOrder['sparraus'] || 99 }} className={`p-4 rounded-[1.5rem] mb-6 flex items-start gap-4 bg-[#f0fdf4] border border-[#dcfce7] text-[#22543d]`}>
                                                 <div className={`shrink-0 p-2 rounded-full bg-[#2f855a] text-white`}>
                                                     <Sparkles className="w-4 h-4" />
                                                 </div>
@@ -2840,7 +2845,7 @@ const updatePublicDataProps = (updates) => {
                                 })()}
                                 
                                 {activeWidgets.includes('hours') && (
-                                    <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6">
+<div style={{ order: widgetOrder['hours'] || 99 }} className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200 mb-6">
                                         <h3 className="text-sm font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">{isAdmin ? 'Alueen tuloskortti' : 'Oma tuloskortti'}</h3>
                                         
                                         <div className="grid grid-cols-2 gap-4 mb-4">
@@ -2895,7 +2900,7 @@ const updatePublicDataProps = (updates) => {
                                     return (
                                         <div className="mb-6 flex flex-col gap-6">
                                             {activeWidgets.includes('tasks') && (
-                                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
+<div style={{ order: widgetOrder['tasks'] || 99 }} className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
                                                     <div className="flex justify-between items-center mb-6">
                                                     <h3 className="text-sm font-black text-stone-800 uppercase tracking-widest">Rutiinien suoritusaste</h3>
                                                     {isAdmin && (
@@ -2921,7 +2926,7 @@ const updatePublicDataProps = (updates) => {
                                             )}
 
                                             {activeWidgets.includes('surveys') && (
-                                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
+<div style={{ order: widgetOrder['surveys'] || 99 }} className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
                                                     <div className="flex justify-between items-center mb-4 border-b border-stone-100 pb-3">
                                                     <h3 className="text-sm font-black text-stone-800 uppercase tracking-widest text-center">Asiakastyytyväisyys ja palautteet</h3>
                                                     <button onClick={() => setModals(prev => ({...prev, activityHistory: fbUser.uid}))} className="text-[10px] font-bold uppercase tracking-wider text-stone-600 bg-stone-100 px-3 py-2 rounded-xl border border-stone-200 hover:bg-stone-200 transition-colors flex items-center">Historia & Peruuta &rarr;</button>
@@ -3043,7 +3048,7 @@ const updatePublicDataProps = (updates) => {
                                     <div className="flex flex-col gap-6 mb-6">
                                         {/* Smart Alerts */}
                                         {activeWidgets.includes('sparraus') && (
-                                        <div className="bg-gradient-to-br from-[#fdf2f2] to-white rounded-[2rem] p-6 shadow-sm border border-[#fde8e8]">
+<div style={{ order: widgetOrder['sparraus'] || 99 }} className="bg-gradient-to-br from-[#fdf2f2] to-white rounded-[2rem] p-6 shadow-sm border border-[#fde8e8]">
                                             <h3 className="text-xs font-black text-[#9b2c2c] mb-4 uppercase tracking-widest flex items-center gap-2"><Sparkles size={16}/> Tekoälyn sparraus</h3>
                                             <div className="space-y-3">
                                                 {(Array.isArray(allUserStats) ? allUserStats : []).map(stat => {
@@ -3072,7 +3077,7 @@ const updatePublicDataProps = (updates) => {
                                         )}
 
                                         {activeWidgets.includes('team') && (
-                                        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
+<div style={{ order: widgetOrder['team'] || 99 }} className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
                                             <h3 className="text-sm font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Hoitajien suoritustaso</h3>
                                             <div className="space-y-4">
                                                 {(!allUserStats || allUserStats.length === 0) ? <p className="text-sm text-stone-400 text-center">Ei dataa tiimistä.</p> : 
@@ -3106,7 +3111,7 @@ const updatePublicDataProps = (updates) => {
                                         )}
 
                                         {activeWidgets.includes('fin_revenue') && (
-                                            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
+<div style={{ order: widgetOrder['fin_revenue'] || 99 }} className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
                                                 <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Tilikauden liikevaihto ja muutos-%</h3>
                                                 <p className="text-[10px] text-stone-500 mb-4 leading-relaxed">Kertoo alueen absoluuttisen liikevaihdon ja prosentuaalisen kehityksen suhteessa edellisten vuosien tilinpäätöksiin.</p>
                                                 <div className="space-y-2">
@@ -3129,7 +3134,7 @@ const updatePublicDataProps = (updates) => {
                                         )}
 
                                         {activeWidgets.includes('fin_ebitda') && (
-                                            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
+<div style={{ order: widgetOrder['fin_ebitda'] || 99 }} className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
                                                 <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Käyttökate (EBITDA)</h3>
                                                 <p className="text-[10px] text-stone-500 mb-4 leading-relaxed">Kertoo liiketoiminnan tuloksen ennen poistoja ja rahoituseriä. Kuvaa operatiivisen toiminnan peruskannattavuutta.</p>
                                                 <div className="space-y-2">
@@ -3147,7 +3152,7 @@ const updatePublicDataProps = (updates) => {
                                         )}
 
                                         {activeWidgets.includes('fin_ebit') && (
-                                            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
+<div style={{ order: widgetOrder['fin_ebit'] || 99 }} className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
                                                 <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Liiketulos (EBIT)</h3>
                                                 <p className="text-[10px] text-stone-500 mb-4 leading-relaxed">Varsinainen liiketoiminnan tulos poistojen jälkeen, josta näkyy tuottavuus ennen veroja ja rahoituskuluja.</p>
                                                 <div className="space-y-2">
@@ -3165,7 +3170,7 @@ const updatePublicDataProps = (updates) => {
                                         )}
 
                                         {activeWidgets.includes('fin_cashflow') && (
-                                            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
+<div style={{ order: widgetOrder['fin_cashflow'] || 99 }} className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
                                                 <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Operatiivinen kassavirta</h3>
                                                 <p className="text-[10px] text-stone-500 mb-4 leading-relaxed">Kuvaa liiketoiminnan varsinaista rahavirtaa. Kertoo riittävätkö rahat jokapäiväisen toiminnan pyörittämiseen.</p>
                                                 <div className="space-y-2">
@@ -3183,7 +3188,7 @@ const updatePublicDataProps = (updates) => {
                                         )}
 
                                         {activeWidgets.includes('fin_equity') && (
-                                            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
+<div style={{ order: widgetOrder['fin_equity'] || 99 }} className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
                                                 <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Omavaraisuusaste</h3>
                                                 <p className="text-[10px] text-stone-500 mb-4 leading-relaxed">Mittaa vakavaraisuutta eli kuinka suuri osa alueen/yrityksen varallisuudesta on rahoitettu omalla pääomalla velkojen sijaan.</p>
                                                 <div className="space-y-2">
@@ -3201,7 +3206,7 @@ const updatePublicDataProps = (updates) => {
                                         )}
 
                                         {activeWidgets.includes('fin_quickratio') && (
-                                            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
+<div style={{ order: widgetOrder['fin_quickratio'] || 99 }} className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
                                                 <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Maksuvalmius (Quick Ratio)</h3>
                                                 <p className="text-[10px] text-stone-500 mb-4 leading-relaxed">Kuvaa maksuvalmiutta eli yrityksen kykyä selviytyä lyhytaikaisista veloistaan pelkillä rahoitusomaisuuksilla.</p>
                                                 <div className="space-y-2">
@@ -3913,12 +3918,20 @@ const updatePublicDataProps = (updates) => {
                                         ] : [])
                                     ].map(w => (
                                         <div key={w.id} onClick={() => toggleWidget(w.id)} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${activeWidgets.includes(w.id) ? 'bg-white border-[#2f855a] shadow-sm' : 'bg-stone-50 border-stone-200 hover:border-stone-300'}`}>
-                                            <div className="pr-4">
+                                            <div className="pr-4 pointer-events-none">
                                                 <h4 className={`font-black text-sm mb-1 ${activeWidgets.includes(w.id) ? 'text-[#2f855a]' : 'text-stone-700'}`}>{w.title}</h4>
                                                 <p className="text-[10px] text-stone-500 font-medium leading-relaxed">{w.desc}</p>
                                             </div>
-                                            <div className={`shrink-0 w-10 h-6 rounded-full flex items-center p-1 transition-colors ${activeWidgets.includes(w.id) ? 'bg-[#2f855a]' : 'bg-stone-300'}`}>
-                                                <div className={`w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${activeWidgets.includes(w.id) ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                            <div className="flex gap-4 items-center">
+                                                {activeWidgets.includes(w.id) && (
+                                                    <div className="flex flex-col items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                                        <span className="text-[9px] uppercase font-bold text-stone-400 tracking-widest">Sija</span>
+                                                        <input type="number" min="1" max="99" value={widgetOrder[w.id] || ''} onChange={(e) => updateWidgetOrder(w.id, parseInt(e.target.value) || '')} className="w-12 p-1.5 text-center text-xs font-black bg-stone-50 border border-stone-200 focus:border-[#2f855a] rounded-lg shadow-sm outline-none" placeholder="-" />
+                                                    </div>
+                                                )}
+                                                <div className={`shrink-0 w-10 h-6 rounded-full flex items-center p-1 transition-colors ${activeWidgets.includes(w.id) ? 'bg-[#2f855a]' : 'bg-stone-300'}`}>
+                                                    <div className={`w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${activeWidgets.includes(w.id) ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}

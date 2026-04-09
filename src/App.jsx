@@ -1853,8 +1853,7 @@ const updatePublicDataProps = (updates) => {
                     </select>
                 )}
                 
-                {isSuperAdmin && (
-                )}
+                
             </div>
         );
     };

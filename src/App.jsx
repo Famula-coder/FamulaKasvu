@@ -213,13 +213,14 @@ export default function App() {
     const [financialModal, setFinancialModal] = useState(false);
     const [editingFinancialStatement, setEditingFinancialStatement] = useState(null);
     const [editingMarketingPlan, setEditingMarketingPlan] = useState({
-        id: '', year: new Date().getFullYear(), quarter: Math.floor((new Date().getMonth() + 3) / 3),
-        targetMo1: '', targetMo2: '', targetMo3: '',
-        targetRev1: '', targetRev2: '', targetRev3: '',
-        budgetPrint: '', budgetDigital: '', budgetEdustus: '', budgetOther: '',
-        evaluation: '',
-        selectedTasks: [] // { id, trayTaskId, type: 'pinned' | 'week', targetWeekNum: X }
+        id: '', year: new Date().getFullYear(), quarter: Math.floor(new Date().getMonth() / 3) + 1,
+        evaluation: '', selectedTasks: [],
+        targetMo1: '', realizedMo1: '', targetRev1: '', realizedRev1: '',
+        targetMo2: '', realizedMo2: '', targetRev2: '', realizedRev2: '',
+        targetMo3: '', realizedMo3: '', targetRev3: '', realizedRev3: '',
+        budgetPrint: '', budgetDigital: '', budgetEdustus: '', budgetOther: ''
     });
+    const [targetRegionId, setTargetRegionId] = useState(null);
     const [marketingTaskDraft, setMarketingTaskDraft] = useState({ trayTaskId: '', type: 'pinned', targetWeekNum: '' });
 
     // Task Editing States
@@ -1317,10 +1318,11 @@ const updatePublicDataProps = (updates) => {
     
     const saveMarketingPlan = async () => {
         if (!isAdmin) return;
-        const planId = editingMarketingPlan.id || `${authSession.regionId}_Q${editingMarketingPlan.quarter}_${editingMarketingPlan.year}`;
+        const activeMarketingRegionId = isSuperAdmin && targetRegionId ? targetRegionId : authSession?.regionId;
+        const planId = editingMarketingPlan.id || `${activeMarketingRegionId}_Q${editingMarketingPlan.quarter}_${editingMarketingPlan.year}`;
         const planData = {
             ...editingMarketingPlan,
-            regionId: authSession.regionId,
+            regionId: activeMarketingRegionId,
             timestamp: Date.now()
         };
         
@@ -1356,7 +1358,8 @@ const updatePublicDataProps = (updates) => {
     };
 
     const renderMarketingPlans = () => {
-        const regionPlans = marketingPlans.filter(p => p.regionId === authSession.regionId).sort((a,b) => b.year - a.year || b.quarter - a.quarter);
+        const activeMarketingRegionId = isSuperAdmin && targetRegionId ? targetRegionId : authSession?.regionId;
+        const regionPlans = marketingPlans.filter(p => p.regionId === activeMarketingRegionId).sort((a,b) => b.year - a.year || b.quarter - a.quarter);
         
         const d = new Date();
         const currYear = d.getFullYear();
@@ -1382,7 +1385,19 @@ const updatePublicDataProps = (updates) => {
                         <h1 className="text-2xl font-black text-stone-900 tracking-tight">Markkinointisuunnitelmat</h1>
                         <p className="text-stone-500 text-xs font-bold uppercase tracking-widest mt-1">Kvartaalitasoinen ohjaus</p>
                     </div>
-                    <button onClick={() => setShowLevelsInfo(true)} className="w-10 h-10 rounded-full bg-white border border-stone-200 shadow-sm flex items-center justify-center text-[#2f855a] hover:bg-stone-50 transition"><HelpCircle size={20}/></button>
+                    {isSuperAdmin ? (
+                        <select
+                            value={activeMarketingRegionId}
+                            onChange={(e) => setTargetRegionId(e.target.value)}
+                            className="bg-white p-2 rounded-lg text-sm font-bold text-stone-800 border border-stone-200 outline-none"
+                        >
+                            {activeRegions.map(r => (
+                                <option key={r.id} value={r.id}>{r.name}</option>
+                            ))}
+                        </select>
+                    ) : (
+                        <button onClick={() => setShowLevelsInfo(true)} className="w-10 h-10 rounded-full bg-white border border-stone-200 shadow-sm flex items-center justify-center text-[#2f855a] hover:bg-stone-50 transition"><HelpCircle size={20}/></button>
+                    )}
                 </header>
 
                 <div className={`p-4 rounded-2xl border flex flex-col gap-3 ${currentLevel.bgColor} ${currentLevel.border} mb-6 shadow-sm`}>

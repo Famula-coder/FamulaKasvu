@@ -162,6 +162,7 @@ export default function App() {
     // --- GLOBAL SCOPE HIERARCHY ---
     const initialGlobalScope = { level: authSession?.role === 'superadmin' ? 'suomi' : (authSession?.role === 'admin' ? 'region' : 'user'), regionId: authSession?.regionId || null, userId: null };
     const [globalScope, setGlobalScope] = useState(initialGlobalScope);
+    const [dashboardMonthOffset, setDashboardMonthOffset] = useState(-1);
     
     useEffect(() => {
         if (authSession && !globalScope.regionId) {
@@ -2289,6 +2290,7 @@ const updatePublicDataProps = (updates) => {
                                     let cmTargetRev = 0;
                                     let cmRealizedRev = 0;
                                     const dCm = new Date();
+                                    dCm.setMonth(dCm.getMonth() + dashboardMonthOffset);
                                     const yCm = dCm.getFullYear();
                                     const qCm = Math.floor(dCm.getMonth() / 3) + 1;
                                     const moIdxCm = (dCm.getMonth() % 3) + 1;
@@ -2331,7 +2333,11 @@ const updatePublicDataProps = (updates) => {
                                                     <div className="flex flex-col gap-4 mb-2">
                                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-stone-50 rounded-2xl border border-stone-200 group hover:shadow-md transition-shadow">
                                                             <div className="mb-2 sm:mb-0">
-                                                                <p className="text-xs font-black text-stone-700 uppercase tracking-wider">Operatiivinen volyymi (kuluva kk)</p>
+                                                                <div className="flex items-center gap-2 mb-1">
+                                                                    <button onClick={() => setDashboardMonthOffset(prev => prev - 1)} className="p-1 rounded-md bg-stone-100 hover:bg-stone-200 transition text-stone-500 hover:text-stone-800"><ChevronLeft size={14}/></button>
+                                                                    <p className="text-xs font-black text-stone-700 uppercase tracking-wider">Volyymi: {dCm.toLocaleString('fi-FI', {month: 'long'})}</p>
+                                                                    <button onClick={() => setDashboardMonthOffset(prev => prev + 1)} className="p-1 rounded-md bg-stone-100 hover:bg-stone-200 transition text-stone-500 hover:text-stone-800"><ChevronRight size={14}/></button>
+                                                                </div>
                                                                 <p className="text-[11px] text-stone-500 mt-1 font-medium">Tavoite: {cmTargetRev} €</p>
                                                             </div>
                                                             <div className="text-left sm:text-right">
@@ -3879,6 +3885,8 @@ const updatePublicDataProps = (updates) => {
                         <Activity className="w-3 h-3 mr-2 animate-pulse"/> Olet harjoitusalueella (Simulaatio) <Activity className="w-3 h-3 ml-2 animate-pulse"/>
                     </div>
                 )}
+
+            {(authSession?.status === 'active' && currentView !== 'simulator_login' && isAdmin) && renderGlobalScopeSelector()}
 
             {(authSession?.realRole === 'superadmin' && currentView !== 'simulator_login' && authSession.regionId === 'sandbox_region') && (
                 <div className="w-full bg-stone-900 text-white p-3 flex flex-col sm:flex-row items-center justify-center z-[100] shadow-md gap-3 sticky top-0 border-b border-stone-800">

@@ -1045,7 +1045,7 @@ const updatePublicDataProps = (updates) => {
 
     const renderUserProfile = () => {
         // Collect users to display depending on role
-        const statsSource = authSession?.role === 'superadmin' ? (allGlobalStats?.length > 0 ? allGlobalStats : allUserStats) : allUserStats;
+        const statsSource = allUserStats;
         const usersToManage = (Array.isArray(statsSource) ? statsSource : []).filter(u => {
             if (u.status === 'pending' || u.status === 'active') {
                 if (isSuperAdmin) return true;
@@ -1113,7 +1113,7 @@ const updatePublicDataProps = (updates) => {
                             <p className="text-stone-500 text-sm">{fbUser?.email}</p>
                             <div className="mt-2 flex gap-2">
                                 <span className="bg-[#f0fdf4] text-[#22543d] px-2 py-1 rounded text-[10px] font-bold uppercase border border-[#dcfce7]">{authSession?.realRole}</span>
-                                <span className="bg-stone-100 text-stone-600 px-2 py-1 rounded text-[10px] font-bold uppercase border border-stone-200">{authSession?.regionId}</span>
+                                <span className="bg-stone-100 text-stone-600 px-2 py-1 rounded text-[10px] font-bold uppercase border border-stone-200">{authSession?.realRole === 'superadmin' ? 'KOKO SUOMI (KONSERNI)' : (activeRegions.find(r=>r.id===authSession?.regionId)?.name || authSession?.regionId)}</span>
                             </div>
                         </div>
                     </div>

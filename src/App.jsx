@@ -1072,26 +1072,24 @@ const updatePublicDataProps = (updates) => {
                         </div>
                     </div>
                     
-                    {!isSuperAdmin && (
-                        <div className="mt-4 p-4 rounded-xl border border-stone-200 bg-stone-50 flex items-center justify-between">
-                            <div>
-                                <h4 className="font-bold text-sm text-stone-800">Harjoitusalue</h4>
-                                <p className="text-[10px] text-stone-500">Kokeile ohjelmaa riskittä. Tietoja ei huomioida raporteissa.</p>
-                            </div>
-                            <button 
-                                onClick={() => {
-                                    if (authSession.regionId === 'sandbox_region') {
-                                        setAuthSession(prev => ({ ...prev, regionId: prev.realRegionId, role: prev.realRole }));
-                                    } else {
-                                        setAuthSession(prev => ({ ...prev, regionId: 'sandbox_region' }));
-                                    }
-                                }}
-                                className={`w-12 h-6 rounded-full transition-colors relative flex items-center px-1 ${authSession?.regionId === 'sandbox_region' ? 'bg-[#facc15]' : 'bg-stone-300'}`}
-                            >
-                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${authSession?.regionId === 'sandbox_region' ? 'translate-x-6' : 'translate-x-0'}`} />
-                            </button>
+                    <div className="mt-4 p-4 rounded-xl border border-stone-200 bg-stone-50 flex items-center justify-between">
+                        <div>
+                            <h4 className="font-bold text-sm text-stone-800">Harjoitusalue</h4>
+                            <p className="text-[10px] text-stone-500">Kokeile ohjelmaa riskittä. Tietoja ei huomioida raporteissa.</p>
                         </div>
-                    )}
+                        <button 
+                            onClick={() => {
+                                if (authSession.regionId === 'sandbox_region') {
+                                    setAuthSession(prev => ({ ...prev, regionId: prev.realRegionId, role: prev.realRole }));
+                                } else {
+                                    setAuthSession(prev => ({ ...prev, regionId: 'sandbox_region' }));
+                                }
+                            }}
+                            className={`w-12 h-6 rounded-full transition-colors relative flex items-center px-1 ${authSession?.regionId === 'sandbox_region' ? 'bg-[#facc15]' : 'bg-stone-300'}`}
+                        >
+                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${authSession?.regionId === 'sandbox_region' ? 'translate-x-6' : 'translate-x-0'}`} />
+                        </button>
+                    </div>
                     
                     {!isSuperAdmin && (
                         <div className="mt-6 pt-6 border-t border-stone-100 space-y-3">

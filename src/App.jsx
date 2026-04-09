@@ -2020,7 +2020,7 @@ const updatePublicDataProps = (updates) => {
                         <div className="flex items-center gap-2">
                             <button onClick={() => setShowHelpModal(true)} className="text-stone-400 hover:text-[#9b2c2c] transition-colors"><HelpCircle size={18} /></button>
                             {isAdmin && (() => {
-                                const currTgtHours = getCurrentMonthTarget(marketingPlans, authSession.regionId);
+                                const currTgtHours = getCurrentMonthTarget(marketingPlans, activeTrayRegion);
                                 const lvl = getGamificationLevel(currTgtHours);
                                 return (
                                     <span className={`text-[10px] ${lvl.bgColor} ${lvl.color} px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${lvl.border} flex items-center gap-1`} title={lvl.desc}>
@@ -2028,7 +2028,7 @@ const updatePublicDataProps = (updates) => {
                                     </span>
                                 );
                             })()}
-                            <span className="text-xs bg-stone-100 text-stone-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider">{activeRegions.find(r=>r.id===authSession?.regionId)?.name || 'Famula'}</span>
+                            <span className="text-xs bg-stone-100 text-stone-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider">{activeRegions.find(r=>r.id===activeTrayRegion)?.name || 'Famula'}</span>
                         </div>
                     </div>
 
@@ -2524,7 +2524,7 @@ const updatePublicDataProps = (updates) => {
                                             
                                             <div className="flex items-center gap-2 mb-4 lg:col-span-3 mt-4">
                                                 <span className="h-px bg-stone-300 flex-1"></span>
-                                                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest text-center">Oman alueesi erittely: {activeRegions.find(r=>r.id===authSession.regionId)?.name || 'Ei omaa aluetta'}</span>
+                                                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest text-center">Oman alueesi erittely: {activeRegions.find(r=>r.id===activeTrayRegion)?.name || 'Ei omaa aluetta'}</span>
                                                 <span className="h-px bg-stone-300 flex-1"></span>
                                             </div>
                                         </div>
@@ -2532,11 +2532,11 @@ const updatePublicDataProps = (updates) => {
                                 })()}
                                 
                                 {isAdmin && (() => {
-                                    const currTargetHours = getCurrentMonthTarget(marketingPlans, authSession.regionId);
+                                    const currTargetHours = getCurrentMonthTarget(marketingPlans, activeTrayRegion);
                                     
                                     const gamificationLevel = getGamificationLevel(currTargetHours);
                                     
-                                    const last4Months = getLast4MonthsData(marketingPlans, authSession.regionId);
+                                    const last4Months = getLast4MonthsData(marketingPlans, activeTrayRegion);
                                     
                                     let avgPace = 0;
                                     let totalValidTargets = 0;
@@ -2994,8 +2994,8 @@ const updatePublicDataProps = (updates) => {
                     )}
 
 {(isAdmin || isSuperAdmin) && reportTab === 'palkkiot' && (() => {
-                            const bonuses = publicData?.regionBonuses?.[authSession.regionId] || { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 };
-                            const rArchives = (publicData.payoutArchives || {})[authSession.regionId] || [];
+                            const bonuses = publicData?.regionBonuses?.[activeTrayRegion] || { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 };
+                            const rArchives = (publicData.payoutArchives || {})[activeTrayRegion] || [];
                             const activeArchive = selectedArchiveMonth ? rArchives.find(a => a.id === selectedArchiveMonth) : null;
                             
                             // Jos ei arkistoitua kuukautta valittu, lasketaan AVOIN (pending)

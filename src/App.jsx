@@ -1826,7 +1826,7 @@ const updatePublicDataProps = (updates) => {
 
     
     const renderGlobalScopeSelector = () => {
-        if (!isAdmin || currentView !== 'manager') return null;
+        if (!isAdmin) return null;
         
         const availableRegions = isSuperAdmin ? [{id: 'all', name: 'Koko Suomi (Konsernitila)'}, ...activeRegions] : activeRegions.filter(r => r.id === authSession.regionId);
         const usersInScope = allUserStats.filter(u => globalScope.regionId === 'all' ? true : u.regionId === globalScope.regionId);

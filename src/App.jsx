@@ -2357,11 +2357,7 @@ const updatePublicDataProps = (updates) => {
                                                 <Plus className="w-3.5 h-3.5 mr-1.5"/> Muokkaa näkymää
                                             </button>
                                             {(isAdmin || isSuperAdmin) && (
-                                                <button onClick={() => {
-                                                    const rBonuses = publicData?.regionBonuses?.[authSession?.regionId] || { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 };
-                                                    setAdminBonuses(rBonuses);
-                                                    setModals(prev => ({...prev, bonuses: true}));
-                                                }} className="bg-white border border-stone-200 text-[#2f855a] text-xs font-bold px-3 py-2 rounded-xl shadow-sm flex items-center hover:bg-stone-50 transition-colors">
+                                                <button onClick={() => setModals(prev => ({...prev, bonuses: true}))} className="hidden bg-white border border-stone-200 text-[#2f855a] text-xs font-bold px-3 py-2 rounded-xl shadow-sm items-center hover:bg-stone-50 transition-colors">
                                                     <Coins className="w-3.5 h-3.5 mr-1.5"/> Palkkioasetukset
                                                 </button>
                                             )}

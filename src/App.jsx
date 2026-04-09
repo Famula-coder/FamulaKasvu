@@ -265,7 +265,7 @@ export default function App() {
     const safeUserCustomTray = Array.isArray(userCustomTray) ? userCustomTray : [];
     
 
-    const activeTrayRegion = (isAdmin && globalScope.regionId !== 'all') ? globalScope.regionId : authSession?.regionId;
+    const activeTrayRegion = isAdmin ? globalScope.regionId : authSession?.regionId;
     const activeTrayUser = (isAdmin && globalScope.userId !== 'all') ? globalScope.userId : authSession?.name;
 
     const unifiedTray = [
@@ -1918,7 +1918,7 @@ const updatePublicDataProps = (updates) => {
             const monthKey = `realizedMo${(d.getMonth() % 3) + 1}`;
             
             let total = 0;
-            (plans || []).filter(p => Number(p.year) === prevYear && Number(p.quarter) === prevQuarter && (!targetRegionId || p.regionId === targetRegionId)).forEach(p => {
+            (plans || []).filter(p => Number(p.year) === prevYear && Number(p.quarter) === prevQuarter && (!targetRegionId || targetRegionId === 'all' || p.regionId === targetRegionId)).forEach(p => {
                 total += Number(p[monthKey] || 0);
             });
             return total;
@@ -1941,7 +1941,7 @@ const updatePublicDataProps = (updates) => {
                 let tTargetRev = 0;
                 let tRealizedRev = 0;
 
-                (plans || []).filter(p => Number(p.year) === y && Number(p.quarter) === q && (!targetRegionId || p.regionId === targetRegionId)).forEach(p => {
+                (plans || []).filter(p => Number(p.year) === y && Number(p.quarter) === q && (!targetRegionId || targetRegionId === 'all' || p.regionId === targetRegionId)).forEach(p => {
                     tTarget += Number(p[`targetMo${moIdx}`] || 0);
                     tRealized += Number(p[`realizedMo${moIdx}`] || 0);
                     tTargetRev += Number(p[`targetRev${moIdx}`] || 0);
@@ -1984,7 +1984,7 @@ const updatePublicDataProps = (updates) => {
             const monthKey = `targetMo${(d.getMonth() % 3) + 1}`;
             
             let total = 0;
-            (plans || []).filter(p => Number(p.year) === prevYear && Number(p.quarter) === prevQuarter && (!targetRegionId || p.regionId === targetRegionId)).forEach(p => {
+            (plans || []).filter(p => Number(p.year) === prevYear && Number(p.quarter) === prevQuarter && (!targetRegionId || targetRegionId === 'all' || p.regionId === targetRegionId)).forEach(p => {
                 total += Number(p[monthKey] || 0);
             });
             return total || 100; // default to avoid zero if no target
@@ -1997,7 +1997,7 @@ const updatePublicDataProps = (updates) => {
             const monthKey = `targetMo${(d.getMonth() % 3) + 1}`;
             
             let total = 0;
-            (plans || []).filter(p => Number(p.year) === currYear && Number(p.quarter) === currQuarter && (!targetRegionId || p.regionId === targetRegionId)).forEach(p => {
+            (plans || []).filter(p => Number(p.year) === currYear && Number(p.quarter) === currQuarter && (!targetRegionId || targetRegionId === 'all' || p.regionId === targetRegionId)).forEach(p => {
                 total += Number(p[monthKey] || 0);
             });
             return total || 100; // default to avoid zero
@@ -2028,7 +2028,7 @@ const updatePublicDataProps = (updates) => {
                                     </span>
                                 );
                             })()}
-                            <span className="text-xs bg-stone-100 text-stone-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider">{activeRegions.find(r=>r.id===activeTrayRegion)?.name || 'Famula'}</span>
+                            <span className="text-xs bg-stone-100 text-stone-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider">{activeTrayRegion === 'all' ? 'Koko Suomi' : activeRegions.find(r=>r.id===activeTrayRegion)?.name || 'Famula'}</span>
                         </div>
                     </div>
 
@@ -2524,7 +2524,7 @@ const updatePublicDataProps = (updates) => {
                                             
                                             <div className="flex items-center gap-2 mb-4 lg:col-span-3 mt-4">
                                                 <span className="h-px bg-stone-300 flex-1"></span>
-                                                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest text-center">Oman alueesi erittely: {activeRegions.find(r=>r.id===activeTrayRegion)?.name || 'Ei omaa aluetta'}</span>
+                                                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest text-center">Alueen erittely: {activeTrayRegion === 'all' ? 'Koko Suomi' : activeRegions.find(r=>r.id===activeTrayRegion)?.name || 'Ei aluevalintaa'}</span>
                                                 <span className="h-px bg-stone-300 flex-1"></span>
                                             </div>
                                         </div>
@@ -2994,7 +2994,7 @@ const updatePublicDataProps = (updates) => {
                     )}
 
 {(isAdmin || isSuperAdmin) && reportTab === 'palkkiot' && (() => {
-                            const bonuses = publicData?.regionBonuses?.[activeTrayRegion] || { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 };
+                            const bonuses = activeTrayRegion === 'all' ? { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 } : (publicData?.regionBonuses?.[activeTrayRegion] || { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 });
                             const rArchives = (publicData.payoutArchives || {})[activeTrayRegion] || [];
                             const activeArchive = selectedArchiveMonth ? rArchives.find(a => a.id === selectedArchiveMonth) : null;
                             

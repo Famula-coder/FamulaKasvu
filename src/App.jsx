@@ -735,7 +735,8 @@ const updatePublicDataProps = (updates) => {
         if (!authSession || !isAdmin) return;
         if (!window.confirm("Kuitataanko kuluva avoin kausi maksetuksi? Näiden kirjausten tiedot lukitaan Maksuarkistoon.")) return;
         
-        const rId = authSession.regionId;
+        const targetRegion = (isSuperAdmin && globalScope.regionId !== 'all') ? globalScope.regionId : authSession.regionId;
+        const rId = targetRegion;
         const targetMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
         const archiveId = `payout_${Date.now()}`;
         
@@ -1103,7 +1104,7 @@ const updatePublicDataProps = (updates) => {
         
         return (
             <div className="animate-fade-in">
-                <header className="mb-4 mt-2 px-1"><h2 className="text-2xl font-black text-stone-900">{isAdmin ? 'Käyttäjähallinta' : 'Oma Profiili'}</h2></header>
+                <header className="mb-4 mt-2 px-1"><h2 className="text-2xl font-black text-stone-900">{isAdmin ? 'Hallintapaneeli' : 'Oma Profiili'}</h2></header>
                 
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-stone-200 mb-6">
                     <div className="flex items-center gap-4 mb-4">
@@ -1270,13 +1271,13 @@ const updatePublicDataProps = (updates) => {
 
 
                 <main className="flex-1 px-6 relative z-20 space-y-4 pb-8">
-                    {/* 1. Myynnin työpöytä */}
+                    {/* 1. Työpöytä */}
                     <div onClick={() => { setCurrentView('manager'); setCurrentTab('dashboard'); }} className="block group relative cursor-pointer">
                         <div className="absolute inset-0 bg-[#771d1d] rounded-2xl transform translate-y-2 opacity-20 blur transition duration-300 group-hover:translate-y-3 group-hover:opacity-30"></div>
                         <div className="relative bg-white rounded-2xl p-5 border-l-[6px] border-[#9b2c2c] shadow-sm transition transform group-hover:-translate-y-1 active:scale-[0.98]">
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <h3 className="text-lg font-bold text-stone-900 leading-tight">Myynnin työpöytä</h3>
+                                    <h3 className="text-lg font-bold text-stone-900 leading-tight">Työpöytä</h3>
                                 </div>
                                 <div className="bg-[#fdf2f2] p-3 rounded-full text-[#9b2c2c]"><Home className="h-5 w-5" /></div>
                             </div>
@@ -1325,14 +1326,14 @@ const updatePublicDataProps = (updates) => {
                         </div>
                     )}
 
-                    {/* 5. Käyttäjähallinta (Only show to Admins) */}
+                    {/* 5. Hallintapaneeli (Only show to Admins) */}
                     {isAdmin && (
                         <div onClick={() => { setCurrentView('manager'); setCurrentTab('users'); }} className="block group relative cursor-pointer">
                             <div className="absolute inset-0 bg-blue-900 rounded-2xl transform translate-y-2 opacity-10 blur transition duration-300 group-hover:translate-y-3 group-hover:opacity-20"></div>
                             <div className="relative bg-white rounded-2xl p-5 border-l-[6px] border-blue-600 shadow-sm transition transform group-hover:-translate-y-1 active:scale-[0.98]">
                                 <div className="flex justify-between items-center">
                                     <div>
-                                        <h3 className="text-lg font-bold text-stone-900 leading-tight">Käyttäjähallinta</h3>
+                                        <h3 className="text-lg font-bold text-stone-900 leading-tight">Hallintapaneeli</h3>
                                     </div>
                                     <div className="bg-blue-50 p-3 rounded-full text-blue-600"><User className="h-5 w-5" /></div>
                                 </div>
@@ -2237,7 +2238,7 @@ const updatePublicDataProps = (updates) => {
                                     {(isAdmin || isSuperAdmin) && (
                                         <div className="flex bg-stone-200/50 p-1 rounded-xl w-fit">
                                             <button onClick={() => setReportTab('katsaus')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${reportTab === 'katsaus' ? 'bg-white shadow-sm text-stone-900' : 'text-stone-500 hover:text-stone-800'}`}>Katsaus ja tilastot</button>
-                                            <button onClick={() => setReportTab('palkkiot')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${reportTab === 'palkkiot' ? 'bg-white shadow-sm text-[#2f855a]' : 'text-stone-500 hover:text-[#2f855a]'}`}>Palkkiot & Arkistot</button>
+                                            <button onClick={() => setReportTab('palkkiot')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${reportTab === 'palkkiot' ? 'bg-white shadow-sm text-[#2f855a]' : 'text-stone-500 hover:text-[#2f855a]'}`}>Palkkiot ja arkistot</button>
                                         </div>
                                     )}
                                 </header>
@@ -3057,7 +3058,15 @@ const updatePublicDataProps = (updates) => {
 
 {(isAdmin || isSuperAdmin) && reportTab === 'palkkiot' && (() => {
                             const bonuses = activeTrayRegion === 'all' ? { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 } : (publicData?.regionBonuses?.[activeTrayRegion] || { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 });
-                            const rArchives = (publicData.payoutArchives || {})[activeTrayRegion] || [];
+                            
+                            let rArchives = [];
+                            if (activeTrayRegion === 'all') {
+                                Object.values(publicData.payoutArchives || {}).forEach(arr => rArchives.push(...arr));
+                                rArchives.sort((a,b) => b.timestamp - a.timestamp);
+                            } else {
+                                rArchives = (publicData.payoutArchives || {})[activeTrayRegion] || [];
+                            }
+                            
                             const activeArchive = selectedArchiveMonth ? rArchives.find(a => a.id === selectedArchiveMonth) : null;
                             
                             // Jos ei arkistoitua kuukautta valittu, lasketaan AVOIN (pending)
@@ -3120,7 +3129,7 @@ const updatePublicDataProps = (updates) => {
                                                 <h4 className="font-bold text-[#22543d]">Avoin kausi valmiina!</h4>
                                                 <p className="text-xs text-[#2f855a] font-medium">Tarkista kaikkien listat. Kun valmista, lukitse jakso kiinni.</p>
                                             </div>
-                                            <button onClick={() => markPayoutsAsPaid(computedPayouts, totalBonusSum)} className="bg-[#2f855a] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-[#22543d] active:scale-95 transition-all">KUITTAA MAKSETUKSI</button>
+                                            <button disabled={activeTrayRegion === 'all'} onClick={() => markPayoutsAsPaid(computedPayouts, totalBonusSum)} className={`px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all ${activeTrayRegion === 'all' ? 'bg-stone-300 text-stone-500 cursor-not-allowed' : 'bg-[#2f855a] text-white hover:bg-[#22543d] active:scale-95'}`}>{activeTrayRegion === 'all' ? 'VALITSE ALUE TILITYSTÄ VARTEN' : 'KUITTAA MAKSETUKSI'}</button>
                                         </div>
                                     )}
 
@@ -3924,7 +3933,7 @@ const updatePublicDataProps = (updates) => {
                         {step === 'login' && (
                             <div className="flex flex-col flex-1 relative z-10 animate-fade-in">
                                 <div className="bg-[#486045] pt-16 pb-16 px-8 text-white text-center relative flex flex-col items-center shrink-0">
-                                    <button aria-label="Palaa" onClick={() => setCurrentView('portal')} className="absolute top-6 left-6 text-white/70 hover:text-white p-2 z-20 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+                                    <button aria-label="Työpöytä" onClick={() => setCurrentView('portal')} className="absolute top-6 left-6 text-white/70 hover:text-white p-2 z-20 rounded-full transition-colors"><ChevronLeft size={24} /></button>
                                     <button aria-label="Etusivu" onClick={() => setCurrentView((authSession && authSession.status === 'active') ? 'portal' : 'simulator_login')} className="absolute top-6 right-6 text-white/70 hover:text-white p-2 z-20 rounded-full transition-colors"><Home size={24} /></button>
                                     <h1 className="text-4xl font-black mb-1 tracking-tighter mt-4">Famula</h1>
                                     <p className="text-[#a5bca2] font-bold text-xs uppercase tracking-widest">Asiakastyytyväisyys</p>

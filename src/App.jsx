@@ -201,7 +201,7 @@ export default function App() {
     const [financialStatements, setFinancialStatements] = useState([]); // Financial statements
 
     // UI Modals & Inputs
-    const [modals, setModals] = useState({ sales: false, adminPlan: false, editTask: false, editTrayTask: false, newTrayTask: false, bonuses: false, salaryDetails: false, historyEntry: false, activityHistory: null });
+    const [modals, setModals] = useState({ sales: false, adminPlan: false, editTask: false, editTrayTask: false, newTrayTask: false, bonuses: false, salaryDetails: false, historyEntry: false, activityHistory: null, workerBonusesInfo: false });
     const [userProfileTab, setUserProfileTab] = useState('kayttajat');
     
     // Dynamic config overrides from DB
@@ -2239,19 +2239,11 @@ const updatePublicDataProps = (updates) => {
                                 </div>
 
 
-                                {/* Palkitsemisen Info */}
-                                <div className="bg-white rounded-3xl p-5 shadow-sm border border-stone-200 mb-6 flex justify-between items-center group cursor-default">
-                                    <div>
-                                        <h4 className="text-[10px] uppercase font-black tracking-widest text-stone-400 mb-1">Voimassa olevat alueen lisäpalkkiot</h4>
-                                        <div className="flex gap-4">
-                                            <div><span className="text-[#2f855a] font-black text-lg">{regionBonuses.oneTimeRate}€</span> <span className="text-stone-500 text-[10px] font-bold">Lisätunti</span></div>
-                                            <div><span className="text-[#2f855a] font-black text-lg">{regionBonuses.ongoingRate}€</span> <span className="text-stone-500 text-[10px] font-bold">Sopimuskorotus</span></div>
-                                        </div>
-                                    </div>
-                                    <div className="bg-[#f0fdf4] w-12 h-12 rounded-2xl flex items-center justify-center text-[#2f855a] border border-[#dcfce7] shrink-0">
-                                        <Coins size={20} />
-                                    </div>
-                                </div>
+                                {/* Palkitsemisen Info Painike */}
+                                <button onClick={() => setModals(prev => ({...prev, workerBonusesInfo: true}))} className="w-full mb-6 bg-white hover:bg-stone-50 text-stone-800 font-bold py-4 px-5 rounded-2xl shadow-sm border border-stone-200 transition flex justify-between items-center group">
+                                    <span className="flex items-center text-sm"><Coins size={18} className="mr-3 text-[#2f855a]" /> Voimassa olevat lisäpalkkiot</span>
+                                    <ChevronRight size={18} className="text-stone-400 group-hover:translate-x-1 transition-transform" />
+                                </button>
                                                                 {/* MY DESKTOP (PERSONAL TASKS) */}
                                 <div className="bg-stone-50 rounded-[2rem] p-2 border border-stone-200 shadow-sm">
                                     <div className="text-center pt-4 pb-2">
@@ -3489,6 +3481,53 @@ const updatePublicDataProps = (updates) => {
 
                     {/* MODALS */}
                     
+                    {modals.workerBonusesInfo && (
+                        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setModals(prev => ({ ...prev, workerBonusesInfo: false }))}></div>
+                            <div className="bg-[#f5f5f4] w-full max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-xl font-black text-stone-900 uppercase tracking-tight">Lisäpalkkiot ({activeRegions.find(r => r.id === targetBonusRegion)?.name || targetBonusRegion || 'Famula'})</h3>
+                                    <button aria-label="Sulje" onClick={() => setModals(prev => ({ ...prev, workerBonusesInfo: false }))} className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-stone-500 hover:bg-stone-300 transition-colors"><X size={16}/></button>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-1">Lisämyynti käynnillä</p>
+                                            <p className="text-sm font-medium text-stone-800">Jokaisesta lisätunnista kertaluontoisesti.</p>
+                                        </div>
+                                        <div className="text-right ml-4 shrink-0">
+                                            <span className="text-2xl font-black text-[#2f855a]">{regionBonuses.oneTimeRate}€</span>
+                                            <span className="block text-[9px] font-bold text-stone-400 uppercase mt-1">/ lisätunti</span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-1">Sopimuksen parantaminen</p>
+                                            <p className="text-sm font-medium text-stone-800">Lisätty toistuva sovittu viikkotunti.</p>
+                                        </div>
+                                        <div className="text-right ml-4 shrink-0">
+                                            <span className="text-2xl font-black text-[#2f855a]">{regionBonuses.ongoingRate}€</span>
+                                            <span className="block text-[9px] font-bold text-stone-400 uppercase mt-1">/ lisätunti kk</span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-1">Uusi tutustumiskäynti</p>
+                                            <p className="text-sm font-medium text-stone-800">Kertabonus toteutuneesta käynnistä.</p>
+                                        </div>
+                                        <div className="text-right ml-4 shrink-0">
+                                            <span className="text-2xl font-black text-[#2f855a]">{regionBonuses.customerBonus}€</span>
+                                            <span className="block text-[9px] font-bold text-stone-400 uppercase mt-1">kertabonus</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-6 p-4 bg-[#f0fdf4] rounded-2xl border border-[#dcfce7] flex items-start gap-3">
+                                    <div className="bg-white p-2 rounded-full text-[#2f855a] shadow-sm shrink-0"><Check size={16}/></div>
+                                    <p className="text-xs text-[#2f855a] font-medium leading-relaxed">Nämä palkkiot ovat voimassa alueellasi ja ne lisätään bonuksiisi tehtyjen kirjausten perusteella.</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
 
                     {modals.salaryDetails && !isAdmin && (

@@ -10,9 +10,9 @@ const generateId = () => Date.now().toString(36) + Math.random().toString(36).su
 // --- CONSTANTS & CSV DATA TEMPLATES ---
 const FALLBACK_REGIONS = [
     { id: 'oulu', name: 'Famula Oulu' },
-    { id: 'lappeenranta', name: 'Famula Lappeenranta' },
+    { id: 'etela-karjala', name: 'Famula Etelä-Karjala' },
     { id: 'uusimaa', name: 'Famula Uusimaa' },
-    { id: 'kuopio', name: 'Famula Kuopio' },
+    { id: 'pohjois-savo', name: 'Famula Pohjois-Savo' },
     { id: 'keskisuomi', name: 'Famula Keski-Suomi' }
 ];
 
@@ -290,7 +290,16 @@ export default function App() {
 
     // 1. Initial Auth setup
     useEffect(() => {
-        const SUPER_ADMINS = ['heikki.laivamaa@famula.fi', 'paulus.linnanmaki@famula.fi'];
+        const PREAPPROVED_USERS = {
+            'heikki.laivamaa@famula.fi': { role: 'superadmin', name: 'Heikki Laivamaa' },
+            'paulus.linnanmaki@famula.fi': { role: 'superadmin', name: 'Paulus Linnanmäki' },
+            'valma.linnanmaki@famula.fi': { role: 'superadmin', name: 'Valma Linnanmäki' },
+            'alma.marjanen@famula.fi': { role: 'admin', regionId: 'oulu', name: 'Alma Marjanen' },
+            'paula.tuikkanen@famula.fi': { role: 'admin', regionId: 'etela-karjala', name: 'Paula Tuikkanen' },
+            'riina.kyllonen@famula.fi': { role: 'admin', regionId: 'uusimaa', name: 'Riina Kyllönen' },
+            'leena.huusko@famula.fi': { role: 'admin', regionId: 'keskisuomi', name: 'Leena Huusko' },
+            'julia.paananen@famula.fi': { role: 'admin', regionId: 'pohjois-savo', name: 'Julia Paananen' }
+        };
         
         const unsub = onAuthStateChanged(auth, async (u) => {
             if (u) {
@@ -317,11 +326,19 @@ export default function App() {
                             if (d.status) dbStatus = d.status;
                         }
 
-                        // Hardcoded override
-                        if (u.email && SUPER_ADMINS.includes(u.email.toLowerCase())) {
-                            role = 'superadmin';
-                            status = 'active';
-                            dbStatus = 'active';
+                        let emailKey = u.email ? u.email.toLowerCase() : '';
+                        if (emailKey && PREAPPROVED_USERS[emailKey]) {
+                            const pre = PREAPPROVED_USERS[emailKey];
+                            role = pre.role;
+                            if (pre.regionId) regionId = pre.regionId;
+                            if (pre.name) name = pre.name;
+                            if (!dbStatus) status = 'active'; // Force active if no ban
+                            
+                            // Auto-seed into database if they just logged in without data
+                            if (!hasData) {
+                                setDoc(userRef, { name, role, regionId, email: u.email, status: 'active', uid: u.uid }, { merge: true });
+                                hasData = true;
+                            }
                         }
                         
                         setAuthSession({ name, role, regionId, realRole: role, realRegionId: regionId, status, email: u.email, hasData, dbStatus });

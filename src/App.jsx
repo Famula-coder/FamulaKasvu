@@ -25,15 +25,15 @@ const DEFAULT_TRAY_TASKS = [
     { id: generateId(), text: "Digi- ja lehtimainonnan konversioiden optimointi: 1 kerta / vko" }
 ];
 
-const GAMIFICATION_LEVELS = [
+const GAMIFICATION_LEVELS_DEFAULT = [
     { level: 0, maxHours: 100, title: "Aluevaltaaja", icon: "🥉", color: "text-[#cd7f32]", bgColor: "bg-[#cd7f32]/10", border: "border-[#cd7f32]/30", desc: "Perustan rakentaminen. Palkan turvaaminen." },
     { level: 1, maxHours: 250, title: "Työnjohtaja", icon: "🥈", color: "text-[#71717a]", bgColor: "bg-[#f4f4f5]", border: "border-[#e4e4e7]", desc: "Ensimmäiset työntekijät. Palveluvolyymin kasvatus." },
     { level: 2, maxHours: 426, title: "Kasvujohtaja", icon: "🥇", color: "text-[#eab308]", bgColor: "bg-[#fefce8]", border: "border-[#fef08a]", desc: "Kuopan ylitys. Ohjaa aikaa lisäpalveluin ja tukemiseen." },
     { level: 3, maxHours: Infinity, title: "Omistaja", icon: "💎", color: "text-[#06b6d4]", bgColor: "bg-[#ecfeff]", border: "border-[#a5f3fc]", desc: "Koneisto rullaa. Liiketoiminnan täysi skaalautuminen." }
 ];
 
-const getGamificationLevel = (hours) => {
-    return GAMIFICATION_LEVELS.find(l => (hours || 0) < l.maxHours) || GAMIFICATION_LEVELS[GAMIFICATION_LEVELS.length - 1];
+const getGamificationLevel = (hours, levels = GAMIFICATION_LEVELS_DEFAULT) => {
+    return levels.find(l => (hours || 0) < l.maxHours) || levels[levels.length - 1];
 };
 
 const GROWTH_TEMPLATES = [
@@ -1106,6 +1106,17 @@ const updatePublicDataProps = (updates) => {
             <div className="animate-fade-in">
                 <header className="mb-4 mt-2 px-1"><h2 className="text-2xl font-black text-stone-900">{isAdmin ? 'Hallintapaneeli' : 'Oma Profiili'}</h2></header>
                 
+                {isAdmin && (
+                    <div className="flex bg-stone-200/50 p-1 rounded-2xl mb-6">
+                        <button onClick={() => setUserProfileTab('kayttajat')} className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all ${userProfileTab === 'kayttajat' ? 'bg-white shadow-sm text-stone-800' : 'text-stone-500 hover:text-stone-700'}`}>Käyttäjät</button>
+                        <button onClick={() => {
+                            const targetBonusRegion = (isSuperAdmin && globalScope.regionId !== 'all') ? globalScope.regionId : authSession?.regionId;
+                            setAdminBonuses(publicData?.regionBonuses?.[targetBonusRegion] || { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50, newContractRate: 0 });
+                            setUserProfileTab('palkitseminen');
+                        }} className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all ${userProfileTab === 'palkitseminen' ? 'bg-white shadow-sm text-[#9b2c2c]' : 'text-stone-500 hover:text-stone-700'}`}>Palkitsemisperiaatteet</button>
+                    </div>
+                )}
+                
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-stone-200 mb-6">
                     <div className="flex items-center gap-4 mb-4">
                         <div className="w-16 h-16 rounded-full bg-stone-100 flex items-center justify-center text-[#2f855a] text-xl font-bold">{fbUser?.displayName?.[0] || 'U'}</div>
@@ -1133,7 +1144,7 @@ const updatePublicDataProps = (updates) => {
                     <button onClick={handleLogout} className="w-full text-center p-3 rounded-xl bg-stone-900 border border-stone-900 text-sm font-bold text-white shadow-md hover:bg-black transition flex items-center justify-center mt-6 gap-2"><LogOut size={16}/> Kirjaudu ulos</button>
                 </div>
 
-                {isAdmin && (
+                {isAdmin && userProfileTab === 'kayttajat' && (
                     <div className="space-y-6 lg:col-span-1">
                         {pendingUsers.length > 0 && (
                             <div>
@@ -1241,6 +1252,94 @@ const updatePublicDataProps = (updates) => {
                         </div>
                     </div>
                 )}
+                {isAdmin && userProfileTab === 'palkitseminen' && (
+                    <div className="space-y-6 animate-fade-in">
+                        {/* Hoitajien Bonusmatriisi */}
+                        <div>
+                            <h3 className="text-xs font-black uppercase text-[#9b2c2c] tracking-widest mb-3 px-1 mt-6">Hoitajien Eurobonukset ({isSuperAdmin && globalScope.regionId !== 'all' ? globalScope.regionId : authSession?.regionId})</h3>
+                            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
+                                <div className="space-y-4 mb-6">
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Lisämyynti käynnillä (€ / lisätunti)</label>
+                                        <input type="number" value={adminBonuses.oneTimeRate} onChange={(e) => setAdminBonuses({...adminBonuses, oneTimeRate: Number(e.target.value)})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 focus:border-[#9b2c2c]" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Sopimuksen parantaminen (€ / lisätunti kk)</label>
+                                        <input type="number" value={adminBonuses.ongoingRate} onChange={(e) => setAdminBonuses({...adminBonuses, ongoingRate: Number(e.target.value)})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 focus:border-[#9b2c2c]" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Uusi tutustumiskäynti (kertabonus €)</label>
+                                        <input type="number" value={adminBonuses.customerBonus} onChange={(e) => setAdminBonuses({...adminBonuses, customerBonus: Number(e.target.value)})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 focus:border-[#9b2c2c]" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Uusi sopimus (€, Aluevetäjä määrittää oletuksen)</label>
+                                        <input type="number" value={adminBonuses.newContractRate || ''} onChange={(e) => setAdminBonuses({...adminBonuses, newContractRate: Number(e.target.value)})} placeholder="Tyhjä / 0" className="w-full p-4 bg-stone-50 border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 focus:border-[#9b2c2c]" />
+                                    </div>
+                                </div>
+                                <button onClick={saveRegionBonuses} className="w-full bg-[#9b2c2c] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Tallenna Bonussäännöt</button>
+                            </div>
+                        </div>
+
+                        {/* Kasvun portaat (Vain Superadmin) */}
+                        {isSuperAdmin && (
+                            <div className="mt-8">
+                                <h3 className="text-xs font-black uppercase text-[#9b2c2c] tracking-widest mb-3 px-1 mt-8">Aluevetäjien Kasvun Portaat</h3>
+                                <div className="space-y-4">
+                                    {activeGamificationLevels.map((lvl, index) => (
+                                        <div key={index} className={`p-4 rounded-[2rem] border ${lvl.bgColor} ${lvl.border} shadow-sm relative group`}>
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <input type="text" value={lvl.icon} onChange={e => {
+                                                    const newLvls = [...activeGamificationLevels];
+                                                    newLvls[index].icon = e.target.value;
+                                                    updatePublicDataProps({ gamificationLevels: newLvls });
+                                                }} className="text-3xl bg-transparent w-12 text-center outline-none border-b border-stone-200 focus:border-stone-400" />
+                                                <div className="flex-1">
+                                                    <input type="text" value={lvl.title} onChange={e => {
+                                                        const newLvls = [...activeGamificationLevels];
+                                                        newLvls[index].title = e.target.value;
+                                                        updatePublicDataProps({ gamificationLevels: newLvls });
+                                                    }} className={`text-sm font-black uppercase tracking-wider ${lvl.color} bg-transparent w-full outline-none border-b border-transparent focus:border-stone-300`} />
+                                                </div>
+                                                <button onClick={() => {
+                                                    const newLvls = activeGamificationLevels.filter((_, i) => i !== index);
+                                                    updatePublicDataProps({ gamificationLevels: newLvls });
+                                                }} className="w-8 h-8 rounded-full bg-white text-[#9b2c2c] border border-[#fca5a5] flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity">
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                            <div className="flex gap-4">
+                                                <div className="flex-1">
+                                                    <label className="block text-[9px] font-bold text-stone-500 uppercase mb-1">Tuntiraja max</label>
+                                                    <input type="number" value={lvl.maxHours === Infinity ? 9999 : lvl.maxHours} onChange={e => {
+                                                        const newLvls = [...activeGamificationLevels];
+                                                        const val = Number(e.target.value);
+                                                        newLvls[index].maxHours = val >= 9999 ? Infinity : val;
+                                                        updatePublicDataProps({ gamificationLevels: newLvls });
+                                                    }} className="w-full bg-white border border-stone-200 px-3 py-2 rounded-xl text-xs font-bold w-24 outline-none" />
+                                                </div>
+                                                <div className="flex-[3]">
+                                                    <label className="block text-[9px] font-bold text-stone-500 uppercase mb-1">Kuvaus</label>
+                                                    <input type="text" value={lvl.desc} onChange={e => {
+                                                        const newLvls = [...activeGamificationLevels];
+                                                        newLvls[index].desc = e.target.value;
+                                                        updatePublicDataProps({ gamificationLevels: newLvls });
+                                                    }} className="w-full bg-white border border-stone-200 px-3 py-2 rounded-xl text-xs outline-none" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <button onClick={() => {
+                                        const newLvls = [...activeGamificationLevels, { level: activeGamificationLevels.length, maxHours: 1000, title: "Uusi taso", icon: "💎", color: "text-[#9b2c2c]", bgColor: "bg-[#fdf2f2]", border: "border-[#fca5a5]", desc: "" }];
+                                        updatePublicDataProps({ gamificationLevels: newLvls });
+                                    }} className="w-full p-4 border border-dashed border-stone-300 rounded-[2rem] text-stone-500 hover:text-stone-800 hover:border-stone-400 hover:bg-white font-bold text-sm transition-all flex justify-center items-center gap-2">
+                                        <Plus size={16} /> Lisää Uusi Taso
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
             </div>
         );
     };
@@ -1405,8 +1504,8 @@ const updatePublicDataProps = (updates) => {
         const currentLevel = getGamificationLevel(validTgt);
         
         let nextLevel = null;
-        if (currentLevel.level < GAMIFICATION_LEVELS.length - 1) {
-            nextLevel = GAMIFICATION_LEVELS[currentLevel.level + 1];
+        if (currentLevel.level < activeGamificationLevels.length - 1) {
+            nextLevel = activeGamificationLevels[currentLevel.level + 1];
         }
         
         return (
@@ -1429,7 +1528,7 @@ const updatePublicDataProps = (updates) => {
                             <p className="text-xs font-medium leading-relaxed opacity-90 text-stone-700">
                                 Päällä olevan suunnitelman kuluvan kuukauden tavoite on <strong>{validTgt} h</strong>. 
                                 {nextLevel && (
-                                    <> Seuraava taso on <strong className={currentLevel.color}>{nextLevel.title}</strong>, johon vaaditaan aktiivisessa kuukaudessa vähintään {GAMIFICATION_LEVELS[currentLevel.level].maxHours} kohdetuntia.</>
+                                    <> Seuraava taso on <strong className={currentLevel.color}>{nextLevel.title}</strong>, johon vaaditaan aktiivisessa kuukaudessa vähintään {activeGamificationLevels[currentLevel.level].maxHours} kohdetuntia.</>
                                 )}
                             </p>
                         </div>
@@ -1643,8 +1742,8 @@ const updatePublicDataProps = (updates) => {
                                 <button aria-label="Sulje lisätiedot" onClick={() => setShowLevelsInfo(false)} className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-stone-500 hover:bg-stone-300 transition"><X size={16}/></button>
                             </div>
                             <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-                                {GAMIFICATION_LEVELS.map((lvl, index) => {
-                                    const prevLvl = index > 0 ? GAMIFICATION_LEVELS[index - 1] : null;
+                                {activeGamificationLevels.map((lvl, index) => {
+                                    const prevLvl = index > 0 ? activeGamificationLevels[index - 1] : null;
                                     return (
                                     <div key={lvl.level} className={`p-4 rounded-2xl border ${lvl.bgColor} ${lvl.border} bg-white shadow-sm`}>
                                         <div className="flex items-center gap-3 mb-2">
@@ -2012,7 +2111,7 @@ const updatePublicDataProps = (updates) => {
                             <button onClick={() => setShowHelpModal(true)} className="text-stone-400 hover:text-[#9b2c2c] transition-colors"><HelpCircle size={16} /></button>
                             {isAdmin && (() => {
                                 const currTgtHours = getCurrentMonthTarget(marketingPlans, activeTrayRegion);
-                                const lvl = getGamificationLevel(currTgtHours);
+                                const lvl = getGamificationLevel(currTgtHours, activeGamificationLevels);
                                 return (
                                     <span className={`text-[9px] ${lvl.bgColor} ${lvl.color} px-2 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${lvl.border} flex items-center gap-1 shrink-0 whitespace-nowrap`} title={lvl.desc}>
                                         <span className="text-xs">{lvl.icon}</span> {lvl.title}
@@ -2134,7 +2233,21 @@ const updatePublicDataProps = (updates) => {
                                     </button>
                                 </div>
 
-                                {/* MY DESKTOP (PERSONAL TASKS) */}
+
+                                {/* Palkitsemisen Info */}
+                                <div className="bg-white rounded-3xl p-5 shadow-sm border border-stone-200 mb-6 flex justify-between items-center group cursor-default">
+                                    <div>
+                                        <h4 className="text-[10px] uppercase font-black tracking-widest text-stone-400 mb-1">Voimassa olevat alueen lisäpalkkiot</h4>
+                                        <div className="flex gap-4">
+                                            <div><span className="text-[#2f855a] font-black text-lg">{regionBonuses.oneTimeRate}€</span> <span className="text-stone-500 text-[10px] font-bold">Lisätunti</span></div>
+                                            <div><span className="text-[#2f855a] font-black text-lg">{regionBonuses.ongoingRate}€</span> <span className="text-stone-500 text-[10px] font-bold">Sopimuskorotus</span></div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-[#f0fdf4] w-12 h-12 rounded-2xl flex items-center justify-center text-[#2f855a] border border-[#dcfce7] shrink-0">
+                                        <Coins size={20} />
+                                    </div>
+                                </div>
+                                                                {/* MY DESKTOP (PERSONAL TASKS) */}
                                 <div className="bg-stone-50 rounded-[2rem] p-2 border border-stone-200 shadow-sm">
                                     <div className="text-center pt-4 pb-2">
                                         <h3 className="font-extrabold text-stone-900 text-lg">Oma työlista</h3>
@@ -3375,628 +3488,4 @@ const updatePublicDataProps = (updates) => {
 
                     {/* MODALS */}
                     
-                    {modals.bonuses && (
-                        <div className="fixed inset-0 z-[60] flex items-end justify-center">
-                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"></div>
-                            <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-xl font-black text-stone-900">Palkkiot ja Komissiot</h3>
-                                    <button aria-label="Sulje bonukset" onClick={() => setModals(prev => ({ ...prev, bonuses: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
-                                </div>
-                                <div className="space-y-4 mb-6">
-                                    <div>
-                                        <label htmlFor="bonusSingle" className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Lisämyynti käynnillä (€ / lisätunti)</label>
-                                        <input type="number" value={adminBonuses.oneTimeRate} onChange={(e) => setAdminBonuses({...adminBonuses, oneTimeRate: Number(e.target.value)})} className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#9b2c2c]" />
-                                    </div>
-                                    <div>
-                                        <label htmlFor="bonusRecurring" className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Sopimuksen parantaminen (€ / lisätunti kk)</label>
-                                        <input type="number" value={adminBonuses.ongoingRate} onChange={(e) => setAdminBonuses({...adminBonuses, ongoingRate: Number(e.target.value)})} className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#9b2c2c]" />
-                                    </div>
-                                    <div>
-                                        <label htmlFor="bonusNewClient" className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Uusi tutustumiskäynti (kertabonus €)</label>
-                                        <input type="number" value={adminBonuses.customerBonus} onChange={(e) => setAdminBonuses({...adminBonuses, customerBonus: Number(e.target.value)})} className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#9b2c2c]" />
-                                    </div>
-                                    <div>
-                                        <label htmlFor="bonusNewContract" className="block text-[11px] font-bold text-stone-500 uppercase mb-2 ml-1">Uusi sopimus (€, Aluevetäjä määrittää oletuksen)</label>
-                                        <input type="number" value={adminBonuses.newContractRate || ''} onChange={(e) => setAdminBonuses({...adminBonuses, newContractRate: Number(e.target.value)})} placeholder="Tyhjä / 0" className="w-full p-4 bg-white border border-stone-200 rounded-2xl outline-none font-bold text-stone-800 shadow-sm focus:border-[#9b2c2c]" />
-                                    </div>
-                                </div>
-                                <button onClick={saveRegionBonuses} className="w-full bg-[#9b2c2c] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Tallenna Asetukset</button>
-                            </div>
-                        </div>
-                    )}
 
-                    {modals.salaryDetails && !isAdmin && (
-                        <div className="fixed inset-0 z-[60] flex items-end justify-center">
-                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setModals(prev => ({ ...prev, salaryDetails: false }))}></div>
-                            <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-xl font-black text-stone-900">Palkkiot ja Komissiot</h3>
-                                    <button aria-label="Sulje palkkatiedot" onClick={() => setModals(prev => ({ ...prev, salaryDetails: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
-                                </div>
-                                
-                                {(() => {
-                                    const todayInfo = getTodayInfo(0);
-                                            const targetBonusRegion = (isSuperAdmin && globalScope.regionId !== 'all') ? globalScope.regionId : authSession?.regionId;
-        const regionBonuses = publicData?.regionBonuses?.[targetBonusRegion] || { oneTimeRate: 5, ongoingRate: 20, customerBonus: 30, newContractRate: 0 };
-                                    const myStat = (Array.isArray(allUserStats) ? allUserStats : []).find(s => s.id === fbUser?.uid) || { logs: [] };
-                                    const { monthBonus, monthDetails } = calculateUserBonuses(myStat.logs, regionBonuses, todayInfo);
-                                    return (
-                                        <>
-                                            <div className="bg-gradient-to-br from-[#22543d] to-[#2f855a] text-white p-6 rounded-2xl shadow-lg mb-6 relative overflow-hidden">
-                                                <div className="relative z-10">
-                                                    <p className="text-[10px] font-bold text-[#dcfce7] uppercase mb-2 tracking-wider">Arvioitu Bonus: {todayInfo.monthIdx + 1}/{todayInfo.year}</p>
-                                                    <div className="flex items-baseline">
-                                                        <span className="text-5xl font-black">{monthBonus.toFixed(2)}</span>
-                                                        <span className="text-xl font-bold ml-2 opacity-80">€</span>
-                                                    </div>
-                                                </div>
-                                                <Coins className="absolute -right-4 -bottom-4 w-28 h-28 opacity-10" />
-                                            </div>
-                                            <div className="space-y-4 mb-2">
-                                                <h4 className="text-xs font-black text-stone-500 uppercase tracking-widest pl-1 mb-2 border-b border-stone-200/60 pb-2">Erittely kuluvalta kuulta</h4>
-                                                
-                                                <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex justify-between items-center group">
-                                                    <div>
-                                                        <div className="text-sm font-black text-stone-800 flex items-center gap-2"><RefreshCw className="w-4 h-4 text-[#2f855a]"/> Sopimuksen parantaminen</div>
-                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Kertabonus {regionBonuses.ongoingRate} €/lisätunti</div>
-                                                    </div>
-                                                    <span className="text-lg font-black text-stone-900 group-hover:text-[#2f855a] transition-colors">{monthDetails.ongoing.toFixed(2)} €</span>
-                                                </div>
-
-                                                <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex justify-between items-center group">
-                                                    <div>
-                                                        <div className="text-sm font-black text-stone-800 flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#9b2c2c]"/> Lisämyynti käynnillä</div>
-                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Bonus {regionBonuses.oneTimeRate} €/myyty tunti</div>
-                                                    </div>
-                                                    <span className="text-lg font-black text-stone-900 group-hover:text-[#9b2c2c] transition-colors">{monthDetails.oneTime.toFixed(2)} €</span>
-                                                </div>
-
-                                                <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex justify-between items-center group">
-                                                    <div>
-                                                        <div className="text-sm font-black text-stone-800 flex items-center gap-2"><UserPlus className="w-4 h-4 text-stone-600"/> Uusi tutustumiskäynti</div>
-                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Kertabonus {regionBonuses.customerBonus} €</div>
-                                                    </div>
-                                                    <span className="text-lg font-black text-stone-900">{monthDetails.customer.toFixed(2)} €</span>
-                                                </div>
-                                                
-                                                <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex justify-between items-center group">
-                                                    <div>
-                                                        <div className="text-sm font-black text-stone-800 flex items-center gap-2"><StickyNote className="w-4 h-4 text-[#facc15]"/> Uusi sopimus</div>
-                                                        <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Palkkio: {regionBonuses.newContractRate || 0} € (Vetäjä tarkistaa)</div>
-                                                    </div>
-                                                    <span className="text-lg font-black text-stone-900">{monthDetails.newContract.toFixed(2)} €</span>
-                                                </div>
-                                            </div>
-                                        </>
-                                    );
-                                })()}
-                                
-                                <p className="text-[10px] text-stone-400 text-center uppercase tracking-widest mt-6 opacity-80 font-bold mb-2">Maksetaan hyväksytyn tuntilokin pohjalta palkanmaksun yhteydessä.</p>
-                            </div>
-                        </div>
-                    )}
-
-                    
-
-                    {modals.activityHistory && (() => {
-                        const targetUid = modals.activityHistory;
-                        const targetStat = allUserStats.find(s => s.id === targetUid) || { logs: [], name: 'Käyttäjä' };
-                        const logs = [...(targetStat.logs || [])].sort((a,b) => b.timestamp - a.timestamp);
-                        const isMe = targetUid === fbUser?.uid;
-                        
-                        return (
-                            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                                <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setModals(prev => ({ ...prev, activityHistory: null }))}></div>
-                                <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-[2rem] shadow-2xl relative z-10 overflow-hidden border border-stone-200">
-                                    <div className="bg-white p-6 border-b border-stone-200 flex justify-between items-center relative">
-                                        <div>
-                                            <h3 className="text-lg font-black text-stone-900">Aktiviteettihistoria</h3>
-                                            <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mt-1">{isMe ? 'Omat tapahtumasi' : `${targetStat.name} - Tapahtumat`}</p>
-                                        </div>
-                                        <button aria-label="Sulje historia" onClick={() => setModals(prev => ({ ...prev, activityHistory: null }))} className="w-8 h-8 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center hover:bg-stone-200 transition-colors"><X size={16}/></button>
-                                    </div>
-                                    
-                                    <div className="p-4 max-h-[60vh] overflow-y-auto space-y-3">
-                                        {logs.length === 0 ? <p className="text-center text-sm font-medium text-stone-500 py-10">Ei kirjattuja tapahtumia.</p> : logs.map(log => {
-                                            const isSurvey = log.type === 'survey';
-                                            const npsColor = log.nps >= 9 ? 'bg-[#f0fdf4] text-[#2f855a] border-[#dcfce7]' : (log.nps <= 6 && log.nps > 0 ? 'bg-[#fdf2f2] text-[#9b2c2c] border-[#fde8e8]' : 'bg-white text-stone-600 border-stone-200');
-                                            
-                                            return (
-                                                <div key={log.id} className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm relative group overflow-hidden flex justify-between">
-                                                    <div>
-                                                        <div className="flex items-center gap-2 mb-1.5">
-                                                            {isSurvey ? <MessageCircle className="w-4 h-4 text-[#2f855a]" /> : <Activity className="w-4 h-4 text-[#9b2c2c]" />}
-                                                            <span className="font-black text-stone-800 text-sm">{isSurvey ? `Asiakaskohtaaminen` : (log.type === 'quick_sale' ? (log.saleMode === 'newContract' ? 'Uusi sopimus' : 'Lisämyynti / Parannus') : 'Uusi tutustumiskäynti')}</span>
-                                                        </div>
-                                                        <div className="text-xs text-stone-500 font-medium mb-3">
-                                                            {new Date(log.timestamp).toLocaleString('fi-FI')}
-                                                        </div>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {isSurvey && <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-stone-50 border border-stone-200 rounded-md text-stone-600">As: {log.clientInitials}</span>}
-                                                            {log.hours > 0 && <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-stone-50 border border-stone-200 rounded-md text-stone-600"><Clock className="w-3 h-3 text-[#9b2c2c]"/> {log.hours}h</span>}
-                                                            {isSurvey && log.nps > 0 && <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 border rounded-md ${npsColor}`}>NPS: {log.nps}</span>}
-                                                            {log.proposalStatus === 'sold' && <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-[#f0fdf4] border border-[#dcfce7] rounded-md text-[#2f855a]"><UserCheck className="w-3 h-3"/> Uusi asiakas!</span>}
-                                                            {log.type === 'quick_customer' && <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 bg-[#f0fdf4] border border-[#dcfce7] rounded-md text-[#2f855a]"><UserCheck className="w-3 h-3"/> Pika-asiakas</span>}
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div className="flex items-start">
-                                                        <button 
-                                                            onClick={() => handleUndoLog(targetUid, log.id)} 
-                                                            className="p-2 sm:p-2.5 bg-[#fdf2f2] text-[#9b2c2c] hover:bg-[#fce8e8] hover:text-[#771d1d] border border-[#fde8e8] rounded-xl flex items-center justify-center transition-colors shadow-sm shrink-0"
-                                                            title="Poista ja peruuta tilastoista"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                    <div className="bg-stone-50 p-4 border-t border-stone-200 text-center text-[10px] text-stone-400 font-bold uppercase rounded-b-[2rem]">
-                                        <p>Huom: Peruutuksen tulo tilastoihin edellyttää sivun päivitystä, mutta data on turvassa.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })()}
-
-                    {/* Admin - Aseta Tarjotin */}
-                    {modals.adminPlan && (
-                        <div className="fixed inset-0 z-[60] flex items-end justify-center">
-                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"></div>
-                            <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20 h-[85vh] overflow-y-auto">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-xl font-black text-stone-900">Valtakunnallinen tarjotin</h3>
-                                    <button aria-label="Sulje suunnitelma" onClick={() => setModals(prev => ({ ...prev, adminPlan: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
-                                </div>
-                                <div className="mb-6">
-                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-2">Lataa tavoitekirjastosta</label>
-                                    <select onChange={e => applyGrowthTemplate(e.target.value)} className="w-full p-4 bg-white border border-stone-300 rounded-2xl font-bold text-stone-800 outline-none focus:border-[#9b2c2c] shadow-sm">
-                                        <option value="">-- Valitse Kasvun porras / pohja --</option>
-                                        {GROWTH_TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                                    </select>
-                                </div>
-                                <div className="space-y-3 mb-6">
-                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-2">Muokkaa tarjotinta (Kaikki näkevät nämä)</label>
-                                    {editingPlanTasks.map((task) => (
-                                        <div key={task.id} className="flex gap-2">
-                                            <input type="text" value={task.text} onChange={e => updatePlanTask(task.id, e.target.value)} className="flex-1 p-4 bg-white border border-stone-200 rounded-2xl text-sm font-bold text-stone-800 shadow-sm focus:border-[#9b2c2c] outline-none" />
-                                            <button onClick={() => removePlanTask(task.id)} className="w-14 bg-[#fdf2f2] text-[#9b2c2c] rounded-2xl flex items-center justify-center hover:bg-[#fde8e8] transition-colors"><Trash2 size={18}/></button>
-                                        </div>
-                                    ))}
-                                    <button onClick={addPlanTask} className="w-full py-4 border-2 border-dashed border-stone-300 text-stone-500 font-bold rounded-2xl text-sm flex items-center justify-center hover:bg-white transition-colors"><Plus size={18} className="mr-1"/> Lisää Rivi</button>
-                                </div>
-                                <button onClick={saveAdminPlan} className="w-full bg-[#9b2c2c] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Tallenna & Julkaise Tarjotin</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Edit Tray Task (Personal overrides) */}
-                    {modals.editTrayTask && (
-                        <div className="fixed inset-0 z-[70] flex items-end justify-center">
-                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"></div>
-                            <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-xl font-black text-stone-900">Muokkaa tavoitetta</h3>
-                                    <button aria-label="Sulje tehtävän muokkaus" onClick={() => setModals(prev => ({ ...prev, editTrayTask: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
-                                </div>
-                                <textarea value={editingTrayTask.text} onChange={e => setEditingTrayTask(prev => ({...prev, text: e.target.value}))} className="w-full p-4 bg-white border border-stone-200 focus:border-[#2f855a] rounded-2xl outline-none mb-6 h-32 shadow-sm font-bold text-stone-800"></textarea>
-                                <button onClick={saveEditedTrayTask} className="w-full bg-[#2f855a] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Tallenna Tarjottimelle</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* New Tray Task */}
-                    {modals.newTrayTask && (
-                        <div className="fixed inset-0 z-[70] flex items-end justify-center">
-                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"></div>
-                            <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-xl font-black text-stone-900">Lisää oma tavoite</h3>
-                                    <button aria-label="Sulje uusi tehtävä" onClick={() => setModals(prev => ({ ...prev, newTrayTask: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
-                                </div>
-                                <textarea value={newTrayTaskText} onChange={e => setNewTrayTaskText(e.target.value)} placeholder="Mitä haluat saavuttaa?" className="w-full p-4 bg-white border border-stone-200 focus:border-[#2f855a] rounded-2xl outline-none mb-6 h-32 shadow-sm font-bold text-stone-800"></textarea>
-                                <button onClick={saveNewTrayTask} className="w-full bg-[#2f855a] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Lisää tarjottimelle</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Hoitaja - Edit Oma Tehtävä (Desktop) */}
-                    {modals.editTask && (
-                        <div className="fixed inset-0 z-[70] flex items-end justify-center">
-                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"></div>
-                            <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-xl font-black text-stone-900">Muokkaa tehtävää</h3>
-                                    <button aria-label="Sulje muokkaus" onClick={() => setModals(prev => ({ ...prev, editTask: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
-                                </div>
-                                <textarea value={editingTaskText} onChange={e=>setEditingTaskText(e.target.value)} className="w-full p-4 bg-white border border-stone-200 focus:border-[#2f855a] rounded-2xl outline-none mb-6 h-32 shadow-sm font-bold text-stone-800"></textarea>
-                                <button onClick={saveEditedMyTask} className="w-full bg-[#2f855a] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Tallenna Muutos</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {showHelpModal && (
-                        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-                            <div className="bg-white rounded-3xl w-full max-w-md max-h-[85vh] overflow-y-auto shadow-2xl">
-                                <div className="sticky top-0 bg-white border-b border-stone-200 p-5 flex justify-between items-center rounded-t-3xl z-10">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-[#fdf2f2] text-[#9b2c2c] flex items-center justify-center"><HelpCircle size={18} /></div>
-                                        <h3 className="font-black text-lg text-stone-900">Käyttöohjeet {authSession.role === 'myyja' ? '(Hoitaja)' : authSession.role === 'admin' ? '(Aluevetäjä)' : '(Johto)'}</h3>
-                                    </div>
-                                    <button aria-label="Sulje ohje" onClick={() => setShowHelpModal(false)} className="p-2 bg-stone-100 rounded-full text-stone-500 hover:bg-stone-200 transition-colors"><X size={18} /></button>
-                                </div>
-                                <div className="p-6 space-y-6 text-stone-600 text-sm">
-                                    {authSession.role === 'myyja' && (
-                                        <>
-                                            <p className="border-l-4 border-stone-200 pl-3">Olet <strong>Työntekijä (hoitaja)</strong>. Sinun tehtäväsi on kohdata asiakkaita ja palvella heitä parhaalla mahdollisella tavalla.</p>
-                                            
-                                            <div className="bg-[#f0fdf4] p-5 rounded-2xl border border-[#dcfce7]">
-                                                <h4 className="font-bold text-[#2f855a] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><List size={14}/> 1. Tavoitteiden asettaminen (tarjotin)</h4>
-                                                <p className="text-stone-700 text-xs leading-relaxed">Työpöydälläsi on Tavoitteet-osio. Klikkaa '+ Lisää tavoite tarjottimelle' poimiaksesi uusia rutiineja valmiista kirjastosta. Valitse 'Kiinnitä vakio-rutiiniksi', jolloin se toistuu automaattisesti! Kuittaa valmiit rutiinit suoraan donitsista.</p>
-                                            </div>
-
-                                            <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
-                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><HeartHandshake size={14}/> 2. Kirjaa myynnit ja palautteet</h4>
-                                                <p className="text-stone-600 text-xs leading-relaxed">Käytä työpöydän pääpainikkeita kirjaamaan myynnit (irtotunnit tai jatkuvat) sekä asiakkaiden NPS-arvosanat ja sanalliset palautteet heti tapaamisen jälkeen.</p>
-                                            </div>
-                                            
-                                            <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
-                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Activity size={14}/> 3. Henkilökohtaiset raportit</h4>
-                                                <p className="text-stone-600 text-xs leading-relaxed">Avaa **Muokkaa näkymää** (raporttipankki) ja valitse ruudullesi esimerkiksi aktiivinen *tavoiteputki* sekä *rutiinien suoritusaste*. Näin näet reaaliajassa työnjälkesi!</p>
-                                            </div>
-                                        </>
-                                    )}
-
-                                    {authSession.role === 'admin' && (
-                                        <>
-                                            <p className="border-l-4 border-stone-200 pl-3">Olet <strong>Aluevetäjä</strong>. Toimit valmentajana koko alueesi tiimille ja seuraat taloutta.</p>
-                                            
-                                            <div className="bg-[#f0fdf4] p-5 rounded-2xl border border-[#dcfce7]">
-                                                <h4 className="font-bold text-[#2f855a] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><TrendingUp size={14}/> 1. Markkinointi ja talous</h4>
-                                                <p className="text-stone-700 text-xs leading-relaxed">Siirry **Työkalut → Markkinointisuunnitelmat** syöttääksesi alueesi viralliset tilikauden talousluvut (liikevaihto, EBITDA). Data ohjaa suoraan raporttien talousnäkymää!</p>
-                                            </div>
-
-                                            <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
-                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Target size={14}/> 2. Tiimin rutiinien ohjaus</h4>
-                                                <p className="text-stone-600 text-xs leading-relaxed">Lisää työpöydän kautta alueesi tiimiä koskevia tavoitteita. Muista hyödyntää **kiinnitystä** – kun kiinnität elintärkeän rutiinin, se ilmestyy koko alueesi hoitajien donitsiin viikosta toiseen.</p>
-                                            </div>
-                                            
-                                            <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
-                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Sparkles size={14}/> 3. Raportit ja tiimin sparraus</h4>
-                                                <p className="text-stone-600 text-xs leading-relaxed">Kokoa kojelauta raporttipankista. Ota käyttöön **hoitajien suoritustaso** sekä **tekoälyn sparraus**, jotka nostavat heti esiin huippusuorittajat ja sparrausta kaipaavat jäsenet.</p>
-                                            </div>
-                                        </>
-                                    )}
-
-                                    {authSession.role === 'superadmin' && (
-                                        <>
-                                            <p className="border-l-4 border-stone-200 pl-3">Olet <strong>Super admin (ylin johto)</strong>. Sinun tehtäväsi on johtaa konsernia ja kehittää Famulan toimintaa.</p>
-                                            
-                                            <div className="bg-[#f0fdf4] p-5 rounded-2xl border border-[#dcfce7]">
-                                                <h4 className="font-bold text-[#2f855a] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Compass size={14}/> 1. Makrotason raportit</h4>
-                                                <p className="text-stone-700 text-xs leading-relaxed">Rakenna Raportit-sivulle haluamasi johtotason dashboard. Ota raporttipankista käyttöön **konsernin tunnusluvut**, tilinpäätösdata ja alueiden dynaaminen suoritusvertailu.</p>
-                                            </div>
-
-                                            <div className="bg-[#fdf2f2] p-5 rounded-2xl border border-[#fde8e8]">
-                                                <h4 className="font-bold text-[#9b2c2c] uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><AlertTriangle size={14}/> 2. Asiakasriskit ja laajentuminen</h4>
-                                                <p className="text-stone-700 text-xs leading-relaxed">Ota raporttipankista käyttöön asiakasriskit-tutka, joka tekoälyä hyödyntäen varoittaa resurssipulasta tai asiakaskadosta poikkeaville alueille automaattisesti.</p>
-                                            </div>
-
-                                            <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200">
-                                                <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5"><Globe size={14}/> 3. Yhtiön rutiinien jalkautus</h4>
-                                                <p className="text-stone-600 text-xs leading-relaxed">Kun luot työpöydän tarjottimen kautta tavoitteen ja **kiinnität sen pysyväksi**, se ilmestyy velvoittavana rutiinina poikkeuksetta koko Suomen hoitajien työpöydälle!</p>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {modals.sales && (
-                        <div className="fixed inset-0 z-[60] flex items-end justify-center">
-                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"></div>
-                            <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
-                                <h3 className="text-xl font-black text-center text-stone-900 mb-2">Kirjaa lisäpalvelu</h3>
-                                <div className="flex p-1 bg-stone-200/70 rounded-2xl mb-5 mt-4 border border-stone-300 gap-1">
-                                    <button onClick={() => setSaleMode('oneTime')} className={`flex-1 text-xs font-bold py-2.5 rounded-xl transition-all shadow-sm ${saleMode === 'oneTime' ? 'bg-white text-[#9b2c2c] ring-1 ring-stone-200' : 'text-stone-500 bg-transparent shadow-none'}`}>Lisämyynti käynnillä</button>
-                                    <button onClick={() => setSaleMode('ongoing')} className={`flex-1 text-xs font-bold py-2.5 rounded-xl transition-all shadow-sm ${saleMode === 'ongoing' ? 'bg-white text-[#2f855a] ring-1 ring-stone-200' : 'text-stone-500 bg-transparent shadow-none'}`}>Sopim. parantaminen</button>
-                                    <button onClick={() => setSaleMode('newContract')} className={`flex-1 text-xs font-bold py-2.5 rounded-xl transition-all shadow-sm ${saleMode === 'newContract' ? 'bg-white text-[#facc15] ring-1 ring-stone-200' : 'text-stone-500 bg-transparent shadow-none'}`}>Uusi Sopimus</button>
-                                </div>
-                                <p className="text-center text-stone-500 text-sm font-medium mb-4">Valitse palveltu tuntimäärä:</p>
-                                <div className="grid grid-cols-4 gap-3 mb-6">
-                                    {[1, 2, 4, 8].map(h => (
-                                        <button key={h} onClick={() => handleRecordSale(h)} className={`aspect-square rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${h===8 ? 'border-[#9b2c2c] bg-[#fdf2f2] shadow-sm' : 'border-stone-200 bg-white hover:border-[#9b2c2c]'}`}>
-                                            <span className={`text-2xl font-black ${h===8?'text-[#9b2c2c]':'text-stone-700'}`}>{h}</span>
-                                            <span className={`text-xs font-bold ${h===8?'text-[#771d1d]':'text-stone-400'}`}>h</span>
-                                        </button>
-                                    ))}
-                                </div>
-                                <div className="relative">
-                                    <input type="number" value={customSalesHours} onChange={e=>setCustomSalesHours(e.target.value)} placeholder="Muu määrä..." className="w-full p-4 bg-white border border-stone-200 rounded-2xl text-center font-bold text-stone-700 mb-4 shadow-sm focus:border-[#9b2c2c] outline-none" />
-                                </div>
-                                <button onClick={() => customSalesHours > 0 && handleRecordSale(parseFloat(customSalesHours))} className="w-full bg-stone-900 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Kirjaa muu määrä</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {modals.reportBank && (
-                        <div className="fixed inset-0 z-[60] flex items-end justify-center">
-                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setModals(prev => ({ ...prev, reportBank: false }))}></div>
-                            <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-xl font-black text-stone-900">Raporttipankki</h3>
-                                    <button aria-label="Sulje raporttipankki" onClick={() => setModals(prev => ({ ...prev, reportBank: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
-                                </div>
-                                <p className="text-stone-500 font-medium text-sm mb-6">Valitse mitä raportteja haluat nähdä kojelaudallasi.</p>
-                                
-                                <div className="space-y-3 mb-6 max-h-[60vh] overflow-y-auto pr-2">
-                                    {[
-                                        { id: 'hours', title: 'Tuntikertymä', desc: 'Työpöydän päätunnusluku. Näyttää kuluvan kuukauden palveltujen tuntien määrän suhteessa tavoitteeseen.' },
-                                        { id: 'revenue', title: 'Operatiivinen kuukausivolyymi', desc: 'Näyttää kuluvan ja menneiden kuukausien suuntaa-antavan euromääräisen volyymikertymän.' },
-                                        { id: 'streak', title: 'Tavoiteputki', desc: 'Näyttää visuaalisesti, kuinka monena peräkkäisenä kuukautena alue on saavuttanut tavoitteensa.' },
-                                        { id: 'tasks', title: 'Rutiinien suoritusaste', desc: 'Kertoo kuinka suuri osa asetetuista rutiineista (esim. soittokierroksista) on tällä hetkellä tehty.' },
-                                        { id: 'surveys', title: 'Asiakastyytyväisyys (NPS)', desc: 'Näyttää listana lähiaikoina toteutuneet asiakaskohtaamiset, NPS-luokitukset ja sanalliset palautteet.' },
-                                        { id: 'sparraus', title: 'Tekoälyn sparraus', desc: 'Koneälyn tuottamat automaattiset huomiot alueesi tai tiimisi rutiineista.' },
-                                        ...(isSuperAdmin ? [
-                                            { id: 'overview', title: 'Konsernin tunnusluvut', desc: 'Ylimmän johdon koontinäkymä. Summaa aktiiviset alueet, tunnit ja globaalin NPS-keskiarvon.' },
-                                            { id: 'comp_regions', title: 'Alueiden suoritusvertailu', desc: 'Listaa alueet asettaen ne järjestykseen suorituskyvyn (tuntien) perusteella.' },
-                                            { id: 'risks', title: 'Asiakasriskit ja laajentuminen', desc: 'Varoittaa automaattisesti ylikuumentuvista alueista ja matalan kapasiteetin yksiköistä.' }
-                                        ] : []),
-                                        ...(isAdmin && !isSuperAdmin ? [
-                                            { id: 'team', title: 'Hoitajien suoritustaso', desc: 'Alueesi työntekijöiden tuloslistaus ohjauksen ja vertailun tueksi.' }
-                                        ] : []),
-                                        ...(isAdmin ? [
-                                            { id: 'fin_revenue', title: 'Tilikauden liikevaihto ja muutos-%', desc: 'Kertoo alueen liikevaihdon ja prosentuaalisen kehityksen suhteessa edelliseen tilikauteen.' },
-                                            { id: 'fin_ebitda', title: 'Käyttökate (EBITDA)', desc: 'Indikoi operatiivisen toiminnan peruskannattavuutta asettaen sen rinnakkain tulosluistoon.' },
-                                            { id: 'fin_ebit', title: 'Liiketulos (EBIT)', desc: 'Liiketoiminnan tulos poistojen jälkeen. Paljastaa miten tuottavaa toiminta on.' },
-                                            { id: 'fin_cashflow', title: 'Operatiivinen kassavirta', desc: 'Kuvaa liiketoiminnan jättämää reaalista rahavirtaa ja kassan riittävyyttä.' }
-                                        ] : []),
-                                        ...(isSuperAdmin ? [
-                                            { id: 'fin_equity', title: 'Omavaraisuusaste', desc: 'Prosenttiluku vahvistaa, kuinka suuri osa alueen varallisuudesta on rahoitettu omalla pääomalla.' },
-                                            { id: 'fin_quickratio', title: 'Maksuvalmius (Quick Ratio)', desc: 'Happotesti maksuvalmiudelle: kyky selviytyä lyhytaikaisista veloista.' }
-                                        ] : [])
-                                    ].map(w => (
-                                        <div key={w.id} onClick={() => toggleWidget(w.id)} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${activeWidgets.includes(w.id) ? 'bg-white border-[#2f855a] shadow-sm' : 'bg-stone-50 border-stone-200 hover:border-stone-300'}`}>
-                                            <div className="pr-4">
-                                                <h4 className={`font-black text-sm mb-1 ${activeWidgets.includes(w.id) ? 'text-[#2f855a]' : 'text-stone-700'}`}>{w.title}</h4>
-                                                <p className="text-[10px] text-stone-500 font-medium leading-relaxed">{w.desc}</p>
-                                            </div>
-                                            <div className={`shrink-0 w-10 h-6 rounded-full flex items-center p-1 transition-colors ${activeWidgets.includes(w.id) ? 'bg-[#2f855a]' : 'bg-stone-300'}`}>
-                                                <div className={`w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${activeWidgets.includes(w.id) ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                                <button aria-label="Sulje raporttipankki" onClick={() => setModals(prev => ({ ...prev, reportBank: false }))} className="w-full bg-stone-900 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">Valmis</button>
-                            </div>
-                        </div>
-                    )}
-
-                </div>
-            </div>
-        );
-    };
-
-    const renderSurveyApp = () => {
-        const { step, company, worker, clientInitials, answers, serviceRatings, planHours, oneOffHours, calculatedBonus } = surveyState;
-        const updateState = (updates) => setSurveyState(prev => ({ ...prev, ...updates }));
-        const goToStep = (newStep) => updateState({ step: newStep });
-        const isSurveyComplete = Object.keys(answers || {}).length === SURVEY_ITEMS.length;
-
-        const renderSurveyCustomer = () => (
-            <div className="px-4 pt-6 space-y-6 animate-fade-in pb-12">
-                <div className="text-center mb-4"><h2 className="text-2xl font-extrabold text-stone-900">Miten onnistuimme?</h2><p className="text-stone-600 font-medium mt-1">Anna arvio ja paina sopivinta vaihtoehtoa.</p></div>
-                <div className="space-y-6 lg:col-span-1">
-                    {SURVEY_ITEMS.map(item => {
-                        const val = (answers || {})[item.id] || 0;
-                        return (
-                            <div key={item.id} className="bg-white rounded-[2rem] shadow-sm border border-stone-200 overflow-hidden">
-                                <div className="bg-stone-50 px-5 py-3 border-b border-stone-100"><h3 className="text-sm font-black text-stone-700 uppercase tracking-widest">{item.title}</h3></div>
-                                <div className="p-5">
-                                    <div className="mb-4">
-                                        <p className="text-lg font-medium text-stone-800 leading-snug text-center mb-2">{item.title === '4. SUOSITTELU' ? 'Kuinka todennäköisesti suosittelisit palvelua ystävällesi?' : item.positive}</p>
-                                        {item.type !== 'nps' && <div className="flex justify-between gap-4 text-xs text-stone-400 font-medium px-1"><span>{item.negative}</span><span>Täysin samaa mieltä</span></div>}
-                                    </div>
-                                    {item.type === 'nps' ? (
-                                        <div className="w-full pt-4 pb-2 px-1">
-                                            <div className="flex justify-between text-xs text-stone-400 font-bold px-1 mb-2"><span>1 (Ei)</span><span>10 (Kyllä)</span></div>
-                                            <input type="range" min="1" max="10" step="1" value={val || 5} className="w-full h-4 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-[#486045] z-20" onChange={(e) => updateState({ answers: { ...(answers || {}), [item.id]: parseInt(e.target.value) } })} style={{ opacity: val === 0 ? 0.5 : 1 }} />
-                                            <div className="text-center mt-4 h-8"><span className={`text-4xl font-black ${val === 0 ? 'text-stone-300' : 'text-[#486045]'}`}>{val === 0 ? '?' : val}</span></div>
-                                        </div>
-                                    ) : (
-                                        <div className="flex justify-between items-center gap-1">
-                                            {EMOJI_SCALE.map(scale => {
-                                                const isSel = scale.value === val;
-                                                return <button key={scale.value} onClick={() => updateState({ answers: { ...(answers || {}), [item.id]: scale.value } })} className={`relative flex flex-col items-center justify-center w-12 h-14 sm:w-14 sm:h-16 rounded-2xl transition-all duration-200 border ${isSel ? `scale-110 -translate-y-1 z-10 shadow-lg ${scale.color} ring-2 ring-offset-2 ring-stone-400` : 'bg-stone-50 opacity-70 grayscale hover:grayscale-0 hover:opacity-100 hover:bg-white border-transparent'}`}><span className="text-3xl sm:text-4xl select-none filter drop-shadow-sm">{scale.emoji}</span></button>
-                                            })}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )
-                    })}
-                </div>
-                <div className="pt-4">
-                    <button onClick={() => goToStep('worker')} disabled={!isSurveyComplete} className={`w-full py-4 rounded-2xl font-bold text-xl shadow-xl flex items-center justify-center gap-3 transition-all ${isSurveyComplete ? 'bg-[#486045] text-white hover:bg-[#384c36] active:scale-95' : 'bg-stone-200 text-stone-400 cursor-not-allowed'}`}>Jatka <ArrowRight className="w-6 h-6" /></button>
-                    {!isSurveyComplete && <p className="text-center text-[#486045] font-bold mt-3">Vastaathan kaikkiin kohtiin.</p>}
-                </div>
-            </div>
-        );
-
-        const renderSurveyWorker = () => {
-            const coach = getCoachSummary(answers);
-            if(!coach) return null;
-            const highNeeds = [], mediumNeeds = [];
-            SERVICE_NEEDS.forEach(item => { const r = (serviceRatings || {})[item.id] || 0; if(r >= 4) highNeeds.push(item); else if (r === 3) mediumNeeds.push(item); });
-
-            return (
-                <div className="px-4 pt-6 space-y-8 animate-fade-in pb-12">
-                    <div>
-                        <h2 className="text-xl font-extrabold text-stone-800 mb-4 flex items-center gap-2"><Activity className="text-[#22543d]"/> Palautteen analyysi</h2>
-                        <div className={`rounded-[2rem] border p-6 shadow-sm ${coach.summaryColor}`}>
-                            <h3 className="font-black text-sm uppercase tracking-widest mb-3 border-b border-black/10 pb-2 opacity-90">{coach.summaryTitle}</h3>
-                            <div className="bg-white/80 rounded-xl p-5 border border-black/5 relative mt-5 shadow-sm">
-                                <div className="absolute -top-3 left-4 bg-stone-800 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">Sano esimerkiksi näin</div>
-                                <p className="text-stone-800 font-medium italic mt-1 leading-relaxed" dangerouslySetInnerHTML={{__html: `"${coach.scriptText}"`}}></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-4">
-                        <div className="flex flex-col gap-1 mb-2">
-                            <div className="flex items-center gap-2"><HeartHandshake className="text-stone-500 w-6 h-6"/><h3 className="text-base font-black text-stone-700 uppercase tracking-widest">Hyvinvointikartoitus</h3></div>
-                            <div className="ml-1 bg-[#f0fdf4] border border-[#dcfce7] p-5 rounded-2xl relative mt-4 shadow-sm">
-                                <div className="absolute -top-3 left-4 bg-[#2f855a] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Avausrepliikki</div>
-                                <p className="text-lg font-bold text-[#22543d] leading-snug">"Sopiiko, että kartoitetaan tämän hetken palvelun tarvetta ja riittävyyttä?"</p>
-                            </div>
-                        </div>
-                        <div className="space-y-4 pt-2">
-                            {SERVICE_NEEDS.map(item => {
-                                const r = (serviceRatings || {})[item.id] || 0;
-                                return (
-                                    <div key={item.id} className="rounded-2xl border bg-white border-stone-200 p-5 shadow-sm">
-                                        <div className="flex items-start gap-3 mb-3"><div className="bg-stone-50 p-3 rounded-full border border-stone-100 shrink-0 text-[#22543d]">{getIconByName(item.icon, {className: "w-6 h-6"})}</div><div><h4 className="font-bold text-stone-800 text-base">{item.title}</h4><p className="text-xs text-stone-500 mt-1 italic leading-snug">{item.prompt}</p></div></div>
-                                        <div className="w-full px-1 pt-2">
-                                            <div className="flex items-center gap-3"><span className="text-xs font-bold text-stone-400 w-4">1</span><input type="range" min="1" max="5" step="1" value={r || 1} className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-[#2f855a]" onChange={e => updateState({ serviceRatings: { ...(serviceRatings || {}), [item.id]: parseInt(e.target.value) } })} style={{ opacity: r === 0 ? 0.5 : 1 }} /><span className="text-xs font-bold text-stone-400 w-4">5</span></div>
-                                            <div className="flex justify-between text-[10px] text-stone-400 px-1 mt-1 font-medium"><span>Ei tarvetta</span><span>Toivoisin tukea</span></div>
-                                            <div className="text-center font-bold text-[#2f855a] text-xl mt-1 h-6">{r > 0 ? r : <span className="text-stone-300 text-sm font-normal">Arvioi vetämällä</span>}</div>
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                        <div className="mt-6">
-                            <div className={`rounded-[2rem] border ${highNeeds.length > 0 ? 'bg-[#f0fdf4] border-[#dcfce7] ring-1 ring-[#2f855a]/30' : mediumNeeds.length > 0 ? 'bg-[#fdf2f2] border-[#fde8e8]' : 'bg-stone-100 border-stone-200'} p-6 shadow-sm transition-all`}>
-                                {highNeeds.length > 0 ? (
-                                    <>
-                                        <div className="flex items-center gap-2 mb-3 text-[#22543d] font-black text-sm uppercase tracking-wider"><Lightbulb className="w-5 h-5"/> 💡 Hyvinvointia tukeva ehdotus</div>
-                                        <p className="text-stone-800 text-base mb-3 leading-relaxed font-medium italic">"Huomasin, että toivoisit tukea alueilla <strong>{highNeeds.map(i=>i.title).join(" ja ")}</strong>. Meillä on siihen ratkaisu, joka helpottaisi arkeasi. Miltä kuulostaisi, jos kokeilisimme tätä?"</p>
-                                        <div className="bg-white/80 p-4 rounded-xl border border-[#dcfce7] mb-5 shadow-sm">
-                                            <p className="text-xs font-bold text-[#2f855a] uppercase mb-1">Tarjoa esimerkiksi näitä:</p>
-                                            {highNeeds.map(item => item.subServices ? <div key={item.id}><strong className="block text-stone-800 mt-2 text-xs uppercase tracking-wide">{item.title}:</strong><ul className="list-disc pl-5 mt-1 text-stone-600 text-sm">{item.subServices.map((s, idx)=><li key={idx}>{s}</li>)}</ul></div> : null)}
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-white cursor-pointer transition-colors"><input type="radio" checked={surveyState.proposalStatus === 'none'} onChange={() => updateState({proposalStatus: 'none'})} className="w-5 h-5 text-stone-600" /><span className="text-sm text-stone-700 font-medium">Ei kiitos</span></label>
-                                            <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-white cursor-pointer transition-colors"><input type="radio" checked={surveyState.proposalStatus === 'interested'} onChange={() => updateState({proposalStatus: 'interested'})} className="w-5 h-5 text-[#9b2c2c]" /><span className="text-sm text-stone-800 font-bold">Kiinnostui (Soittakaa myöhemmin)</span></label>
-                                            <div className="flex items-center justify-between p-3 rounded-xl bg-[#dcfce7] border border-[#2f855a]/30 shadow-sm"><label className="flex items-center gap-3 cursor-pointer flex-1"><input type="radio" checked={surveyState.proposalStatus === 'sold'} onChange={() => updateState({proposalStatus: 'sold'})} className="w-5 h-5 text-[#2f855a] accent-[#2f855a]" /><span className="text-base font-black text-[#22543d]">Palvelua laajennettu!</span></label></div>
-                                        </div>
-                                    </>
-                                ) : mediumNeeds.length > 0 ? (
-                                    <><div className="flex items-center gap-2 mb-2 text-[#2f855a] font-black text-xs uppercase tracking-wider"><HelpCircle className="w-5 h-5"/> Kartoita tarkemmin</div><p className="text-sm text-stone-800 font-medium">Asiakkaalla on heräävää kiinnostusta alueilla: <strong>{mediumNeeds.map(i=>i.title).join(", ")}</strong>. Kysy tarkentavia kysymyksiä.</p></>
-                                ) : <p className="text-sm font-medium text-stone-500 text-center py-2">Arki sujuu hyvin / ei tarvetta lisätuelle.</p>}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className={`bg-white rounded-[2rem] shadow-xl border border-stone-200 overflow-hidden relative transition-all ${!coach.isSalesRecommended ? '' : ''}`}>
-                        <div className="bg-[#132e21] p-5 border-b border-[#22543d] flex items-center gap-4"><div className="bg-white/10 p-3 rounded-xl text-white shadow-inner"><TrendingUp className="w-6 h-6"/></div><div><h3 className="font-extrabold text-white text-xl leading-none tracking-wide">Lisäpalvelu</h3><p className="text-[#dcfce7] text-xs mt-1.5 font-medium">Kirjaa sovitut työt</p></div></div>
-                        {!coach.isSalesRecommended && <div className="bg-[#fdf2f2] p-5 border-b border-[#fde8e8] text-[#9b2c2c] text-sm font-bold flex items-center gap-3"><AlertTriangle className="w-6 h-6 flex-shrink-0"/><span>Suositus: Keskity ensisijaisesti korjaamiseen. Myy vain, jos tilanne on purettu.</span></div>}
-                        <div className="p-6 space-y-6">
-                            <div className="bg-stone-50 rounded-2xl p-5 border border-stone-200 shadow-sm">
-                                <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-2"><Calendar className="text-[#2f855a] w-5 h-5"/><span className="text-sm font-black text-stone-800 uppercase tracking-wide">Jatkuva palvelu</span></div><span className="text-xs font-bold bg-white text-[#2f855a] px-3 py-1.5 rounded-lg border border-stone-200 shadow-sm">~40€ / h bonus</span></div>
-                                <div className="flex items-center bg-white rounded-xl p-1.5 shadow-sm border border-stone-200 w-full max-w-[200px]">
-                                    <button onClick={() => updateState({ planHours: Math.max(0, planHours - 0.5) })} className="w-10 h-10 rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 flex items-center justify-center transition-colors"><Minus className="w-5 h-5"/></button>
-                                    <div className="flex-1 text-center font-black text-2xl text-stone-800">{planHours} <span className="text-sm text-stone-400 font-bold">h</span></div>
-                                    <button onClick={() => updateState({ planHours: planHours + 0.5 })} className="w-10 h-10 rounded-lg bg-[#2f855a] text-white hover:bg-[#22543d] flex items-center justify-center transition-colors"><Plus className="w-5 h-5"/></button>
-                                </div>
-                            </div>
-
-                            <div className="bg-stone-50 rounded-2xl p-5 border border-stone-200 shadow-sm">
-                                <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-2"><Sparkles className="text-[#2f855a] w-5 h-5"/><span className="text-sm font-black text-stone-800 uppercase tracking-wide">Kertapalvelu</span></div><span className="text-xs font-bold bg-white text-[#2f855a] px-3 py-1.5 rounded-lg border border-stone-200 shadow-sm">5€ / h bonus</span></div>
-                                <div className="flex items-center bg-white rounded-xl p-1.5 shadow-sm border border-stone-200 w-full max-w-[200px]">
-                                    <button onClick={() => updateState({ oneOffHours: Math.max(0, oneOffHours - 0.5) })} className="w-10 h-10 rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 flex items-center justify-center transition-colors"><Minus className="w-5 h-5"/></button>
-                                    <div className="flex-1 text-center font-black text-2xl text-stone-800">{oneOffHours} <span className="text-sm text-stone-400 font-bold">h</span></div>
-                                    <button onClick={() => updateState({ oneOffHours: oneOffHours + 0.5 })} className="w-10 h-10 rounded-lg bg-[#2f855a] text-white hover:bg-[#22543d] flex items-center justify-center transition-colors"><Plus className="w-5 h-5"/></button>
-                                </div>
-                            </div>
-                            <input type="text" placeholder="Mitä sovittiin?" value={surveyState.salesNote} onChange={e => updateState({salesNote: e.target.value})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-base font-medium text-stone-800 placeholder-stone-400 focus:border-[#2f855a] outline-none shadow-inner" />
-                        </div>
-                    </div>
-
-                    <button onClick={submitSurvey} disabled={surveyState.isSubmitting} className="w-full py-5 rounded-2xl font-black text-xl shadow-xl flex items-center justify-center gap-3 bg-[#2f855a] text-white hover:bg-[#22543d] active:scale-95 transition-all">
-                        {surveyState.isSubmitting ? <><Loader2 className="w-6 h-6 animate-spin"/> Lähetetään...</> : <>Hyväksy & Lopeta <Send className="w-6 h-6"/></>}
-                    </button>
-                </div>
-            )
-        };
-
-        return (
-            <div className="bg-[#e7e5e4] min-h-screen font-sans flex items-center justify-center p-4 sm:p-8">
-                <div className="w-full max-w-[480px] bg-[#f5f5f4] rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col sm:min-h-[80vh]">
-                    
-                    {step !== 'login' && step !== 'success' && (
-                        <div className="bg-white shadow-sm sticky top-0 z-30 border-b border-stone-200 animate-fade-in shrink-0">
-                            <div className="px-5 py-4 flex items-center justify-between">
-                                <div className="flex gap-4 text-stone-500">
-                                    <button onClick={() => {
-                                        if (step === 'worker') setSurveyState(prev => ({...prev, step: 'customer'}));
-                                        else if (step === 'customer') setSurveyState(prev => ({...prev, step: 'login'}));
-                                    }} className="hover:text-[#2f855a] transition-colors"><ChevronLeft size={20}/></button>
-                                    <button aria-label="Etusivu" onClick={() => setCurrentView((authSession && authSession.status === 'active') ? 'portal' : 'simulator_login')} className="hover:text-[#2f855a] transition-colors"><Home size={20}/></button>
-                                </div>
-                                <div className="flex flex-col"><span className="font-bold text-stone-900 text-sm tracking-wide">{company}</span></div>
-                                <button aria-label="Takaisin portaaliin" onClick={()=>setCurrentView('portal')} className="text-stone-400 hover:text-[#9b2c2c] transition-colors"><X size={20}/></button>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flex-1 flex flex-col overflow-y-auto">
-                        {step === 'login' && (
-                            <div className="flex flex-col flex-1 relative z-10 animate-fade-in">
-                                <div className="bg-[#486045] pt-16 pb-16 px-8 text-white text-center relative flex flex-col items-center shrink-0">
-                                    <button aria-label="Työpöytä" onClick={() => setCurrentView('portal')} className="absolute top-6 left-6 text-white/70 hover:text-white p-2 z-20 rounded-full transition-colors"><ChevronLeft size={24} /></button>
-                                    <button aria-label="Etusivu" onClick={() => setCurrentView((authSession && authSession.status === 'active') ? 'portal' : 'simulator_login')} className="absolute top-6 right-6 text-white/70 hover:text-white p-2 z-20 rounded-full transition-colors"><Home size={24} /></button>
-                                    <h1 className="text-4xl font-black mb-1 tracking-tighter mt-4">Famula</h1>
-                                    <p className="text-[#a5bca2] font-bold text-xs uppercase tracking-widest">Asiakastyytyväisyys</p>
-                                </div>
-                                
-                                <div className="p-8 space-y-6 flex-1 flex flex-col bg-[#f5f5f4] -mt-8 rounded-t-[2.5rem] z-20 relative">
-                                    <div className="mt-2">
-                                        <label htmlFor="customerInitials" className="block text-sm font-bold text-stone-800 mb-3 ml-1">Kenen luona olemme?</label>
-                                        <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                                <User className="h-5 w-5 text-stone-400" />
-                                            </div>
-                                            <input id="customerInitials" type="text" placeholder="Asiakkaan etunimi esim. Matti" value={clientInitials} onChange={e => updateState({clientInitials: e.target.value})} className="w-full pl-12 pr-4 py-4 bg-white border border-stone-200 rounded-2xl outline-none text-lg font-bold text-stone-800 shadow-sm focus:border-[#486045] focus:ring-4 focus:ring-[#486045]/10 transition-all placeholder-stone-400" />
-                                        </div>
-                                    </div>
-                                    <button onClick={() => { updateState({ sessionId: `#${Math.floor(1000 + Math.random() * 9000)}` }); goToStep('customer'); }} disabled={clientInitials.length < 2} className={`w-full py-4 rounded-2xl font-black text-xl shadow-lg mt-auto transition-all duration-300 flex items-center justify-center gap-2 ${clientInitials.length > 1 ? 'bg-[#486045] text-white hover:scale-[1.02] active:scale-95 hover:shadow-2xl' : 'bg-stone-200 text-stone-400 cursor-not-allowed opacity-70'}`}>
-                                        Aloita kysely {clientInitials.length > 1 && <ArrowRight className="w-5 h-5 animate-pulse"/>}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                        {step === 'customer' && renderSurveyCustomer()}
-                        {step === 'worker' && renderSurveyWorker()}
-                        {step === 'success' && <div className="flex flex-col flex-1 items-center justify-center p-8 bg-[#486045] animate-fade-in text-center"><div className="w-full bg-[#f5f5f4] rounded-[2rem] shadow-2xl p-8"><button onClick={handleStartSurveyView} className="w-full py-4 bg-stone-900 text-white rounded-2xl font-bold shadow-lg mb-4">Uusi kirjaus</button><button onClick={()=>setCurrentView('portal')} className="w-full py-4 bg-white text-stone-900 rounded-2xl font-bold border border-stone-200 shadow-sm">Palaa portaaliin</button></div></div>}
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
-    return (
-        <div className="font-sans antialiased bg-[#e7e5e4] min-h-screen flex flex-col">
-            {/* Superadminin aluehallinta nostettu ylätason työkalupalkiksi! */}
-            
-
-            {toast.visible && (
-                <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-[100] w-[90%] max-w-[400px] animate-fade-in">
-                    <div className="bg-[#132e21] text-white p-4 px-6 rounded-2xl shadow-2xl flex items-center border border-[#22543d]">
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center mr-3 shrink-0 bg-[#2f855a]"><Check className="text-white h-3 w-3" /></div>
-                        <span className="font-bold text-sm tracking-wide leading-snug">{toast.message}</span>
-                    </div>
-                </div>
-            )}
-            {currentView === 'simulator_login' && renderSimulatorLogin()}
-            {currentView === 'pending_access' && renderPendingAccess()}
-            {currentView === 'portal' && renderPortal()}
-            {currentView === 'manager' && renderManager()}
-            {currentView === 'survey' && renderSurveyApp()}
-        </div>
-    );
-}

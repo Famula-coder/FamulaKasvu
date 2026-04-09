@@ -32,8 +32,8 @@ const GAMIFICATION_LEVELS = [
     { level: 3, maxHours: Infinity, title: "Omistaja", icon: "💎", color: "text-[#06b6d4]", bgColor: "bg-[#ecfeff]", border: "border-[#a5f3fc]", desc: "Koneisto rullaa. Liiketoiminnan täysi skaalautuminen." }
 ];
 
-const getGamificationLevel = (hours) => {
-    return GAMIFICATION_LEVELS.find(l => (hours || 0) < l.maxHours) || GAMIFICATION_LEVELS[GAMIFICATION_LEVELS.length - 1];
+const getGamificationLevel = (hours, levels = GAMIFICATION_LEVELS) => {
+    return levels.find(l => (hours || 0) < l.maxHours) || levels[levels.length - 1];
 };
 
 const GROWTH_TEMPLATES = [
@@ -205,7 +205,7 @@ export default function App() {
     const [userProfileTab, setUserProfileTab] = useState('kayttajat');
     
     // Dynamic config overrides from DB
-    const activeGamificationLevels = (publicData?.gamificationLevels?.length > 0) ? publicData.gamificationLevels : GAMIFICATION_LEVELS_DEFAULT;
+    const activeGamificationLevels = (publicData?.gamificationLevels?.length > 0) ? publicData.gamificationLevels : GAMIFICATION_LEVELS;
     
     const [customSalesHours, setCustomSalesHours] = useState("");
     const [saleMode, setSaleMode] = useState('oneTime');

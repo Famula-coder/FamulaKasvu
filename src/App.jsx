@@ -1056,7 +1056,7 @@ const updatePublicDataProps = (updates) => {
         });
 
         const pendingUsers = usersToManage.filter(u => u.status === 'pending');
-        const activeUsers = usersToManage.filter(u => u.status === 'active' && u.id !== fbUser?.uid);
+        const activeUsers = usersToManage.filter(u => u.status !== 'pending' && u.id !== fbUser?.uid);
 
         const handleApprove = async (uid, reqRole) => {
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', uid), { status: 'active', role: reqRole }, { merge: true });
@@ -1990,7 +1990,10 @@ const updatePublicDataProps = (updates) => {
                 <div className="max-w-[480px] mx-auto bg-[#f5f5f4] min-h-screen shadow-lg relative">
                     <div className="bg-white px-4 py-3 flex justify-between items-center border-b border-stone-200 shadow-sm relative z-20">
                         <div className="flex gap-4">
-                            <button onClick={() => setCurrentView('portal')} className="text-stone-600 hover:text-[#9b2c2c] flex items-center text-[11px] font-black transition-colors uppercase bg-stone-200/50 hover:bg-white px-3 py-1.5 rounded-full border border-transparent hover:border-stone-200"><ChevronLeft className="h-4 w-4 mr-0.5"/> Takaisin Kotiin</button>
+                            <button onClick={() => setCurrentView('portal')} title="Kotiin" className="text-stone-500 hover:text-[#9b2c2c] flex items-center justify-center transition-colors bg-stone-100 hover:bg-white p-2 rounded-full border border-transparent hover:border-stone-200 focus:outline-none"><Home className="h-4 w-4"/></button>
+                            {currentTab !== 'dashboard' && (
+                                <button onClick={() => setCurrentTab('dashboard')} className="text-stone-600 hover:text-[#9b2c2c] flex items-center text-[10px] font-black transition-colors uppercase bg-stone-200/50 hover:bg-white px-2.5 py-1.5 rounded border border-transparent hover:border-stone-200 focus:outline-none"><ChevronLeft className="h-3 w-3 mr-0.5"/> Palaa</button>
+                            )}
                         </div>
                         <div className="flex items-center gap-2">
                             <button onClick={() => setShowHelpModal(true)} className="text-stone-400 hover:text-[#9b2c2c] transition-colors"><HelpCircle size={18} /></button>
@@ -2121,7 +2124,7 @@ const updatePublicDataProps = (updates) => {
                                             
                                             let augmentedTasks = [...myTasks];
                                             if (isAdmin) {
-                                                const activePlan = marketingPlans.find(p => p.regionId === authSession.regionId && p.year === todayInfo.year && p.quarter === Math.floor(todayInfo.monthIdx/3)+1);
+                                                const activePlan = marketingPlans.find(p => p.regionId === activeTrayRegion && p.year === todayInfo.year && p.quarter === Math.floor(todayInfo.monthIdx/3)+1);
                                                 const myStat = allUserStats.find(s => s.id === fbUser?.uid) || {};
                                                 const marketingTasksDone = myStat.marketingTasksDone || [];
                                                 
@@ -3941,7 +3944,7 @@ const updatePublicDataProps = (updates) => {
 
     return (
         <div className="font-sans antialiased bg-[#e7e5e4] min-h-screen flex flex-col">
-            {(authSession?.status === 'active' && currentView !== 'simulator_login' && isAdmin) && renderGlobalScopeSelector()}
+            {/* Kaukosäädin siirretty luonnolliseksi osaksi renderTopNav() navigointia */}
 
             {toast.visible && (
                 <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-[100] w-[90%] max-w-[400px] animate-fade-in">

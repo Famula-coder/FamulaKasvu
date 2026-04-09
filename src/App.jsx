@@ -3962,7 +3962,7 @@ const updatePublicDataProps = (updates) => {
 
             {(authSession?.status === 'active' && currentView !== 'simulator_login' && isAdmin) && renderGlobalScopeSelector()}
 
-            {(authSession?.realRole === 'superadmin' && currentView !== 'simulator_login' && authSession.regionId === 'sandbox_region') && (
+            {(authSession?.realRole === 'superadmin' && currentView !== 'simulator_login' && (authSession.regionId === 'sandbox_region' || authSession.role !== authSession.realRole || authSession.regionId !== authSession.realRegionId)) && (
                 <div className="w-full bg-stone-900 text-white p-3 flex flex-col sm:flex-row items-center justify-center z-[100] shadow-md gap-3 sticky top-0 border-b border-stone-800">
                     <span className="text-xs font-bold text-[#facc15] uppercase tracking-widest whitespace-nowrap"><Settings className="w-4 h-4 inline mr-1.5 mb-0.5 text-[#facc15] animate-pulse"/> Testitila</span>
                     <div className="flex gap-2 w-full sm:w-auto max-w-md">
@@ -3974,6 +3974,12 @@ const updatePublicDataProps = (updates) => {
                         <select value={authSession.regionId} onChange={e => setAuthSession({...authSession, regionId: e.target.value})} className="bg-stone-800 text-white text-[11px] font-bold p-2.5 rounded-lg outline-none border border-stone-700 flex-1 focus:border-[#facc15] transition-colors">
                             {activeRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                         </select>
+                        <button 
+                            onClick={() => setAuthSession(prev => ({ ...prev, regionId: prev.realRegionId || 'oulu', role: prev.realRole || 'superadmin' }))} 
+                            className="bg-[#facc15] text-stone-900 text-xs font-black px-4 py-1.5 rounded-lg hover:bg-yellow-300 transition-colors ml-2 shadow-sm whitespace-nowrap"
+                        >
+                            POISTU
+                        </button>
                     </div>
                 </div>
             )}

@@ -1284,7 +1284,7 @@ const updatePublicDataProps = (updates) => {
                     <p className="text-[#fde8e8] text-opacity-90 mt-2 text-sm">Valitse työkalu alta aloittaaksesi.</p>
                 </header>
 
-{renderGlobalScopeSelector()}
+
                 <main className="flex-1 px-6 relative z-20 space-y-4 pb-8">
                     {/* 1. Myynnin työpöytä */}
                     <div onClick={() => { setCurrentView('manager'); setCurrentTab('dashboard'); }} className="block group relative cursor-pointer">
@@ -1430,19 +1430,7 @@ const updatePublicDataProps = (updates) => {
                         <h1 className="text-2xl font-black text-stone-900 tracking-tight">Markkinointisuunnitelmat</h1>
                         <p className="text-stone-500 text-xs font-bold uppercase tracking-widest mt-1">Kvartaalitasoinen ohjaus</p>
                     </div>
-                    {isSuperAdmin ? (
-                        <select
-                            value={activeMarketingRegionId}
-                            onChange={(e) => setTargetRegionId(e.target.value)}
-                            className="bg-white p-2 rounded-lg text-sm font-bold text-stone-800 border border-stone-200 outline-none"
-                        >
-                            {activeRegions.map(r => (
-                                <option key={r.id} value={r.id}>{r.name}</option>
-                            ))}
-                        </select>
-                    ) : (
-                        <button onClick={() => setShowLevelsInfo(true)} className="w-10 h-10 rounded-full bg-white border border-stone-200 shadow-sm flex items-center justify-center text-[#2f855a] hover:bg-stone-50 transition"><HelpCircle size={20}/></button>
-                    )}
+                    <button onClick={() => setShowLevelsInfo(true)} className="w-10 h-10 rounded-full bg-white border border-stone-200 shadow-sm flex items-center justify-center text-[#2f855a] hover:bg-stone-50 transition"><HelpCircle size={20}/></button>
                 </header>
 
                 <div className={`p-4 rounded-2xl border flex flex-col gap-3 ${currentLevel.bgColor} ${currentLevel.border} mb-6 shadow-sm`}>
@@ -1879,6 +1867,21 @@ const updatePublicDataProps = (updates) => {
                         <option value="all">Koko aluetiimi</option>
                         {usersInScope.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
                     </select>
+                )}
+                
+                {isSuperAdmin && (
+                    <button 
+                        onClick={() => {
+                            if (authSession.regionId === 'sandbox_region') {
+                                setAuthSession(prev => ({ ...prev, regionId: prev.realRegionId, role: prev.realRole }));
+                            } else {
+                                setAuthSession(prev => ({ ...prev, regionId: 'sandbox_region' }));
+                            }
+                        }}
+                        className={`ml-auto flex items-center gap-2 text-[10px] font-bold uppercase transition px-2 py-1 rounded ${authSession?.regionId === 'sandbox_region' ? 'bg-[#facc15] text-stone-900 border border-[#facc15]' : 'border border-stone-700 text-stone-400 hover:text-white'}`}
+                    >
+                        <Activity size={12} /> Testitila
+                    </button>
                 )}
             </div>
         );

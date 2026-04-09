@@ -235,7 +235,10 @@ export default function App() {
 
     const isAdmin = authSession?.role === 'admin' || authSession?.role === 'superadmin';
     const isSuperAdmin = authSession?.role === 'superadmin';
-    const activeRegions = Array.isArray(publicData.regions) && publicData.regions.length > 0 ? publicData.regions : FALLBACK_REGIONS;
+    let activeRegions = Array.isArray(publicData.regions) && publicData.regions.length > 0 ? publicData.regions : FALLBACK_REGIONS;
+    if (!activeRegions.find(r => r.id === 'sandbox_region')) {
+        activeRegions = [{ id: 'sandbox_region', name: 'Harjoitusalue (Testidata)' }, ...activeRegions];
+    }
 
     // Unified Tray Computation
     const masterTray = Array.isArray(publicData.masterTray) ? publicData.masterTray : DEFAULT_TRAY_TASKS;
@@ -1068,6 +1071,27 @@ const updatePublicDataProps = (updates) => {
                             </div>
                         </div>
                     </div>
+                    
+                    {!isSuperAdmin && (
+                        <div className="mt-4 p-4 rounded-xl border border-stone-200 bg-stone-50 flex items-center justify-between">
+                            <div>
+                                <h4 className="font-bold text-sm text-stone-800">Harjoitusalue</h4>
+                                <p className="text-[10px] text-stone-500">Kokeile ohjelmaa riskittä. Tietoja ei huomioida raporteissa.</p>
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    if (authSession.regionId === 'sandbox_region') {
+                                        setAuthSession(prev => ({ ...prev, regionId: prev.realRegionId, role: prev.realRole }));
+                                    } else {
+                                        setAuthSession(prev => ({ ...prev, regionId: 'sandbox_region' }));
+                                    }
+                                }}
+                                className={`w-12 h-6 rounded-full transition-colors relative flex items-center px-1 ${authSession?.regionId === 'sandbox_region' ? 'bg-[#facc15]' : 'bg-stone-300'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${authSession?.regionId === 'sandbox_region' ? 'translate-x-6' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
+                    )}
                     
                     {!isSuperAdmin && (
                         <div className="mt-6 pt-6 border-t border-stone-100 space-y-3">
@@ -2127,7 +2151,7 @@ const updatePublicDataProps = (updates) => {
                                     let globalNpsSum = 0;
                                     let globalNpsCount = 0;
 
-                                    const regionStats = activeRegions.map(r => ({ ...r, hours: 0, customers: 0, npsSum: 0, npsCount: 0 }));
+                                    const regionStats = activeRegions.filter(x => x.id !== 'sandbox_region').map(r => ({ ...r, hours: 0, customers: 0, npsSum: 0, npsCount: 0 }));
 
                                     (Array.isArray(allGlobalStats) ? allGlobalStats : []).forEach(stat => {
                                         globalNpsSum += Number(stat.npsSum || 0);
@@ -3741,7 +3765,13 @@ const updatePublicDataProps = (updates) => {
 
     return (
         <div className="font-sans antialiased bg-[#e7e5e4] min-h-screen flex flex-col">
-            {(authSession?.realRole === 'superadmin' && currentView !== 'simulator_login') && (
+                {(authSession?.regionId === 'sandbox_region' && currentView !== 'simulator_login') && (
+                    <div className="w-full bg-[#facc15] text-stone-900 text-[10px] font-black uppercase tracking-widest text-center py-1 sticky top-0 z-[101] flex items-center justify-center shadow-md">
+                        <Activity className="w-3 h-3 mr-2 animate-pulse"/> Olet harjoitusalueella (Simulaatio) <Activity className="w-3 h-3 ml-2 animate-pulse"/>
+                    </div>
+                )}
+
+            {(authSession?.realRole === 'superadmin' && currentView !== 'simulator_login' && authSession.regionId === 'sandbox_region') && (
                 <div className="w-full bg-stone-900 text-white p-3 flex flex-col sm:flex-row items-center justify-center z-[100] shadow-md gap-3 sticky top-0 border-b border-stone-800">
                     <span className="text-xs font-bold text-[#facc15] uppercase tracking-widest whitespace-nowrap"><Settings className="w-4 h-4 inline mr-1.5 mb-0.5 text-[#facc15] animate-pulse"/> Testitila</span>
                     <div className="flex gap-2 w-full sm:w-auto max-w-md">

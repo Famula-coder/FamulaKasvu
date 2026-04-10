@@ -2430,14 +2430,10 @@ const updatePublicDataProps = (updates) => {
                                         })()}
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-3 mt-6 mb-4">
-                                    <button onClick={() => setModals(prev => ({...prev, bonusEvent: true}))} className="col-span-1 flex flex-col items-center justify-center bg-white p-4 rounded-2xl border border-stone-200 shadow-sm active:scale-95 transition hover:shadow-md group h-24">
+                                <div className="mt-6 mb-4">
+                                    <button onClick={() => setModals(prev => ({...prev, bonusEvent: true}))} className="w-full flex flex-col items-center justify-center bg-white p-4 rounded-2xl border border-stone-200 shadow-sm active:scale-95 transition hover:shadow-md group h-24">
                                         <div className="w-10 h-10 rounded-full bg-[#f0fdf4] text-[#2f855a] flex items-center justify-center mb-2"><UserPlus size={18} /></div>
                                         <span className="text-[10px] font-bold text-stone-600 uppercase text-center leading-tight">+ Tapahtuma<br/>(Palkkio)</span>
-                                    </button>
-                                    <button onClick={() => setModals(prev => ({...prev, sales: true}))} className="col-span-1 flex flex-col items-center justify-center bg-white p-4 rounded-2xl border border-stone-200 shadow-sm active:scale-95 transition hover:shadow-md group h-24">
-                                        <div className="w-10 h-10 rounded-full bg-[#fdf2f2] text-[#9b2c2c] flex items-center justify-center mb-2"><Clock size={18} /></div>
-                                        <span className="text-[10px] font-bold text-stone-600 uppercase text-center leading-tight">Lisä-<br/>palvelu</span>
                                     </button>
                                 </div>
                                 <button onClick={() => setModals(prev => ({...prev, activityHistory: fbUser.uid}))} className="w-full py-4 bg-stone-100 text-stone-500 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-stone-200 hover:bg-stone-200 transition-colors flex items-center justify-center gap-2 mb-6 shadow-sm"><History size={16} /> Selaa ja pura aiempia kirjauksia</button>

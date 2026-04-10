@@ -3133,13 +3133,13 @@ const updatePublicDataProps = (updates) => {
                                             
                                             let insightMsg = '';
                                             if (isSuperAdmin) {
-                                                insightMsg = `Koko konsernin kovimmassa kasvussa (+${Math.round(topRegion.growthScore)}% vauhti) on tällä hetkellä ${topRegion.name}.${toolsText} Toisena perässä kirii ${teuvoData[1].name} (+${Math.round(teuvoData[1].growthScore)}%). Seurataan tuoko nämä kiinnitetyt toimenpiteet pysyvää etumatkaa!`;
+                                                insightMsg = `Koko konsernin kovimmassa kasvussa (+${Math.round(topRegion.momGrowth)}% kk-kasvu, +${Math.round(topRegion.qoqGrowth)}% kvartaalikasvu) on tällä hetkellä ${topRegion.name}.${toolsText} Toisena perässä kirii ${teuvoData[1].name} (+${Math.round(teuvoData[1].momGrowth)}% kk-kasvu). Seurataan, tuovatko nämä valinnat pysyvää etumatkaa!`;
                                             } else {
                                                 const myRegionStats = teuvoData.find(r => r.id === authSession?.regionId);
                                                 if (isTopRegionMyself) {
-                                                    insightMsg = `Alueesi on tällä hetkellä Suomen ykkönen! Vedätte parasta +${Math.round(topRegion.growthScore)}% kasvuvauhtia. Takananne niskaan hengittää ${comparingRegion.name} (+${Math.round(comparingRegion.growthScore)}%).${toolsText} Pitäkää kiinni valitsemastanne suunnitelmasta!`;
+                                                    insightMsg = `Alueesi on tällä hetkellä Suomen ykkönen! Vedätte parasta +${Math.round(topRegion.momGrowth)}% kk-kasvua ja +${Math.round(topRegion.qoqGrowth)}% Q-kasvua. Takananne niskaan hengittää ${comparingRegion.name} (+${Math.round(comparingRegion.momGrowth)}% kk-kasvu).${toolsText} Pitäkää kiinni valitsemastanne suunnitelmasta!`;
                                                 } else {
-                                                    insightMsg = `Muihin verrattuna kovimmassa kasvussa (+${Math.round(comparingRegion.growthScore)}% vauhti) on tällä hetkellä ${comparingRegion.name}.${toolsText} Voisiko alueesi kokeilla samoja tarjoiluja, sillä alueenne vastaava kasvuvauhti on tällä hetkellä kokonaisuutena ${Math.round(myRegionStats?.growthScore || 0)}%?`;
+                                                    insightMsg = `Muihin verrattuna kovimmassa kasvussa (+${Math.round(comparingRegion.momGrowth)}% kk-kasvu, +${Math.round(comparingRegion.qoqGrowth)}% Q-kasvu) on tällä hetkellä ${comparingRegion.name}.${toolsText} Voisiko alueesi kokeilla samoja tarjoiluja? Teidän vastaavat lukemat ovat tällä hetkellä ${Math.round(myRegionStats?.momGrowth || 0)}% (kk) ja ${Math.round(myRegionStats?.qoqGrowth || 0)}% (Q).`;
                                                 }
                                             }
 

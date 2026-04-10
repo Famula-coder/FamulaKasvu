@@ -1829,7 +1829,7 @@ const updatePublicDataProps = (updates) => {
                     </button>
 
                     <div className="space-y-4">
-                        {financialStatements.filter(f => f.regionId === authSession.regionId).sort((a,b) => b.year - a.year).map(stmt => (
+                        {financialStatements.filter(f => f.regionId === ((isSuperAdmin && globalScope.regionId !== 'all') ? globalScope.regionId : authSession.regionId)).sort((a,b) => b.year - a.year).map(stmt => (
                             <div key={stmt.id} className="bg-white border border-stone-200 rounded-3xl p-5 shadow-sm">
                                 <div className="flex justify-between items-start mb-4 border-b border-stone-100 pb-3">
                                     <h3 className="font-black text-lg text-stone-900">Tilikausi {stmt.year}</h3>

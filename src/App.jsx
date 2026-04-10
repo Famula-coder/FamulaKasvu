@@ -988,7 +988,7 @@ const updatePublicDataProps = (updates) => {
         (editingMarketingPlan.selectedTasks || []).forEach(st => {
             const eh = Number(st.estimatedHours || 0);
             if (st.type === 'pinned') {
-                m1h += eh; m2h += eh; m3h += eh;
+                m1h += eh; m2h += eh * 2; m3h += eh * 3;
             } else if (st.type === 'week') {
                 const w = Number(st.targetWeekNum);
                 const wOffset = w - ((rq-1) * 13);
@@ -1787,93 +1787,9 @@ const updatePublicDataProps = (updates) => {
                                     </div>
                                 </div>
 
-                                <div className="bg-[#f8fafc] p-4 rounded-2xl border border-stone-200">
-                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Tavoite vs Toteuma</label>
-                                    <p className="text-[10px] text-stone-400 font-medium mb-3 italic">Tavoitteet lasketaan automaattisesti lähtötason, poistuman ja toimenpiteiden arvioiden perusteella.</p>
-                                    <div className="flex flex-col gap-3">
-                                        {(() => {
-                                            const rq = Number(editingMarketingPlan.quarter) || 1;
-                                            const monthNames = rq === 1 ? ['Tam', 'Hel', 'Maa'] : rq === 2 ? ['Huh', 'Tou', 'Kes'] : rq === 3 ? ['Hei', 'Elo', 'Syy'] : ['Lok', 'Mar', 'Jou'];
-                                            return (
-                                                <>
-                                                    <div className="flex items-center gap-1.5">
-                                                        <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest w-8">{monthNames[0]}</span>
-                                                        <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo1} readOnly className="w-1/4 p-3 bg-stone-100/50 border border-stone-200 rounded-xl text-xs font-bold text-stone-500 outline-none cursor-not-allowed" />
-                                                        <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo1: e.target.value, realizedRev1: e.target.value ? Math.round(Number(e.target.value) * (Number(editingMarketingPlan.averageHourlyRate)||39.9)) : ''})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
-                                                        <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev1} readOnly className="w-1/4 p-3 bg-stone-100/50 border border-stone-200 rounded-xl text-xs font-bold text-stone-500 outline-none cursor-not-allowed" />
-                                                        <input type="number" placeholder="Tot (€)" value={editingMarketingPlan.realizedRev1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedRev1: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5 mt-1">
-                                                        <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest w-8">{monthNames[1]}</span>
-                                                        <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo2} readOnly className="w-1/4 p-3 bg-stone-100/50 border border-stone-200 rounded-xl text-xs font-bold text-stone-500 outline-none cursor-not-allowed" />
-                                                        <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo2: e.target.value, realizedRev2: e.target.value ? Math.round(Number(e.target.value) * (Number(editingMarketingPlan.averageHourlyRate)||39.9)) : ''})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
-                                                        <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev2} readOnly className="w-1/4 p-3 bg-stone-100/50 border border-stone-200 rounded-xl text-xs font-bold text-stone-500 outline-none cursor-not-allowed" />
-                                                        <input type="number" placeholder="Tot (€)" value={editingMarketingPlan.realizedRev2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedRev2: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5 mt-1">
-                                                        <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest w-8">{monthNames[2]}</span>
-                                                        <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo3} readOnly className="w-1/4 p-3 bg-stone-100/50 border border-stone-200 rounded-xl text-xs font-bold text-stone-500 outline-none cursor-not-allowed" />
-                                                        <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo3: e.target.value, realizedRev3: e.target.value ? Math.round(Number(e.target.value) * (Number(editingMarketingPlan.averageHourlyRate)||39.9)) : ''})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
-                                                        <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev3} readOnly className="w-1/4 p-3 bg-stone-100/50 border border-stone-200 rounded-xl text-xs font-bold text-stone-500 outline-none cursor-not-allowed" />
-                                                        <input type="number" placeholder="Tot (€)" value={editingMarketingPlan.realizedRev3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedRev3: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
-                                                    </div>
-                                                </>
-                                            );
-                                        })()}
-                                    </div>
-                                </div>
-
-                                <div className="bg-white p-4 rounded-2xl border border-[#dcfce7] mb-6">
-                                    <h4 className="text-xs font-black text-[#2f855a] uppercase mb-1">Kertaluonteiset Kampanjat (Urakat)</h4>
-                                    <p className="text-[10px] text-stone-500 mb-3 leading-relaxed">Nämä eurot kilahtavat suoraan valitulle kuukaudelle kasvattaen vain kuukauden liikevaihtoa ilman pysyviä tunteja.</p>
-                                    
-                                    <div className="space-y-2 mb-3">
-                                        {(editingMarketingPlan.campaigns || []).map(c => (
-                                             <div key={c.id} className="flex justify-between items-center bg-stone-50 p-2 rounded-xl border border-stone-200 shadow-sm">
-                                                 <div>
-                                                     <p className="text-xs font-bold text-stone-800">{c.name}</p>
-                                                     <p className="text-[10px] text-stone-500">{c.desc}</p>
-                                                 </div>
-                                                 <div className="text-right flex items-center gap-3">
-                                                     <div className="text-[#2f855a] font-bold text-xs">+{c.targetRev} € <span className="text-stone-400 text-[9px] font-normal uppercase block">Kuukaudelle {c.targetMonth}</span></div>
-                                                     <button onClick={() => setEditingMarketingPlan(prev => ({...prev, campaigns: prev.campaigns.filter(cam => cam.id !== c.id)}))} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"><Trash2 size={14}/></button>
-                                                 </div>
-                                             </div>
-                                        ))}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                         <input type="text" placeholder="Kampanjan nimi (esim. Joulukoti)" value={campaignDraft.name} onChange={e => setCampaignDraft({...campaignDraft, name: e.target.value})} className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold outline-none text-stone-700" />
-                                         <input type="text" placeholder="Kuvaus / lisätieto" value={campaignDraft.desc} onChange={e => setCampaignDraft({...campaignDraft, desc: e.target.value})} className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold outline-none text-stone-700" />
-                                         <div className="flex gap-2">
-                                             <select value={campaignDraft.targetMonth} onChange={e => setCampaignDraft({...campaignDraft, targetMonth: e.target.value})} className="flex-1 p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold outline-none text-stone-700">
-                                                  <option value="">Kohdekuukausi...</option>
-                                                  <option value="1">Kuukausi 1</option>
-                                                  <option value="2">Kuukausi 2</option>
-                                                  <option value="3">Kuukausi 3</option>
-                                             </select>
-                                             <input type="number" placeholder="Tuottoarvio (€)" value={campaignDraft.targetRev} onChange={e => setCampaignDraft({...campaignDraft, targetRev: e.target.value})} className="flex-1 p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold outline-none text-stone-700" />
-                                         </div>
-                                         <button onClick={() => {
-                                              if (!campaignDraft.name || !campaignDraft.targetMonth || !campaignDraft.targetRev) return;
-                                              const nc = { id: 'cmp-'+Math.random().toString(36).substr(2,9), ...campaignDraft, targetMonth: Number(campaignDraft.targetMonth), targetRev: Number(campaignDraft.targetRev) };
-                                              setEditingMarketingPlan(prev => ({...prev, campaigns: [...(prev.campaigns || []), nc]}));
-                                              setCampaignDraft({ name: '', desc: '', targetMonth: '', targetRev: '' });
-                                         }} className="w-full bg-[#2f855a] text-white text-xs font-bold py-2.5 rounded-lg shadow-sm hover:bg-[#22543d] transition-colors">Lisää kampanja</button>
-                                    </div>
-                                </div>
-
-                                <div className="bg-white p-4 rounded-2xl border border-stone-200 space-y-3">
-                                    <label id="marketingBudgetGroup" className="block text-xs font-bold text-stone-500 uppercase mb-1">Markkinointibudjetti (€)</label>
-                                    <div className="flex items-center gap-2"><label htmlFor="budgetPrint" className="w-24 text-xs font-bold text-stone-600">Printti:</label><input id="budgetPrint" type="number" value={editingMarketingPlan.budgetPrint} className="focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none" onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetPrint: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
-                                    <div className="flex items-center gap-2"><label htmlFor="budgetDigital" className="w-24 text-xs font-bold text-stone-600">Digitaali:</label><input id="budgetDigital" type="number" value={editingMarketingPlan.budgetDigital} className="focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none" onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetDigital: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
-                                    <div className="flex items-center gap-2"><label htmlFor="budgetEdustus" className="w-24 text-xs font-bold text-stone-600">Edustus:</label><input id="budgetEdustus" type="number" value={editingMarketingPlan.budgetEdustus} className="focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none" onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetEdustus: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
-                                    <div className="flex items-center gap-2"><label htmlFor="budgetOther" className="w-24 text-xs font-bold text-stone-600">Muu:</label><input id="budgetOther" type="number" value={editingMarketingPlan.budgetOther} className="focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none" onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetOther: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" /></div>
-                                </div>
-
-                                <div className="bg-[#f0fdf4] p-4 rounded-2xl border border-[#dcfce7]">
+                                <div className="bg-[#f0fdf4] p-4 rounded-2xl border border-[#dcfce7] mb-6">
                                     <label className="block text-xs font-bold text-[#2f855a] uppercase mb-2">Markkinointitoimet (Tarjottimelta)</label>
-                                    <p className="text-[10px] text-[#22543d] mb-4 font-medium italic">Tänne lisätyt työt ohjautuvat automaattisesti aluevetäjän omalle Myynnin työpöydälle ja ovat kuitattavissa siellä.</p>
+                                    <p className="text-[10px] text-[#22543d] mb-4 font-medium italic">Tänne lisätyt työt ohjautuvat automaattisesti aluevetäjän omalle Myynnin työpöydälle. Pysyvä toimi tuo tunteja kumulatiivisesti joka kuukausi.</p>
                                     
                                     {editingMarketingPlan.selectedTasks?.length > 0 && (
                                         <div className="space-y-2 mb-4">
@@ -1883,7 +1799,7 @@ const updatePublicDataProps = (updates) => {
                                                     <div key={st.id} className="flex justify-between items-center bg-white p-2 rounded-xl border border-[#dcfce7] shadow-sm">
                                                         <div>
                                                             <p className="text-xs font-bold text-stone-800">{taskInfo.text}</p>
-                                                            <p className="text-[10px] text-stone-500 uppercase tracking-widest mt-0.5">{st.type === 'pinned' ? 'Pysyvä kiinnitys (koko Q)' : `Vko: ${st.targetWeekNum}`} • {st.estimatedHours ? <span className="text-[#2f855a] font-bold">+{st.estimatedHours}h</span> : <span className="opacity-50">0h</span>}</p>
+                                                            <p className="text-[10px] text-stone-500 uppercase tracking-widest mt-0.5">{st.type === 'pinned' ? 'Pysyvä kiinnitys (koko Q)' : `Vko: ${st.targetWeekNum}`} • {st.estimatedHours ? <span className="text-[#2f855a] font-bold">+{st.estimatedHours}h/kk</span> : <span className="opacity-50">0h</span>}</p>
                                                         </div>
                                                         <button onClick={() => setEditingMarketingPlan(prev => ({...prev, selectedTasks: prev.selectedTasks.filter(tsk => tsk.id !== st.id)}))} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"><Trash2 size={14}/></button>
                                                     </div>
@@ -1931,6 +1847,90 @@ const updatePublicDataProps = (updates) => {
                                             setMarketingTaskDraft({ trayTaskId: '', type: 'pinned', targetWeekNum: '', estimatedHours: '' });
                                         }} className="w-full bg-[#2f855a] text-white text-xs font-bold py-2.5 rounded-lg shadow-sm hover:bg-[#22543d] transition-colors">Lisää toimi</button>
                                     </div>
+                                </div>
+
+                                <div className="bg-white p-4 rounded-2xl border border-[#dcfce7] mb-6">
+                                    <h4 className="text-xs font-black text-[#2f855a] uppercase mb-1">Kertaluonteiset Kampanjat (Urakat)</h4>
+                                    <p className="text-[10px] text-stone-500 mb-3 leading-relaxed">Nämä eurot kilahtavat suoraan valitulle kuukaudelle kasvattaen vain kuukauden liikevaihtoa ilman pysyviä tunteja.</p>
+                                    
+                                    <div className="space-y-2 mb-3">
+                                        {(editingMarketingPlan.campaigns || []).map(c => (
+                                             <div key={c.id} className="flex justify-between items-center bg-stone-50 p-2 rounded-xl border border-stone-200 shadow-sm">
+                                                 <div>
+                                                     <p className="text-xs font-bold text-stone-800">{c.name}</p>
+                                                     <p className="text-[10px] text-stone-500">{c.desc}</p>
+                                                 </div>
+                                                 <div className="text-right flex items-center gap-3">
+                                                     <div className="text-[#2f855a] font-bold text-xs">+{c.targetRev} € <span className="text-stone-400 text-[9px] font-normal uppercase block">Kuukaudelle {c.targetMonth}</span></div>
+                                                     <button onClick={() => setEditingMarketingPlan(prev => ({...prev, campaigns: prev.campaigns.filter(cam => cam.id !== c.id)}))} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"><Trash2 size={14}/></button>
+                                                 </div>
+                                             </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                         <input type="text" placeholder="Kampanjan nimi (esim. Joulukoti)" value={campaignDraft.name} onChange={e => setCampaignDraft({...campaignDraft, name: e.target.value})} className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold outline-none text-stone-700" />
+                                         <input type="text" placeholder="Kuvaus / lisätieto" value={campaignDraft.desc} onChange={e => setCampaignDraft({...campaignDraft, desc: e.target.value})} className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold outline-none text-stone-700" />
+                                         <div className="flex gap-2">
+                                             <select value={campaignDraft.targetMonth} onChange={e => setCampaignDraft({...campaignDraft, targetMonth: e.target.value})} className="flex-1 p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold outline-none text-stone-700">
+                                                  <option value="">Kohdekuukausi...</option>
+                                                  <option value="1">Kuukausi 1</option>
+                                                  <option value="2">Kuukausi 2</option>
+                                                  <option value="3">Kuukausi 3</option>
+                                             </select>
+                                             <input type="number" placeholder="Tuottoarvio (€)" value={campaignDraft.targetRev} onChange={e => setCampaignDraft({...campaignDraft, targetRev: e.target.value})} className="flex-1 p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold outline-none text-stone-700" />
+                                         </div>
+                                         <button onClick={() => {
+                                              if (!campaignDraft.name || !campaignDraft.targetMonth || !campaignDraft.targetRev) return;
+                                              const nc = { id: 'cmp-'+Math.random().toString(36).substr(2,9), ...campaignDraft, targetMonth: Number(campaignDraft.targetMonth), targetRev: Number(campaignDraft.targetRev) };
+                                              setEditingMarketingPlan(prev => ({...prev, campaigns: [...(prev.campaigns || []), nc]}));
+                                              setCampaignDraft({ name: '', desc: '', targetMonth: '', targetRev: '' });
+                                         }} className="w-full bg-[#2f855a] text-white text-xs font-bold py-2.5 rounded-lg shadow-sm hover:bg-[#22543d] transition-colors">Lisää kampanja</button>
+                                    </div>
+                                </div>
+
+                                <div className="bg-[#f8fafc] p-4 rounded-2xl border border-stone-200 mb-6">
+                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Tavoite vs Toteuma</label>
+                                    <p className="text-[10px] text-stone-400 font-medium mb-3 italic">Tavoitteet lasketaan automaattisesti lähtötason, poistuman ja toimenpiteiden arvioiden perusteella.</p>
+                                    <div className="flex flex-col gap-3">
+                                        {(() => {
+                                            const rq = Number(editingMarketingPlan.quarter) || 1;
+                                            const monthNames = rq === 1 ? ['Tam', 'Hel', 'Maa'] : rq === 2 ? ['Huh', 'Tou', 'Kes'] : rq === 3 ? ['Hei', 'Elo', 'Syy'] : ['Lok', 'Mar', 'Jou'];
+                                            return (
+                                                <>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest w-8">{monthNames[0]}</span>
+                                                        <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo1} readOnly className="w-1/4 p-3 bg-[#e0e7ff] border border-[#c7d2fe] rounded-xl text-xs font-black text-[#3730a3] outline-none cursor-not-allowed" />
+                                                        <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo1: e.target.value, realizedRev1: e.target.value ? Math.round(Number(e.target.value) * (Number(editingMarketingPlan.averageHourlyRate)||39.9)) : ''})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                                        <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev1} readOnly className="w-1/4 p-3 bg-[#e0e7ff] border border-[#c7d2fe] rounded-xl text-xs font-black text-[#3730a3] outline-none cursor-not-allowed" />
+                                                        <input type="number" placeholder="Tot (€)" value={editingMarketingPlan.realizedRev1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedRev1: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 mt-1">
+                                                        <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest w-8">{monthNames[1]}</span>
+                                                        <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo2} readOnly className="w-1/4 p-3 bg-[#e0e7ff] border border-[#c7d2fe] rounded-xl text-xs font-black text-[#3730a3] outline-none cursor-not-allowed" />
+                                                        <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo2: e.target.value, realizedRev2: e.target.value ? Math.round(Number(e.target.value) * (Number(editingMarketingPlan.averageHourlyRate)||39.9)) : ''})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                                        <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev2} readOnly className="w-1/4 p-3 bg-[#e0e7ff] border border-[#c7d2fe] rounded-xl text-xs font-black text-[#3730a3] outline-none cursor-not-allowed" />
+                                                        <input type="number" placeholder="Tot (€)" value={editingMarketingPlan.realizedRev2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedRev2: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 mt-1">
+                                                        <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest w-8">{monthNames[2]}</span>
+                                                        <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo3} readOnly className="w-1/4 p-3 bg-[#e0e7ff] border border-[#c7d2fe] rounded-xl text-xs font-black text-[#3730a3] outline-none cursor-not-allowed" />
+                                                        <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo3: e.target.value, realizedRev3: e.target.value ? Math.round(Number(e.target.value) * (Number(editingMarketingPlan.averageHourlyRate)||39.9)) : ''})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                                        <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev3} readOnly className="w-1/4 p-3 bg-[#e0e7ff] border border-[#c7d2fe] rounded-xl text-xs font-black text-[#3730a3] outline-none cursor-not-allowed" />
+                                                        <input type="number" placeholder="Tot (€)" value={editingMarketingPlan.realizedRev3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedRev3: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-4 rounded-2xl border border-stone-200 space-y-3">
+                                    <label id="marketingBudgetGroup" className="block text-xs font-bold text-stone-500 uppercase mb-1">Markkinointibudjetti (€)</label>
+                                    <div className="flex items-center gap-2"><label htmlFor="budgetPrint" className="w-24 text-xs font-bold text-stone-600">Printti:</label><input id="budgetPrint" type="number" value={editingMarketingPlan.budgetPrint} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none" onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetPrint: e.target.value})} /></div>
+                                    <div className="flex items-center gap-2"><label htmlFor="budgetDigital" className="w-24 text-xs font-bold text-stone-600">Digitaali:</label><input id="budgetDigital" type="number" value={editingMarketingPlan.budgetDigital} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none" onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetDigital: e.target.value})} /></div>
+                                    <div className="flex items-center gap-2"><label htmlFor="budgetEdustus" className="w-24 text-xs font-bold text-stone-600">Edustus:</label><input id="budgetEdustus" type="number" value={editingMarketingPlan.budgetEdustus} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none" onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetEdustus: e.target.value})} /></div>
+                                    <div className="flex items-center gap-2"><label htmlFor="budgetOther" className="w-24 text-xs font-bold text-stone-600">Muu:</label><input id="budgetOther" type="number" value={editingMarketingPlan.budgetOther} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none" onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, budgetOther: e.target.value})} /></div>
                                 </div>
                             </div>
                             

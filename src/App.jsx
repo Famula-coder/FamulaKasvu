@@ -781,11 +781,9 @@ const updatePublicDataProps = (updates) => {
         for (const userPayout of computedPayouts) {
             const userStat = allUserStats.find(s => s.id === userPayout.userId);
             if (userStat) {
-                const updatedLogs = (userStat.logs || []).map(log => {
-                    if (!log.payoutId && userPayout.logs.find(l => l.id === log.id)) {
-                        return { ...log, payoutId: archiveId, clientContact: null, note: null };
-                    }
-                    return log;
+                const updatedLogs = (userStat.logs || []).filter(log => {
+                    const isPaid = userPayout.logs.find(l => l.id === log.id);
+                    return !isPaid; // Poistetaan maksetut suoraan Työntekijän pöydältä arkistoon!
                 });
                 try {
                     setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_stats', userPayout.userId), { logs: updatedLogs }, { merge: true });
@@ -864,18 +862,18 @@ const updatePublicDataProps = (updates) => {
     // SALES & SURVEY
     const handleRecordSale = (hours) => {
         if (!fbUser) return;
-        const myStat = allUserStats.find(s => s.id === fbUser.uid) || { hours: 0, customers: 0, npsSum: 0, npsCount: 0, myTasks: [] };
+        const myStat = allUserStats.find(s => s.id === fbUser.uid) || { npsSum: 0, npsCount: 0, myTasks: [] };
         const newLog = { id: generateId(), timestamp: Date.now(), type: 'quick_sale', hours: hours, saleMode: saleMode };
-        syncMyStats({ hours: myStat.hours + hours, logs: [...(myStat.logs || []), newLog] });
+        syncMyStats({ logs: [...(myStat.logs || []), newLog] });
         showToast(`Kirjattu: ${hours}h ${saleMode === 'oneTime' ? 'irtotunteja' : 'jatkuvaa tilausta'}!`);
         setModals(prev => ({ ...prev, sales: false }));
     };
 
     const handleRecordQuickCustomer = () => {
         if (!fbUser) return;
-        const myStat = allUserStats.find(s => s.id === fbUser.uid) || { hours: 0, customers: 0, npsSum: 0, npsCount: 0, myTasks: [] };
+        const myStat = allUserStats.find(s => s.id === fbUser.uid) || { npsSum: 0, npsCount: 0, myTasks: [] };
         const newLog = { id: generateId(), timestamp: Date.now(), type: 'quick_customer', customers: 1 };
-        syncMyStats({ customers: (myStat.customers || 0) + 1, logs: [...(myStat.logs || []), newLog] });
+        syncMyStats({ logs: [...(myStat.logs || []), newLog] });
         showToast("1 Uusi tutustumiskäynti kirjattu (ja maksuperuste aktivoitu)!");
     };
 
@@ -913,36 +911,20 @@ const updatePublicDataProps = (updates) => {
         if (!logToRemove) return;
         
         const isSurvey = logToRemove.type === 'survey';
-        let newHours = myStat.hours || 0;
-        let newCustomers = myStat.customers || 0;
         let newNpsSum = myStat.npsSum || 0;
         let newNpsCount = myStat.npsCount || 0;
         
-        if (logToRemove.type === 'quick_sale') {
-            newHours -= (logToRemove.hours || 0);
-        } else if (logToRemove.type === 'quick_customer') {
-            newCustomers -= 1;
-        } else if (isSurvey) {
-            newHours -= (logToRemove.hours || 0);
-            if (logToRemove.proposalStatus === 'sold') {
-               newCustomers -= 1;
-            }
-            if (logToRemove.nps > 0) {
-                newNpsSum -= logToRemove.nps;
-                newNpsCount -= 1;
-            }
+        if (isSurvey && logToRemove.nps > 0) {
+            newNpsSum -= logToRemove.nps;
+            newNpsCount -= 1;
         }
         
-        newHours = Math.max(0, newHours);
-        newCustomers = Math.max(0, newCustomers);
         newNpsSum = Math.max(0, newNpsSum);
         newNpsCount = Math.max(0, newNpsCount);
         
         const newLogs = (myStat.logs || []).filter(l => l.id !== logId);
         
         const updates = {
-            hours: newHours,
-            customers: newCustomers,
             npsSum: newNpsSum,
             npsCount: newNpsCount,
             logs: newLogs
@@ -2173,20 +2155,20 @@ const updatePublicDataProps = (updates) => {
             return data;
         };
 
-        const getCurrentMonthSalesHours = (statsArray, targetRegionId = null) => {
-            let salesHours = 0;
+        const getCurrentMonthCustomers = (statsArray, targetRegionId = null) => {
+            let customerCount = 0;
             const currMonth = new Date().getMonth();
             const currYear = new Date().getFullYear();
             
             (statsArray || []).filter(s => !targetRegionId || s.regionId === targetRegionId).forEach(s => {
-                (s.logs || []).filter(log => log.type === 'survey' || log.type === 'quick_sale').forEach(log => {
+                (s.logs || []).filter(log => log.type === 'quick_customer' || (log.type === 'bonus_event' && log.bonusId === 'customerBonus')).forEach(log => {
                      const d = new Date(log.timestamp);
-                     if (d.getMonth() === currMonth && d.getFullYear() === currYear) {
-                         salesHours += Number(log.hours || 0);
+                     if (!log.payoutId && d.getMonth() === currMonth && d.getFullYear() === currYear) {
+                         customerCount += 1;
                      }
                 });
             });
-            return salesHours;
+            return customerCount;
         };
 
         const getPreviousMonthTarget = (plans, targetRegionId = null) => {
@@ -2217,11 +2199,17 @@ const updatePublicDataProps = (updates) => {
         };
 
         let totalRegionHours = getPreviousMonthRealizedTotal(marketingPlans, globalScope.regionId !== 'all' ? globalScope.regionId : authSession.regionId);
-        let totalRegionCustomers = getCurrentMonthSalesHours(allUserStats, globalScope.regionId !== 'all' ? globalScope.regionId : authSession.regionId);
+        let totalRegionCustomers = getCurrentMonthCustomers(allUserStats, globalScope.regionId !== 'all' ? globalScope.regionId : authSession.regionId);
 
         const myStat = (Array.isArray(allUserStats) ? allUserStats : []).find(s => s.id === fbUser?.uid) || { hours: 0, customers: 0, myTasks: [], logs: [] };
-        const myHours = myStat.hours || 0;
-        const myCustomers = myStat.customers || 0;
+        const dashboardCurrMonth = new Date().getMonth();
+        const dashboardCurrYear = new Date().getFullYear();
+        const activeLogs = (myStat.logs || []).filter(l => {
+             const d = new Date(l.timestamp);
+             return !l.payoutId && d.getMonth() === dashboardCurrMonth && d.getFullYear() === dashboardCurrYear;
+        });
+        const myHours = activeLogs.filter(l => l.type === 'quick_sale').reduce((sum, l) => sum + (Number(l.hours) || 0), 0);
+        const myCustomers = activeLogs.filter(l => l.type === 'quick_customer' || (l.type === 'bonus_event' && l.bonusId === 'customerBonus')).length;
 
         return (
             <div className="min-h-screen bg-[#e7e5e4] font-sans pb-[90px] relative">
@@ -3448,10 +3436,8 @@ const updatePublicDataProps = (updates) => {
                                                     <div className="font-black text-xl text-[#2f855a]">{p.sum.toFixed(2)} €</div>
                                                 </summary>
                                                 <div className="p-5 border-t border-stone-200">
-                                                    <div className="flex gap-4 mb-4 text-xs font-bold text-stone-600 bg-stone-50 p-3 rounded-xl">
-                                                        <div><span className="text-stone-400">Jatkuva:</span> {p.breakdown.planH}h</div>
-                                                        <div><span className="text-stone-400">Kerta:</span> {p.breakdown.oneTimeH}h</div>
-                                                        <div><span className="text-stone-400">Uudet As:</span> {p.breakdown.customers} kpl</div>
+                                                    <div className="flex gap-4 mb-4 text-xs font-bold text-stone-600 bg-stone-50 p-3 rounded-xl flex-wrap">
+                                                        <div><span className="text-stone-400">Kirjatut Myyntitunnit:</span> {p.breakdown.planH + p.breakdown.oneTimeH}h</div>
                                                         <div><span className="text-stone-400">Tapahtumat:</span> {p.breakdown.bonusEvents || 0} kpl</div>
                                                         <div><span className="text-stone-400">Manuaalinen:</span> {p.breakdown.manual} €</div>
                                                     </div>

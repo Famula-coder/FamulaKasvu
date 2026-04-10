@@ -1622,29 +1622,35 @@ const updatePublicDataProps = (updates) => {
                             
                             <div className="bg-stone-50 rounded-2xl p-3 mb-4 border border-stone-100">
                                 <h4 className="text-[10px] uppercase text-stone-500 font-black mb-2">Tavoite vs Toteuma</h4>
-                                <div className="space-y-1">
-                                    <div className="flex justify-between items-center bg-white p-2 rounded-xl border border-stone-200">
-                                        <span className="text-[10px] font-bold text-stone-500">KK 1</span>
-                                        <div className="text-right">
-                                            <div className="text-sm font-bold text-stone-800">{plan.targetMo1 || 0}h <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedMo1 || 0}h</span></div>
-                                            <div className="text-[10px] font-bold text-stone-400 mt-0.5">{plan.targetRev1 || 0}€ <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedRev1 || 0}€</span></div>
+                                {(() => {
+                                    const rq = Number(plan.quarter) || 1;
+                                    const monthNames = rq === 1 ? ['Tam', 'Hel', 'Maa'] : rq === 2 ? ['Huh', 'Tou', 'Kes'] : rq === 3 ? ['Hei', 'Elo', 'Syy'] : ['Lok', 'Mar', 'Jou'];
+                                    return (
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between items-center bg-white p-2 rounded-xl border border-stone-200">
+                                                <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">{monthNames[0]}</span>
+                                                <div className="text-right">
+                                                    <div className="text-sm font-bold text-stone-800">{plan.targetMo1 || 0}h <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedMo1 || 0}h</span></div>
+                                                    <div className="text-[10px] font-bold text-stone-400 mt-0.5">{plan.targetRev1 || 0}€ <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedRev1 || 0}€</span></div>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between items-center bg-white p-2 rounded-xl border border-stone-200">
+                                                <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">{monthNames[1]}</span>
+                                                <div className="text-right">
+                                                    <div className="text-sm font-bold text-stone-800">{plan.targetMo2 || 0}h <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedMo2 || 0}h</span></div>
+                                                    <div className="text-[10px] font-bold text-stone-400 mt-0.5">{plan.targetRev2 || 0}€ <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedRev2 || 0}€</span></div>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between items-center bg-white p-2 rounded-xl border border-stone-200">
+                                                <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">{monthNames[2]}</span>
+                                                <div className="text-right">
+                                                    <div className="text-sm font-bold text-stone-800">{plan.targetMo3 || 0}h <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedMo3 || 0}h</span></div>
+                                                    <div className="text-[10px] font-bold text-stone-400 mt-0.5">{plan.targetRev3 || 0}€ <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedRev3 || 0}€</span></div>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="flex justify-between items-center bg-white p-2 rounded-xl border border-stone-200">
-                                        <span className="text-[10px] font-bold text-stone-500">KK 2</span>
-                                        <div className="text-right">
-                                            <div className="text-sm font-bold text-stone-800">{plan.targetMo2 || 0}h <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedMo2 || 0}h</span></div>
-                                            <div className="text-[10px] font-bold text-stone-400 mt-0.5">{plan.targetRev2 || 0}€ <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedRev2 || 0}€</span></div>
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-between items-center bg-white p-2 rounded-xl border border-stone-200">
-                                        <span className="text-[10px] font-bold text-stone-500">KK 3</span>
-                                        <div className="text-right">
-                                            <div className="text-sm font-bold text-stone-800">{plan.targetMo3 || 0}h <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedMo3 || 0}h</span></div>
-                                            <div className="text-[10px] font-bold text-stone-400 mt-0.5">{plan.targetRev3 || 0}€ <span className="text-stone-300 mx-1">/</span> <span className="text-[#2f855a]">{plan.realizedRev3 || 0}€</span></div>
-                                        </div>
-                                    </div>
-                                </div>
+                                    );
+                                })()}
                             </div>
                             
                             {plan.evaluation && (
@@ -1686,27 +1692,35 @@ const updatePublicDataProps = (updates) => {
                                 <div className="bg-white p-4 rounded-2xl border border-stone-200">
                                     <label className="block text-xs font-bold text-stone-500 uppercase mb-3">Tavoite vs Toteuma (Tunnit)</label>
                                     <div className="flex flex-col gap-3">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[10px] font-bold text-stone-400 w-6">Kk1</span>
-                                            <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetMo1: e.target.value, targetRev1: e.target.value ? Math.round(Number(e.target.value) * 39.9) : ''})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
-                                            <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo1: e.target.value, realizedRev1: e.target.value ? Math.round(Number(e.target.value) * 39.9) : ''})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
-                                            <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetRev1: e.target.value})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
-                                            <input type="number" placeholder="Tot (€)" value={editingMarketingPlan.realizedRev1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedRev1: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
-                                        </div>
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="text-[10px] font-bold text-stone-400 w-6">Kk2</span>
-                                            <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetMo2: e.target.value, targetRev2: e.target.value ? Math.round(Number(e.target.value) * 39.9) : ''})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
-                                            <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo2: e.target.value, realizedRev2: e.target.value ? Math.round(Number(e.target.value) * 39.9) : ''})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
-                                            <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetRev2: e.target.value})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
-                                            <input type="number" placeholder="Tot (€)" value={editingMarketingPlan.realizedRev2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedRev2: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
-                                        </div>
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="text-[10px] font-bold text-stone-400 w-6">Kk3</span>
-                                            <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetMo3: e.target.value, targetRev3: e.target.value ? Math.round(Number(e.target.value) * 39.9) : ''})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
-                                            <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo3: e.target.value, realizedRev3: e.target.value ? Math.round(Number(e.target.value) * 39.9) : ''})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
-                                            <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetRev3: e.target.value})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
-                                            <input type="number" placeholder="Tot (€)" value={editingMarketingPlan.realizedRev3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedRev3: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
-                                        </div>
+                                        {(() => {
+                                            const rq = Number(editingMarketingPlan.quarter) || 1;
+                                            const monthNames = rq === 1 ? ['Tam', 'Hel', 'Maa'] : rq === 2 ? ['Huh', 'Tou', 'Kes'] : rq === 3 ? ['Hei', 'Elo', 'Syy'] : ['Lok', 'Mar', 'Jou'];
+                                            return (
+                                                <>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest w-8">{monthNames[0]}</span>
+                                                        <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetMo1: e.target.value, targetRev1: e.target.value ? Math.round(Number(e.target.value) * 39.9) : ''})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
+                                                        <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo1: e.target.value, realizedRev1: e.target.value ? Math.round(Number(e.target.value) * 39.9) : ''})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                                        <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetRev1: e.target.value})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
+                                                        <input type="number" placeholder="Tot (€)" value={editingMarketingPlan.realizedRev1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedRev1: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 mt-1">
+                                                        <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest w-8">{monthNames[1]}</span>
+                                                        <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetMo2: e.target.value, targetRev2: e.target.value ? Math.round(Number(e.target.value) * 39.9) : ''})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
+                                                        <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo2: e.target.value, realizedRev2: e.target.value ? Math.round(Number(e.target.value) * 39.9) : ''})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                                        <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetRev2: e.target.value})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
+                                                        <input type="number" placeholder="Tot (€)" value={editingMarketingPlan.realizedRev2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedRev2: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 mt-1">
+                                                        <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest w-8">{monthNames[2]}</span>
+                                                        <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetMo3: e.target.value, targetRev3: e.target.value ? Math.round(Number(e.target.value) * 39.9) : ''})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
+                                                        <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo3: e.target.value, realizedRev3: e.target.value ? Math.round(Number(e.target.value) * 39.9) : ''})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                                        <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetRev3: e.target.value})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
+                                                        <input type="number" placeholder="Tot (€)" value={editingMarketingPlan.realizedRev3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedRev3: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
 

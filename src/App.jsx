@@ -3355,8 +3355,8 @@ const updatePublicDataProps = (updates) => {
                             let totalBonusSum = 0;
                             
                             if (activeArchive) {
-                                computedPayouts = activeArchive.payouts;
-                                totalBonusSum = activeArchive.totalSum;
+                                computedPayouts = activeArchive.payouts || [];
+                                totalBonusSum = activeArchive.totalSum || 0;
                             } else {
                                 const teamStats = allUserStats.filter(s => s.regionId === authSession.regionId && (s.status === 'active' || (s.logs && s.logs.length > 0)));
                                 
@@ -3403,7 +3403,7 @@ const updatePublicDataProps = (updates) => {
                                         </div>
                                         <div className="text-right">
                                             <p className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-1">Maksettava Yhteensä</p>
-                                            <p className="text-2xl font-black text-[#2f855a]">{totalBonusSum.toFixed(2)} €</p>
+                                            <p className="text-2xl font-black text-[#2f855a]">{(totalBonusSum || 0).toFixed(2)} €</p>
                                         </div>
                                     </div>
                                     
@@ -3430,7 +3430,7 @@ const updatePublicDataProps = (updates) => {
                                                     <div>
                                                         <h3 className="font-bold text-stone-900 text-lg flex items-center gap-2">{p.name} <span className="bg-white border border-stone-200 text-stone-500 text-[10px] uppercase font-bold py-0.5 px-2 rounded-full">{p.role}</span></h3>
                                                     </div>
-                                                    <div className="font-black text-xl text-[#2f855a]">{p.sum.toFixed(2)} €</div>
+                                                    <div className="font-black text-xl text-[#2f855a]">{(p.sum || 0).toFixed(2)} €</div>
                                                 </summary>
                                                 <div className="p-5 border-t border-stone-200">
                                                     <div className="flex gap-4 mb-4 text-xs font-bold text-stone-600 bg-stone-50 p-3 rounded-xl flex-wrap">
@@ -3440,7 +3440,7 @@ const updatePublicDataProps = (updates) => {
                                                     </div>
                                                     
                                                     <div className="space-y-2 mb-4">
-                                                        {p.logs.map(log => (
+                                                        {(p.logs || []).map(log => (
                                                             <div key={log.id} className="flex justify-between items-center p-3 border border-stone-100 bg-white rounded-xl shadow-sm text-sm">
                                                                 <div>
                                                                     <span className="font-bold text-stone-800">{new Date(log.timestamp).toLocaleDateString('fi')} - </span>

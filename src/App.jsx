@@ -3433,9 +3433,9 @@ const updatePublicDataProps = (updates) => {
                                                 </summary>
                                                 <div className="p-5 border-t border-stone-200">
                                                     <div className="flex gap-4 mb-4 text-xs font-bold text-stone-600 bg-stone-50 p-3 rounded-xl flex-wrap">
-                                                        <div><span className="text-stone-400">Kirjatut Myyntitunnit:</span> {p.breakdown.planH + p.breakdown.oneTimeH}h</div>
-                                                        <div><span className="text-stone-400">Tapahtumat:</span> {p.breakdown.bonusEvents || 0} kpl</div>
-                                                        <div><span className="text-stone-400">Manuaalinen:</span> {p.breakdown.manual} €</div>
+                                                        <div><span className="text-stone-400">Kirjatut Myyntitunnit:</span> {(p.breakdown?.planH || 0) + (p.breakdown?.oneTimeH || 0)}h</div>
+                                                        <div><span className="text-stone-400">Tapahtumat:</span> {p.breakdown?.bonusEvents || 0} kpl</div>
+                                                        <div><span className="text-stone-400">Manuaalinen:</span> {p.breakdown?.manual || 0} €</div>
                                                     </div>
                                                     
                                                     <div className="space-y-2 mb-4">

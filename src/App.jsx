@@ -1765,9 +1765,12 @@ const updatePublicDataProps = (updates) => {
                                     </div>
                                 </div>
                                 
-                                <div className="bg-white p-4 rounded-2xl border border-stone-200">
+                                <div className="bg-white p-4 rounded-2xl border border-stone-200 mb-6">
                                     <label htmlFor="reportMemo" className="block text-xs font-bold text-stone-500 uppercase mb-2">MUISTIO</label>
-                                    <textarea id="                                <div className="bg-white p-4 rounded-2xl border border-stone-200 mb-6">
+                                    <textarea id="reportMemo" value={editingMarketingPlan.evaluation} className="focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm font-medium h-24 outline-none" onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, evaluation: e.target.value})} placeholder="Vapaa muistio..."></textarea>
+                                </div>
+
+                                <div className="bg-white p-4 rounded-2xl border border-stone-200 mb-6">
                                     <label className="block text-xs font-bold text-stone-500 uppercase mb-3">LÄHTÖTILANNE JA POISTUMA</label>
                                     <div className="flex gap-3">
                                         <div className="flex-1">

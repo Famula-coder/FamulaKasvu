@@ -3076,6 +3076,40 @@ const updatePublicDataProps = (updates) => {
                                         </div>
                                         )}
 
+                                        {activeWidgets.includes('teuvo_neuvoo') && (() => {
+                                            const teuvoData = getTeuvoNeuvooData();
+                                            if (teuvoData.length < 2) return null; // Not enough data for comparison
+                                            const topRegion = teuvoData[0];
+                                            const isTopRegionMyself = !isSuperAdmin && authSession?.regionId === topRegion.id;
+                                            const comparingRegion = isTopRegionMyself ? teuvoData[1] : topRegion; // If we are top, compare to 2nd to stay humble
+
+                                            // Construct tool string
+                                            const topTools = comparingRegion.pinnedToolIds.map(id => unifiedTray.find(t=>t.id===id)?.text || '').filter(Boolean);
+                                            let toolsText = topTools.length > 0 ? ` He ovat kiinnittäneet työpöydälleen työkaluja kuten "${topTools[0]}"${topTools.length > 1 ? ` ja "${topTools[1]}"` : ''}.` : '';
+                                            
+                                            let insightMsg = '';
+                                            if (isSuperAdmin) {
+                                                insightMsg = `Koko konsernin kovimmassa kasvussa (+${Math.round(topRegion.growthScore)}% vauhti) on tällä hetkellä ${topRegion.name}.${toolsText} Toisena perässä kirii ${teuvoData[1].name} (+${Math.round(teuvoData[1].growthScore)}%). Seurataan tuoko nämä kiinnitetyt toimenpiteet pysyvää etumatkaa!`;
+                                            } else {
+                                                const myRegionStats = teuvoData.find(r => r.id === authSession?.regionId);
+                                                if (isTopRegionMyself) {
+                                                    insightMsg = `Alueesi on tällä hetkellä Suomen ykkönen! Vedätte parasta +${Math.round(topRegion.growthScore)}% kasvuvauhtia. Takananne niskaan hengittää ${comparingRegion.name} (+${Math.round(comparingRegion.growthScore)}%).${toolsText} Pitäkää kiinni valitsemastanne suunnitelmasta!`;
+                                                } else {
+                                                    insightMsg = `Muihin verrattuna kovimmassa kasvussa (+${Math.round(comparingRegion.growthScore)}% vauhti) on tällä hetkellä ${comparingRegion.name}.${toolsText} Voisiko alueesi kokeilla samoja tarjoiluja, sillä alueenne vastaava kasvuvauhti on tällä hetkellä kokonaisuutena ${Math.round(myRegionStats?.growthScore || 0)}%?`;
+                                                }
+                                            }
+
+                                            return (
+                                                <div style={{ order: widgetOrder['teuvo_neuvoo'] || 99 }} className="bg-gradient-to-br from-[#fffbeb] to-white rounded-[2rem] p-6 shadow-sm border border-[#fde68a]">
+                                                    <h3 className="text-xs font-black text-[#d97706] mb-4 uppercase tracking-widest flex items-center gap-2"><Sparkles size={16}/> Teuvo Neuvoo - Kasvusparraaja</h3>
+                                                    <div className="p-4 rounded-xl border bg-white border-[#fef3c7] flex items-start gap-4 shadow-sm">
+                                                        <div className="mt-1 text-2xl">🤖</div>
+                                                        <p className="text-[11px] font-medium text-stone-700 leading-relaxed italic">{insightMsg}</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+
                                         {activeWidgets.includes('team') && (
 <div style={{ order: widgetOrder['team'] || 99 }} className="bg-white rounded-[2rem] p-6 shadow-sm border border-stone-200">
                                             <h3 className="text-sm font-black text-stone-800 mb-5 uppercase tracking-widest text-center border-b border-stone-100 pb-3">Hoitajien suoritustaso</h3>
@@ -3918,6 +3952,9 @@ const updatePublicDataProps = (updates) => {
                                         { id: 'tasks', title: 'Rutiinien suoritusaste', desc: 'Kertoo kuinka suuri osa asetetuista rutiineista (esim. soittokierroksista) on tällä hetkellä tehty.' },
                                         { id: 'surveys', title: 'Asiakastyytyväisyys (NPS)', desc: 'Näyttää listana lähiaikoina toteutuneet asiakaskohtaamiset, NPS-luokitukset ja sanalliset palautteet.' },
                                         { id: 'sparraus', title: 'Tekoälyn sparraus', desc: 'Koneälyn tuottamat automaattiset huomiot alueesi tai tiimisi rutiineista.' },
+                                        ...(isAdmin ? [
+                                            { id: 'teuvo_neuvoo', title: 'Teuvo Neuvoo!', desc: 'Älykäs vertailumoottori sparraa aluettasi tuloskasvun ja parhaiden työkalujen perusteella.' }
+                                        ] : []),
                                         ...(isSuperAdmin ? [
                                             { id: 'overview', title: 'Konsernin tunnusluvut', desc: 'Ylimmän johdon koontinäkymä. Summaa aktiiviset alueet, tunnit ja globaalin NPS-keskiarvon.' },
                                             { id: 'comp_regions', title: 'Alueiden suoritusvertailu', desc: 'Listaa alueet asettaen ne järjestykseen suorituskyvyn (tuntien) perusteella.' },

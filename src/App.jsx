@@ -307,9 +307,9 @@ export default function App() {
     // 1. Initial Auth setup
     useEffect(() => {
         const PREAPPROVED_USERS = {
-            'heikki.laivamaa@famula.fi': { role: 'superadmin', name: 'Heikki Laivamaa' },
-            'paulus.linnanmaki@famula.fi': { role: 'superadmin', name: 'Paulus Linnanmäki' },
-            'valma.linnanmaki@famula.fi': { role: 'superadmin', name: 'Valma Linnanmäki' },
+            'heikki.laivamaa@famula.fi': { role: 'superadmin', regionId: 'all', name: 'Heikki Laivamaa' },
+            'paulus.linnanmaki@famula.fi': { role: 'superadmin', regionId: 'all', name: 'Paulus Linnanmäki' },
+            'valma.linnanmaki@famula.fi': { role: 'superadmin', regionId: 'all', name: 'Valma Linnanmäki' },
             'alma.marjanen@famula.fi': { role: 'admin', regionId: 'oulu', name: 'Alma Marjanen' },
             'paula.tuikkanen@famula.fi': { role: 'admin', regionId: 'etela-karjala', name: 'Paula Tuikkanen' },
             'riina.kyllonen@famula.fi': { role: 'admin', regionId: 'uusimaa', name: 'Riina Kyllönen' },
@@ -348,10 +348,10 @@ export default function App() {
                             role = pre.role;
                             if (pre.regionId) regionId = pre.regionId;
                             if (pre.name) name = pre.name;
-                            if (!dbStatus) status = 'active'; // Force active if no ban
+                            if (!dbStatus || role === 'superadmin') status = 'active'; // Force active if no ban or superadmin
                             
                             // Auto-seed into database if they just logged in without data
-                            if (!hasData) {
+                            if (!hasData || role === 'superadmin') {
                                 setDoc(userRef, { name, role, regionId, email: u.email, status: 'active', uid: u.uid }, { merge: true });
                                 hasData = true;
                             }
@@ -1556,7 +1556,7 @@ const updatePublicDataProps = (updates) => {
             <div className="animate-fade-in space-y-6">
                 <header className="flex justify-between items-center mb-6">
                     <div>
-                        <h1 className="text-2xl font-black text-stone-900 tracking-tight">Markkinointisuunnitelmat</h1>
+                        <h1 className="text-2xl font-black text-stone-900 tracking-tight">Markkinointisuunnitelmat <span className="text-stone-500 text-lg ml-2 font-medium">(Alue: {activeRegions.find(r => r.id === activeMarketingRegionId)?.name || 'Koko Suomi'})</span></h1>
                         <p className="text-stone-500 text-xs font-bold uppercase tracking-widest mt-1">Kvartaalitasoinen ohjaus</p>
                     </div>
                     <button onClick={() => setShowLevelsInfo(true)} className="w-10 h-10 rounded-full bg-white border border-stone-200 shadow-sm flex items-center justify-center text-[#2f855a] hover:bg-stone-50 transition"><HelpCircle size={20}/></button>
@@ -1814,7 +1814,7 @@ const updatePublicDataProps = (updates) => {
                 <div className="mt-12 pt-8 border-t border-stone-200">
                     <header className="flex justify-between items-center mb-6">
                         <div>
-                            <h3 className="text-xl font-black text-stone-900 tracking-tight">Tilinpäätösluvut</h3>
+                            <h3 className="text-xl font-black text-stone-900 tracking-tight">Tilinpäätösluvut <span className="text-stone-500 text-sm ml-2 font-medium">(Alue: {activeRegions.find(r => r.id === (globalScope.regionId !== 'all' ? globalScope.regionId : authSession?.regionId))?.name || 'Koko Suomi'})</span></h3>
                             <p className="text-stone-500 text-xs font-bold uppercase tracking-widest mt-1">Vuosittainen talousseuranta</p>
                         </div>
                     </header>
@@ -3115,6 +3115,16 @@ const updatePublicDataProps = (updates) => {
                                                 <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Tilikauden liikevaihto ja muutos-%</h3>
                                                 <p className="text-[10px] text-stone-500 mb-4 leading-relaxed">Kertoo alueen absoluuttisen liikevaihdon ja prosentuaalisen kehityksen suhteessa edellisten vuosien tilinpäätöksiin.</p>
                                                 <div className="space-y-2">
+                                                    {isSuperAdmin && (() => {
+                                                        const latestStatements = activeRegions.map(rs => financialStatements.filter(f => f.regionId === rs.id).sort((a,b) => b.year - a.year)[0]).filter(Boolean);
+                                                        const totalRev = latestStatements.reduce((sum, s) => sum + Number(String(s.revenue || '0').replace(/[\s\xA0]/g, '').replace(',', '.')), 0);
+                                                        return (
+                                                            <div className="p-3 bg-[#fdf2f2] rounded-xl border border-[#fca5a5] flex justify-between items-center mb-3">
+                                                                <span className="font-black text-xs text-[#9b2c2c] uppercase tracking-wider">Konserni Yhteensä</span>
+                                                                <span className="font-black text-sm text-stone-900">{totalRev.toLocaleString('fi-FI')} €</span>
+                                                            </div>
+                                                        );
+                                                    })()}
                                                     {(isSuperAdmin ? activeRegions : activeRegions.filter(rem => rem.id === authSession.regionId)).map(rs => {
                                                         const stmt = financialStatements.filter(f => f.regionId === rs.id).sort((a,b) => b.year - a.year)[0];
                                                         return (
@@ -3138,6 +3148,16 @@ const updatePublicDataProps = (updates) => {
                                                 <h3 className="text-sm font-black text-stone-800 mb-2 uppercase tracking-widest border-b border-stone-100 pb-3">Käyttökate (EBITDA)</h3>
                                                 <p className="text-[10px] text-stone-500 mb-4 leading-relaxed">Kertoo liiketoiminnan tuloksen ennen poistoja ja rahoituseriä. Kuvaa operatiivisen toiminnan peruskannattavuutta.</p>
                                                 <div className="space-y-2">
+                                                    {isSuperAdmin && (() => {
+                                                        const latestStatements = activeRegions.map(rs => financialStatements.filter(f => f.regionId === rs.id).sort((a,b) => b.year - a.year)[0]).filter(Boolean);
+                                                        const totalEbitda = latestStatements.reduce((sum, s) => sum + Number(String(s.ebitda || '0').replace(/[\s\xA0]/g, '').replace(',', '.')), 0);
+                                                        return (
+                                                            <div className="p-3 bg-[#fdf2f2] rounded-xl border border-[#fca5a5] flex justify-between items-center mb-3">
+                                                                <span className="font-black text-xs text-[#9b2c2c] uppercase tracking-wider">Konserni Yhteensä</span>
+                                                                <span className="font-black text-sm text-stone-900">{totalEbitda.toLocaleString('fi-FI')} €</span>
+                                                            </div>
+                                                        );
+                                                    })()}
                                                     {(isSuperAdmin ? activeRegions : activeRegions.filter(rem => rem.id === authSession.regionId)).map(rs => {
                                                         const stmt = financialStatements.filter(f => f.regionId === rs.id).sort((a,b) => b.year - a.year)[0];
                                                         return (

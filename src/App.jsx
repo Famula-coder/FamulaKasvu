@@ -417,7 +417,7 @@ export default function App() {
 
             setStatsLoaded(true);
             
-            const myStatDoc = stats.find(s => s.id === fbUser.uid);
+            const myStatDoc = rawStats.find(s => s.id === fbUser.uid);
             if (myStatDoc && myStatDoc.myTasks) {
                 setMyTasks(myStatDoc.myTasks);
             } else {
@@ -2369,7 +2369,7 @@ const updatePublicDataProps = (updates) => {
                                             
                                             let augmentedTasks = [...myTasks];
                                             if (isAdmin) {
-                                                const activePlan = marketingPlans.find(p => p.regionId === activeTrayRegion && p.year === todayInfo.year && p.quarter === Math.floor(todayInfo.monthIdx/3)+1);
+                                                const activePlan = marketingPlans.find(p => p.regionId === activeTrayRegion && Number(p.year) === todayInfo.year && Number(p.quarter) === Math.floor(todayInfo.monthIdx/3)+1);
                                                 const myStat = allUserStats.find(s => s.id === fbUser?.uid) || {};
                                                 const marketingTasksDone = myStat.marketingTasksDone || [];
                                                 

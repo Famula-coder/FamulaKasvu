@@ -969,6 +969,69 @@ const updatePublicDataProps = (updates) => {
 
         setTimeout(() => setSurveyState(prev => ({ ...prev, step: 'success', isSubmitting: false })), 800);
     };
+    useEffect(() => {
+        if (!marketingModal || !editingMarketingPlan) return;
+        
+        const rq = Number(editingMarketingPlan.quarter) || 1;
+        
+        let m1h = Number(editingMarketingPlan.baseHours || 0);
+        let m2h = m1h;
+        let m3h = m1h;
+        
+        const churn = Number(editingMarketingPlan.churnEstimate || 0);
+        const avgRate = Number(editingMarketingPlan.averageHourlyRate || 39.9);
+        
+        m1h -= churn;
+        m2h = m1h - churn;
+        m3h = m2h - churn;
+        
+        (editingMarketingPlan.selectedTasks || []).forEach(st => {
+            const eh = Number(st.estimatedHours || 0);
+            if (st.type === 'pinned') {
+                m1h += eh; m2h += eh; m3h += eh;
+            } else if (st.type === 'week') {
+                const w = Number(st.targetWeekNum);
+                const wOffset = w - ((rq-1) * 13);
+                if (wOffset <= 4) { m1h += eh; m2h += eh; m3h += eh; }
+                else if (wOffset <= 8) { m2h += eh; m3h += eh; }
+                else { m3h += eh; }
+            }
+        });
+        
+        let c1 = 0, c2 = 0, c3 = 0;
+        (editingMarketingPlan.campaigns || []).forEach(c => {
+            if (Number(c.targetMonth) === 1) c1 += Number(c.targetRev || 0);
+            if (Number(c.targetMonth) === 2) c2 += Number(c.targetRev || 0);
+            if (Number(c.targetMonth) === 3) c3 += Number(c.targetRev || 0);
+        });
+        
+        const rev1 = Math.round((m1h * avgRate) + c1);
+        const rev2 = Math.round((m2h * avgRate) + c2);
+        const rev3 = Math.round((m3h * avgRate) + c3);
+        
+        if (
+            editingMarketingPlan.targetMo1 !== m1h ||
+            editingMarketingPlan.targetMo2 !== m2h ||
+            editingMarketingPlan.targetMo3 !== m3h ||
+            editingMarketingPlan.targetRev1 !== rev1 ||
+            editingMarketingPlan.targetRev2 !== rev2 ||
+            editingMarketingPlan.targetRev3 !== rev3
+        ) {
+            setEditingMarketingPlan(prev => ({
+                ...prev,
+                targetMo1: m1h, targetMo2: m2h, targetMo3: m3h,
+                targetRev1: rev1, targetRev2: rev2, targetRev3: rev3
+            }));
+        }
+    }, [
+        editingMarketingPlan.baseHours, 
+        editingMarketingPlan.churnEstimate, 
+        editingMarketingPlan.averageHourlyRate, 
+        editingMarketingPlan.selectedTasks, 
+        editingMarketingPlan.campaigns,
+        editingMarketingPlan.quarter,
+        marketingModal
+    ]);
 
     // --- RENDER VIEWS ---
     if (isAuthenticating) return <div className="min-h-screen bg-[#e7e5e4] flex items-center justify-center"><Loader2 className="animate-spin text-[#9b2c2c] w-12 h-12"/></div>;
@@ -1494,70 +1557,6 @@ const updatePublicDataProps = (updates) => {
             </div>
         </div>
     );
-
-    useEffect(() => {
-        if (!marketingModal || !editingMarketingPlan) return;
-        
-        const rq = Number(editingMarketingPlan.quarter) || 1;
-        
-        let m1h = Number(editingMarketingPlan.baseHours || 0);
-        let m2h = m1h;
-        let m3h = m1h;
-        
-        const churn = Number(editingMarketingPlan.churnEstimate || 0);
-        const avgRate = Number(editingMarketingPlan.averageHourlyRate || 39.9);
-        
-        m1h -= churn;
-        m2h = m1h - churn;
-        m3h = m2h - churn;
-        
-        (editingMarketingPlan.selectedTasks || []).forEach(st => {
-            const eh = Number(st.estimatedHours || 0);
-            if (st.type === 'pinned') {
-                m1h += eh; m2h += eh; m3h += eh;
-            } else if (st.type === 'week') {
-                const w = Number(st.targetWeekNum);
-                const wOffset = w - ((rq-1) * 13);
-                if (wOffset <= 4) { m1h += eh; m2h += eh; m3h += eh; }
-                else if (wOffset <= 8) { m2h += eh; m3h += eh; }
-                else { m3h += eh; }
-            }
-        });
-        
-        let c1 = 0, c2 = 0, c3 = 0;
-        (editingMarketingPlan.campaigns || []).forEach(c => {
-            if (Number(c.targetMonth) === 1) c1 += Number(c.targetRev || 0);
-            if (Number(c.targetMonth) === 2) c2 += Number(c.targetRev || 0);
-            if (Number(c.targetMonth) === 3) c3 += Number(c.targetRev || 0);
-        });
-        
-        const rev1 = Math.round((m1h * avgRate) + c1);
-        const rev2 = Math.round((m2h * avgRate) + c2);
-        const rev3 = Math.round((m3h * avgRate) + c3);
-        
-        if (
-            editingMarketingPlan.targetMo1 !== m1h ||
-            editingMarketingPlan.targetMo2 !== m2h ||
-            editingMarketingPlan.targetMo3 !== m3h ||
-            editingMarketingPlan.targetRev1 !== rev1 ||
-            editingMarketingPlan.targetRev2 !== rev2 ||
-            editingMarketingPlan.targetRev3 !== rev3
-        ) {
-            setEditingMarketingPlan(prev => ({
-                ...prev,
-                targetMo1: m1h, targetMo2: m2h, targetMo3: m3h,
-                targetRev1: rev1, targetRev2: rev2, targetRev3: rev3
-            }));
-        }
-    }, [
-        editingMarketingPlan.baseHours, 
-        editingMarketingPlan.churnEstimate, 
-        editingMarketingPlan.averageHourlyRate, 
-        editingMarketingPlan.selectedTasks, 
-        editingMarketingPlan.campaigns,
-        editingMarketingPlan.quarter,
-        marketingModal
-    ]);
 
     const saveMarketingPlan = async () => {
         if (!isAdmin) return;

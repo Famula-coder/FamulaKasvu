@@ -1746,7 +1746,7 @@ const updatePublicDataProps = (updates) => {
                 
                 {marketingModal && (
                     <div className="fixed inset-0 z-[60] flex items-end justify-center">
-                        <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"></div>
+                        <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => { if(window.confirm('Oletko varma? Tallentamattomat tiedot menetetään.')) setMarketingModal(false); }}></div>
                         <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20 h-[90vh] overflow-y-auto">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-black text-stone-900">{editingMarketingPlan.id ? 'Muokkaa Suunnitelmaa' : 'Uusi Suunnitelma'}</h3>
@@ -2034,7 +2034,7 @@ const updatePublicDataProps = (updates) => {
 
                 {financialModal && editingFinancialStatement && (
                     <div className="fixed inset-0 z-[60] flex items-end justify-center">
-                        <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setFinancialModal(false)}></div>
+                        <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => { if(window.confirm('Oletko varma? Tallentamattomat tiedot menetetään.')) setFinancialModal(false); }}></div>
                         <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20 h-[90vh] overflow-y-auto">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-black text-stone-900">{editingFinancialStatement.id ? 'Muokkaa Tilinpäätöstä' : 'Uusi Tilinpäätös'}</h3>
@@ -3985,7 +3985,7 @@ const updatePublicDataProps = (updates) => {
                     {/* Admin - Aseta Tarjotin */}
                     {modals.adminPlan && (
                         <div className="fixed inset-0 z-[60] flex items-end justify-center">
-                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"></div>
+                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => { if(window.confirm('Oletko varma? Tallentamattomat tiedot menetetään.')) setModals(prev => ({ ...prev, adminPlan: false })); }}></div>
                             <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20 h-[85vh] overflow-y-auto">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-xl font-black text-stone-900">Valtakunnallinen tarjotin</h3>
@@ -4016,7 +4016,7 @@ const updatePublicDataProps = (updates) => {
                     {/* Edit Tray Task (Personal overrides) */}
                     {modals.editTrayTask && (
                         <div className="fixed inset-0 z-[70] flex items-end justify-center">
-                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"></div>
+                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setModals(prev => ({ ...prev, editTrayTask: false }))}></div>
                             <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-xl font-black text-stone-900">Muokkaa tavoitetta</h3>
@@ -4031,7 +4031,7 @@ const updatePublicDataProps = (updates) => {
                     {/* New Tray Task */}
                     {modals.newTrayTask && (
                         <div className="fixed inset-0 z-[70] flex items-end justify-center">
-                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"></div>
+                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setModals(prev => ({ ...prev, newTrayTask: false }))}></div>
                             <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-xl font-black text-stone-900">Lisää oma tavoite</h3>
@@ -4046,7 +4046,7 @@ const updatePublicDataProps = (updates) => {
                     {/* Hoitaja - Edit Oma Tehtävä (Desktop) */}
                     {modals.editTask && (
                         <div className="fixed inset-0 z-[70] flex items-end justify-center">
-                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"></div>
+                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setModals(prev => ({ ...prev, editTask: false }))}></div>
                             <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-xl font-black text-stone-900">Muokkaa tehtävää</h3>
@@ -4172,9 +4172,12 @@ const updatePublicDataProps = (updates) => {
                     )}
                     {modals.sales && (
                         <div className="fixed inset-0 z-[60] flex items-end justify-center">
-                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"></div>
+                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setModals(prev => ({ ...prev, sales: false }))}></div>
                             <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20">
-                                <h3 className="text-xl font-black text-center text-stone-900 mb-2">Kirjaa lisäpalvelu</h3>
+                                <div className="flex justify-between items-center mb-2">
+                                    <h3 className="text-xl font-black text-center text-stone-900">Kirjaa lisäpalvelu</h3>
+                                    <button onClick={() => setModals(prev => ({ ...prev, sales: false }))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
+                                </div>
                                 <div className="flex p-1 bg-stone-200/70 rounded-2xl mb-5 mt-4 border border-stone-300 gap-1">
                                     <button onClick={() => setSaleMode('oneTime')} className={`flex-1 text-xs font-bold py-2.5 rounded-xl transition-all shadow-sm ${saleMode === 'oneTime' ? 'bg-white text-[#9b2c2c] ring-1 ring-stone-200' : 'text-stone-500 bg-transparent shadow-none'}`}>Lisämyynti käynnillä</button>
                                     <button onClick={() => setSaleMode('ongoing')} className={`flex-1 text-xs font-bold py-2.5 rounded-xl transition-all shadow-sm ${saleMode === 'ongoing' ? 'bg-white text-[#2f855a] ring-1 ring-stone-200' : 'text-stone-500 bg-transparent shadow-none'}`}>Sopim. parantaminen</button>

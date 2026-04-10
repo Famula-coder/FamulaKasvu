@@ -2336,11 +2336,7 @@ const updatePublicDataProps = (updates) => {
                                     <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-[#2f855a] rounded-full blur-3xl opacity-20 pointer-events-none"></div>
                                 </div>
                                 )}
-                                {/* Palkitsemisen Info Painike */}
-                                <button onClick={() => setModals(prev => ({...prev, workerBonusesInfo: true}))} className="w-full mb-6 bg-white hover:bg-stone-50 text-stone-800 font-bold py-4 px-5 rounded-2xl shadow-sm border border-stone-200 transition flex justify-between items-center group">
-                                    <span className="flex items-center text-sm"><Coins size={18} className="mr-3 text-[#2f855a]" /> Voimassa olevat lisäpalkkiot</span>
-                                    <ChevronRight size={18} className="text-stone-400 group-hover:translate-x-1 transition-transform" />
-                                </button>
+
                                                                 {/* MY DESKTOP (PERSONAL TASKS) */}
                                 <div className="bg-stone-50 rounded-[2rem] p-2 border border-stone-200 shadow-sm">
                                     <div className="text-center pt-4 pb-2">
@@ -2436,7 +2432,12 @@ const updatePublicDataProps = (updates) => {
                                         <span className="text-[10px] font-bold text-stone-600 uppercase text-center leading-tight">+ Tapahtuma<br/>(Palkkio)</span>
                                     </button>
                                 </div>
-                                <button onClick={() => setModals(prev => ({...prev, activityHistory: fbUser.uid}))} className="w-full py-4 bg-stone-100 text-stone-500 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-stone-200 hover:bg-stone-200 transition-colors flex items-center justify-center gap-2 mb-6 shadow-sm"><History size={16} /> Selaa ja pura aiempia kirjauksia</button>
+                                <button onClick={() => setModals(prev => ({...prev, activityHistory: fbUser.uid}))} className="w-full py-4 bg-stone-100 text-stone-500 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-stone-200 hover:bg-stone-200 transition-colors flex items-center justify-center gap-2 mb-4 shadow-sm"><History size={16} /> Selaa ja pura aiempia kirjauksia</button>
+                                {/* Palkitsemisen Info Painike */}
+                                <button onClick={() => setModals(prev => ({...prev, workerBonusesInfo: true}))} className="w-full mb-6 bg-white hover:bg-stone-50 text-stone-800 font-bold py-4 px-5 rounded-2xl shadow-sm border border-stone-200 transition flex justify-between items-center group">
+                                    <span className="flex items-center text-[13px] uppercase tracking-wider text-stone-600"><Coins size={18} className="mr-3 text-[#2f855a]" /> Voimassa olevat lisäpalkkiot</span>
+                                    <ChevronRight size={18} className="text-stone-400 group-hover:translate-x-1 transition-transform" />
+                                </button>
                             </div>
                         )}
 

@@ -2069,6 +2069,50 @@ const updatePublicDataProps = (updates) => {
             return total;
         };
 
+        const getTeuvoNeuvooData = () => {
+            const d = new Date();
+            const currYear = d.getFullYear();
+            const currMonth = d.getMonth() + 1; // 1-12
+            let prevMonth = currMonth - 1;
+            let prevYear = currYear;
+            if (prevMonth === 0) { prevMonth = 12; prevYear -= 1; }
+            let currQuarter = Math.floor((currMonth - 1) / 3) + 1;
+            let prevQuarter = currQuarter - 1;
+            let prevQuarterYear = currYear;
+            if (prevQuarter === 0) { prevQuarter = 4; prevQuarterYear -= 1; }
+
+            const regionStats = activeRegions.map(r => {
+                let currMonthHours = 0, prevMonthHours = 0, currQuarterHours = 0, prevQuarterHours = 0;
+                allUserStats.filter(u => u.regionId === r.id).forEach(u => {
+                    (u.logs || []).filter(l => l.bonusId === 'sales_hours').forEach(log => {
+                        const logD = new Date(log.date);
+                        const m = logD.getMonth() + 1;
+                        const y = logD.getFullYear();
+                        const q = Math.floor((m - 1) / 3) + 1;
+                        const qty = Number(log.quantity) || 0;
+                        if (y === currYear && m === currMonth) currMonthHours += qty;
+                        if (y === prevYear && m === prevMonth) prevMonthHours += qty;
+                        if (y === currYear && q === currQuarter) currQuarterHours += qty;
+                        if (y === prevQuarterYear && q === prevQuarter) prevQuarterHours += qty;
+                    });
+                });
+                
+                const momGrowth = prevMonthHours > 0 ? ((currMonthHours - prevMonthHours) / prevMonthHours) * 100 : (currMonthHours > 0 ? 50 : 0);
+                const qoqGrowth = prevQuarterHours > 0 ? ((currQuarterHours - prevQuarterHours) / prevQuarterHours) * 100 : (currQuarterHours > 0 ? 50 : 0);
+                const growthScore = (momGrowth + qoqGrowth) / 2;
+                
+                let pinnedToolIds = [];
+                marketingPlans.filter(p => p.regionId === r.id).forEach(p => {
+                    (p.tasks || []).filter(t => t.type === 'pinned').forEach(t => {
+                        if (!pinnedToolIds.includes(t.trayTaskId)) pinnedToolIds.push(t.trayTaskId);
+                    });
+                });
+                return { id: r.id, name: r.name, currMonthHours, momGrowth, qoqGrowth, growthScore, pinnedToolIds };
+            });
+            regionStats.sort((a,b) => b.growthScore - a.growthScore);
+            return regionStats;
+        };
+
         const getLast4MonthsData = (plans, targetRegionId = null) => {
             const data = [];
             const monthNames = ["Tammikuu", "Helmikuu", "Maaliskuu", "Huhtikuu", "Toukokuu", "Kesäkuu", "Heinäkuu", "Elokuu", "Syyskuu", "Lokakuu", "Marraskuu", "Joulukuu"];

@@ -2494,11 +2494,11 @@ const updatePublicDataProps = (updates) => {
                                     // Populate region Stats hours from realized hours and sales hours
                                     regionStats.forEach(rs => {
                                         rs.hours = getPreviousMonthRealizedTotal(marketingPlans, rs.id);
-                                        rs.customers = getCurrentMonthSalesHours(allGlobalStats, rs.id);
+                                        rs.customers = getCurrentMonthCustomers(allGlobalStats, rs.id);
                                     });
 
                                     globalHours = getPreviousMonthRealizedTotal(marketingPlans, null);
-                                    globalCustomers = getCurrentMonthSalesHours(allGlobalStats, null);
+                                    globalCustomers = getCurrentMonthCustomers(allGlobalStats, null);
 
                                     const globalNps = globalNpsCount > 0 ? (globalNpsSum / globalNpsCount).toFixed(1) : '-';
                                     const maxHours = Math.max(...regionStats.map(r => r.hours), 1);

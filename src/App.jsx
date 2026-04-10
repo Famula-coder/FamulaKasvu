@@ -213,9 +213,9 @@ export default function App() {
     const [financialStatements, setFinancialStatements] = useState([]); // Financial statements
 
     // UI Modals & Inputs
-    const [modals, setModals] = useState({ sales: false, adminPlan: false, editTask: false, editTrayTask: false, newTrayTask: false, bonuses: false, salaryDetails: false, historyEntry: false, activityHistory: null, workerBonusesInfo: false });
+    const [modals, setModals] = useState({ sales: false, adminPlan: false, editTask: false, editTrayTask: false, newTrayTask: false, bonuses: false, salaryDetails: false, historyEntry: false, activityHistory: null, workerBonusesInfo: false, bonusEvent: false });
     const [userProfileTab, setUserProfileTab] = useState('kayttajat');
-    
+    const [bonusEventForm, setBonusEventForm] = useState({ bonusId: '', clientInitials: '', clientContact: '', note: '' });
     // Dynamic config overrides from DB
     const activeGamificationLevels = (publicData?.gamificationLevels?.length > 0) ? publicData.gamificationLevels : GAMIFICATION_LEVELS;
     
@@ -758,13 +758,19 @@ const updatePublicDataProps = (updates) => {
         const targetMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
         const archiveId = `payout_${Date.now()}`;
         
+        // GDPR Tuhoaminen (WIPE): Riisutaan arkaluontoinen data maksetuista palkanlaskentariveistä
+        const sanitizedPayouts = computedPayouts.map(p => ({
+            ...p,
+            logs: p.logs.map(l => ({ ...l, payoutId: archiveId, clientContact: null, note: null }))
+        }));
+        
         const newArchiveEntry = {
             id: archiveId,
             month: targetMonth,
             timestamp: Date.now(),
             regionId: rId,
             totalSum: totalBonusSum,
-            payouts: computedPayouts
+            payouts: sanitizedPayouts
         };
         
         const currentArchives = publicData.payoutArchives || {};
@@ -777,7 +783,7 @@ const updatePublicDataProps = (updates) => {
             if (userStat) {
                 const updatedLogs = (userStat.logs || []).map(log => {
                     if (!log.payoutId && userPayout.logs.find(l => l.id === log.id)) {
-                        return { ...log, payoutId: archiveId };
+                        return { ...log, payoutId: archiveId, clientContact: null, note: null };
                     }
                     return log;
                 });
@@ -871,6 +877,30 @@ const updatePublicDataProps = (updates) => {
         const newLog = { id: generateId(), timestamp: Date.now(), type: 'quick_customer', customers: 1 };
         syncMyStats({ customers: (myStat.customers || 0) + 1, logs: [...(myStat.logs || []), newLog] });
         showToast("1 Uusi tutustumiskäynti kirjattu (ja maksuperuste aktivoitu)!");
+    };
+
+    const handleRecordBonusEvent = () => {
+        if (!fbUser || !bonusEventForm.bonusId) return;
+        const targetRegion = (isSuperAdmin && globalScope.regionId !== 'all') ? globalScope.regionId : authSession?.regionId;
+        const regionBonuses = getRegionBonusesArray(publicData, targetRegion);
+        const selectedBonus = regionBonuses.find(b => b.id === bonusEventForm.bonusId);
+        if (!selectedBonus) return;
+        
+        const myStat = allUserStats.find(s => s.id === fbUser.uid) || { hours: 0, customers: 0, npsSum: 0, npsCount: 0, myTasks: [] };
+        const newLog = { 
+            id: generateId(), 
+            timestamp: Date.now(), 
+            type: 'bonus_event', 
+            bonusId: selectedBonus.id,
+            bonusTitle: selectedBonus.title,
+            clientInitials: bonusEventForm.clientInitials || 'Ei nimeä',
+            clientContact: bonusEventForm.clientContact || '',
+            note: bonusEventForm.note || ''
+        };
+        syncMyStats({ logs: [...(myStat.logs || []), newLog] });
+        showToast("Tapahtuma ja asiakastiedot kirjattu turvallisesti!");
+        setModals(prev => ({ ...prev, bonusEvent: false }));
+        setBonusEventForm({ bonusId: '', clientInitials: '', clientContact: '', note: '' });
     };
 
     const handleUndoLog = (userId, logId) => {
@@ -2419,9 +2449,9 @@ const updatePublicDataProps = (updates) => {
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 mt-6 mb-6">
-                                    <button onClick={handleRecordQuickCustomer} className="col-span-1 flex flex-col items-center justify-center bg-white p-4 rounded-2xl border border-stone-200 shadow-sm active:scale-95 transition hover:shadow-md group h-24">
+                                    <button onClick={() => setModals(prev => ({...prev, bonusEvent: true}))} className="col-span-1 flex flex-col items-center justify-center bg-white p-4 rounded-2xl border border-stone-200 shadow-sm active:scale-95 transition hover:shadow-md group h-24">
                                         <div className="w-10 h-10 rounded-full bg-[#f0fdf4] text-[#2f855a] flex items-center justify-center mb-2"><UserPlus size={18} /></div>
-                                        <span className="text-[10px] font-bold text-stone-600 uppercase text-center leading-tight">Tutustumis-<br/>käynti</span>
+                                        <span className="text-[10px] font-bold text-stone-600 uppercase text-center leading-tight">+ Tapahtuma<br/>(Palkkio)</span>
                                     </button>
                                     <button onClick={() => setModals(prev => ({...prev, sales: true}))} className="col-span-1 flex flex-col items-center justify-center bg-white p-4 rounded-2xl border border-stone-200 shadow-sm active:scale-95 transition hover:shadow-md group h-24">
                                         <div className="w-10 h-10 rounded-full bg-[#fdf2f2] text-[#9b2c2c] flex items-center justify-center mb-2"><Clock size={18} /></div>
@@ -3327,7 +3357,8 @@ const updatePublicDataProps = (updates) => {
                     )}
 
 {(isAdmin || isSuperAdmin) && reportTab === 'palkkiot' && (() => {
-                            const bonuses = activeTrayRegion === 'all' ? { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 } : (publicData?.regionBonuses?.[activeTrayRegion] || { oneTimeRate: 10, ongoingRate: 30, customerBonus: 50 });
+                            const bonusesArr = getRegionBonusesArray(publicData, activeTrayRegion);
+                            const getRate = (id) => { const b = bonusesArr.find(x => x.id === id); return b ? Number(b.value || 0) : 0; };
                             
                             let rArchives = [];
                             if (activeTrayRegion === 'all') {
@@ -3352,23 +3383,26 @@ const updatePublicDataProps = (updates) => {
                                 computedPayouts = teamStats.map(stat => {
                                     const pendingLogs = (stat.logs || []).filter(l => !l.payoutId);
                                     let sum = 0;
-                                    let breakdown = { oneTimeH: 0, planH: 0, customers: 0, manual: 0 };
+                                    let breakdown = { oneTimeH: 0, planH: 0, customers: 0, manual: 0, bonusEvents: 0 };
                                     
                                     pendingLogs.forEach(log => {
                                         if (log.type === 'survey') {
                                             breakdown.planH += (log.planHours || 0);
                                             breakdown.oneTimeH += (log.oneOffHours || 0);
-                                            sum += (log.planHours || 0) * bonuses.ongoingRate;
-                                            sum += (log.oneOffHours || 0) * bonuses.oneTimeRate;
-                                            if (log.proposalStatus === 'sold') { breakdown.customers += 1; sum += bonuses.customerBonus; }
+                                            sum += (log.planHours || 0) * getRate('ongoingRate');
+                                            sum += (log.oneOffHours || 0) * getRate('oneTimeRate');
+                                            if (log.proposalStatus === 'sold') { breakdown.customers += 1; sum += getRate('customerBonus'); }
                                         } else if (log.type === 'quick_sale') {
-                                            if (log.saleMode === 'oneTime') { breakdown.oneTimeH += log.hours; sum += log.hours * bonuses.oneTimeRate; }
-                                            else if (log.saleMode === 'newContract') { breakdown.planH += log.hours; sum += (bonuses.newContractRate || 0); }
-                                            else { breakdown.planH += log.hours; sum += log.hours * bonuses.ongoingRate; }
+                                            if (log.saleMode === 'oneTime') { breakdown.oneTimeH += log.hours; sum += log.hours * getRate('oneTimeRate'); }
+                                            else if (log.saleMode === 'newContract') { breakdown.planH += log.hours; sum += getRate('newContractRate'); }
+                                            else { breakdown.planH += log.hours; sum += log.hours * getRate('ongoingRate'); }
                                         } else if (log.type === 'quick_customer') {
-                                            breakdown.customers += 1; sum += bonuses.customerBonus;
+                                            breakdown.customers += 1; sum += getRate('customerBonus');
                                         } else if (log.type === 'manual_bonus') {
                                             breakdown.manual += (log.amount || 0); sum += (log.amount || 0);
+                                        } else if (log.type === 'bonus_event') {
+                                            const val = getRate(log.bonusId);
+                                            breakdown.bonusEvents += 1; sum += val;
                                         }
                                     });
                                     
@@ -3423,6 +3457,7 @@ const updatePublicDataProps = (updates) => {
                                                         <div><span className="text-stone-400">Jatkuva:</span> {p.breakdown.planH}h</div>
                                                         <div><span className="text-stone-400">Kerta:</span> {p.breakdown.oneTimeH}h</div>
                                                         <div><span className="text-stone-400">Uudet As:</span> {p.breakdown.customers} kpl</div>
+                                                        <div><span className="text-stone-400">Tapahtumat:</span> {p.breakdown.bonusEvents || 0} kpl</div>
                                                         <div><span className="text-stone-400">Manuaalinen:</span> {p.breakdown.manual} €</div>
                                                     </div>
                                                     
@@ -3434,6 +3469,17 @@ const updatePublicDataProps = (updates) => {
                                                                     {log.type === 'survey' && <span className="text-stone-600">Asikaskäynti / Kysely (As. {log.clientInitials})</span>}
                                                                     {log.type === 'quick_sale' && <span className="text-stone-600">Pikakirjaus (Lisäpalvelu)</span>}
                                                                     {log.type === 'quick_customer' && <span className="text-stone-600">Pikakirjaus (Uusi asiakas)</span>}
+                                                                    {log.type === 'bonus_event' && (
+                                                                        <div className="flex flex-col">
+                                                                            <span className="text-[#2f855a] font-bold">{log.bonusTitle} <span className="text-stone-500 font-medium">({log.clientInitials || '?'})</span></span>
+                                                                            {(log.clientContact || log.note) && (
+                                                                                <span className="text-xs text-stone-500 mt-1 max-w-[300px] leading-tight">
+                                                                                    {log.clientContact && <div><strong className="text-stone-700">Yhteystieto:</strong> {log.clientContact}</div>}
+                                                                                    {log.note && <div><strong className="text-stone-700">Viesti:</strong> {log.note}</div>}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
                                                                     {log.type === 'manual_bonus' && <span className="text-[#9b2c2c] font-bold">{log.note}</span>}
                                                                 </div>
                                                                 <div className="flex items-center gap-3">
@@ -3443,6 +3489,7 @@ const updatePublicDataProps = (updates) => {
                                                                         {log.hours > 0 && <span className="bg-stone-50 px-2 py-1 rounded text-xs font-bold">{log.hours}h</span>}
                                                                         {log.proposalStatus === 'sold' && <span className="bg-[#f0fdf4] text-[#2f855a] px-2 py-1 rounded text-xs font-bold">Asiakas +1</span>}
                                                                         {log.type === 'quick_customer' && <span className="bg-[#f0fdf4] text-[#2f855a] px-2 py-1 rounded text-xs font-bold">Asiakas +1</span>}
+                                                                        {log.type === 'bonus_event' && <span className="bg-[#f0fdf4] text-[#2f855a] px-2 py-1 rounded text-xs font-bold">{getRate(log.bonusId)}€</span>}
                                                                         {log.amount && <span className="bg-[#fdf2f2] text-[#9b2c2c] px-2 py-1 rounded text-xs font-bold">{log.amount}€</span>}
                                                                     </div>
                                                                     {!selectedArchiveMonth && (
@@ -3950,7 +3997,41 @@ const updatePublicDataProps = (updates) => {
                             </div>
                         </div>
                     )}
-
+                    {modals.bonusEvent && (
+                        <div className="fixed inset-0 z-[60] flex items-end justify-center">
+                            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setModals(prev => ({...prev, bonusEvent: false}))}></div>
+                            <div className="bg-[#f5f5f4] w-full max-w-[480px] rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 border-t border-white/20 h-[85vh] overflow-y-auto">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-xl font-black text-stone-900">Uusi Tapahtuma</h3>
+                                    <button onClick={() => setModals(prev => ({...prev, bonusEvent: false}))} className="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center hover:bg-stone-300 transition-colors"><X size={16}/></button>
+                                </div>
+                                <div className="space-y-4 mb-6">
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-500 uppercase mb-2">Tapahtuman tyyppi</label>
+                                        <select value={bonusEventForm.bonusId} onChange={e => setBonusEventForm({...bonusEventForm, bonusId: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-2xl text-sm font-bold text-stone-800 outline-none focus:ring-2 focus:ring-[#2f855a]">
+                                            <option value="">-- Valitse Tapahtuma --</option>
+                                            {getRegionBonusesArray(publicData, isSuperAdmin && globalScope.regionId !== 'all' ? globalScope.regionId : authSession?.regionId).filter(b => b.isDynamic !== false).map(b => (
+                                                <option key={b.id} value={b.id}>{b.title} ({b.value}€)</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-500 uppercase mb-2">Asiakkaan nimi tai nimikirjaimet</label>
+                                        <input type="text" placeholder="Esim. M.M. tai Asiakas X" value={bonusEventForm.clientInitials} onChange={e => setBonusEventForm({...bonusEventForm, clientInitials: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#2f855a]" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-500 uppercase mb-2">Yhteystieto (esim. Puhelin)</label>
+                                        <input type="text" placeholder="Turvattu: Poistetaan palkanmaksun jälkeen" value={bonusEventForm.clientContact} onChange={e => setBonusEventForm({...bonusEventForm, clientContact: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#2f855a]" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-500 uppercase mb-2">Viesti esihenkilölle / Lisätieto</label>
+                                        <textarea placeholder="Mitä sovittiin? Esim. Soita perjantaina klo 14." value={bonusEventForm.note} onChange={e => setBonusEventForm({...bonusEventForm, note: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#2f855a] h-24"></textarea>
+                                    </div>
+                                </div>
+                                <button disabled={!bonusEventForm.bonusId} onClick={handleRecordBonusEvent} className="w-full bg-[#2f855a] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform disabled:opacity-50">Tallenna Tapahtuma</button>
+                            </div>
+                        </div>
+                    )}
                     {modals.sales && (
                         <div className="fixed inset-0 z-[60] flex items-end justify-center">
                             <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"></div>

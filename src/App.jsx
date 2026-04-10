@@ -1497,10 +1497,26 @@ const updatePublicDataProps = (updates) => {
     
     const saveMarketingPlan = async () => {
         if (!isAdmin) return;
+
+        let pendingTasks = [...(editingMarketingPlan.selectedTasks || [])];
+        if (marketingTaskDraft.trayTaskId) {
+            // Auto-commit draft if user forgot to click "Lisää toimi"
+            if (marketingTaskDraft.type === 'pinned' || (marketingTaskDraft.type === 'week' && marketingTaskDraft.targetWeekNum)) {
+                pendingTasks.push({
+                    id: 'mkt-' + Math.random().toString(36).substr(2, 9),
+                    trayTaskId: marketingTaskDraft.trayTaskId,
+                    type: marketingTaskDraft.type,
+                    targetWeekNum: marketingTaskDraft.targetWeekNum
+                });
+                setMarketingTaskDraft({ trayTaskId: '', type: 'pinned', targetWeekNum: '' });
+            }
+        }
+
         const activeMarketingRegionId = globalScope.regionId !== 'all' ? globalScope.regionId : authSession?.regionId;
         const planId = editingMarketingPlan.id || `${activeMarketingRegionId}_Q${editingMarketingPlan.quarter}_${editingMarketingPlan.year}`;
         const planData = {
             ...editingMarketingPlan,
+            selectedTasks: pendingTasks,
             regionId: activeMarketingRegionId,
             timestamp: Date.now()
         };
@@ -2123,7 +2139,7 @@ const updatePublicDataProps = (updates) => {
                 
                 let pinnedToolIds = [];
                 marketingPlans.filter(p => p.regionId === r.id).forEach(p => {
-                    (p.tasks || []).filter(t => t.type === 'pinned').forEach(t => {
+                    (p.selectedTasks || []).filter(t => t.type === 'pinned').forEach(t => {
                         if (!pinnedToolIds.includes(t.trayTaskId)) pinnedToolIds.push(t.trayTaskId);
                     });
                 });

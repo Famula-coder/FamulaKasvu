@@ -256,7 +256,8 @@ export default function App() {
         budgetPrint: '', budgetDigital: '', budgetEdustus: '', budgetOther: ''
     });
     const [targetRegionId, setTargetRegionId] = useState(null);
-    const [marketingTaskDraft, setMarketingTaskDraft] = useState({ trayTaskId: '', type: 'pinned', targetWeekNum: '' });
+    const [marketingTaskDraft, setMarketingTaskDraft] = useState({ trayTaskId: '', type: 'pinned', targetWeekNum: '', estimatedHours: '' });
+    const [campaignDraft, setCampaignDraft] = useState({ name: '', desc: '', targetMonth: '', targetRev: '' });
 
     // Task Editing States
     const [editingTaskIdx, setEditingTaskIdx] = useState(null);
@@ -1494,7 +1495,70 @@ const updatePublicDataProps = (updates) => {
         </div>
     );
 
-    
+    useEffect(() => {
+        if (!marketingModal || !editingMarketingPlan) return;
+        
+        const rq = Number(editingMarketingPlan.quarter) || 1;
+        
+        let m1h = Number(editingMarketingPlan.baseHours || 0);
+        let m2h = m1h;
+        let m3h = m1h;
+        
+        const churn = Number(editingMarketingPlan.churnEstimate || 0);
+        const avgRate = Number(editingMarketingPlan.averageHourlyRate || 39.9);
+        
+        m1h -= churn;
+        m2h = m1h - churn;
+        m3h = m2h - churn;
+        
+        (editingMarketingPlan.selectedTasks || []).forEach(st => {
+            const eh = Number(st.estimatedHours || 0);
+            if (st.type === 'pinned') {
+                m1h += eh; m2h += eh; m3h += eh;
+            } else if (st.type === 'week') {
+                const w = Number(st.targetWeekNum);
+                const wOffset = w - ((rq-1) * 13);
+                if (wOffset <= 4) { m1h += eh; m2h += eh; m3h += eh; }
+                else if (wOffset <= 8) { m2h += eh; m3h += eh; }
+                else { m3h += eh; }
+            }
+        });
+        
+        let c1 = 0, c2 = 0, c3 = 0;
+        (editingMarketingPlan.campaigns || []).forEach(c => {
+            if (Number(c.targetMonth) === 1) c1 += Number(c.targetRev || 0);
+            if (Number(c.targetMonth) === 2) c2 += Number(c.targetRev || 0);
+            if (Number(c.targetMonth) === 3) c3 += Number(c.targetRev || 0);
+        });
+        
+        const rev1 = Math.round((m1h * avgRate) + c1);
+        const rev2 = Math.round((m2h * avgRate) + c2);
+        const rev3 = Math.round((m3h * avgRate) + c3);
+        
+        if (
+            editingMarketingPlan.targetMo1 !== m1h ||
+            editingMarketingPlan.targetMo2 !== m2h ||
+            editingMarketingPlan.targetMo3 !== m3h ||
+            editingMarketingPlan.targetRev1 !== rev1 ||
+            editingMarketingPlan.targetRev2 !== rev2 ||
+            editingMarketingPlan.targetRev3 !== rev3
+        ) {
+            setEditingMarketingPlan(prev => ({
+                ...prev,
+                targetMo1: m1h, targetMo2: m2h, targetMo3: m3h,
+                targetRev1: rev1, targetRev2: rev2, targetRev3: rev3
+            }));
+        }
+    }, [
+        editingMarketingPlan.baseHours, 
+        editingMarketingPlan.churnEstimate, 
+        editingMarketingPlan.averageHourlyRate, 
+        editingMarketingPlan.selectedTasks, 
+        editingMarketingPlan.campaigns,
+        editingMarketingPlan.quarter,
+        marketingModal
+    ]);
+
     const saveMarketingPlan = async () => {
         if (!isAdmin) return;
 
@@ -1506,9 +1570,10 @@ const updatePublicDataProps = (updates) => {
                     id: 'mkt-' + Math.random().toString(36).substr(2, 9),
                     trayTaskId: marketingTaskDraft.trayTaskId,
                     type: marketingTaskDraft.type,
-                    targetWeekNum: marketingTaskDraft.targetWeekNum
+                    targetWeekNum: marketingTaskDraft.targetWeekNum,
+                    estimatedHours: marketingTaskDraft.estimatedHours
                 });
-                setMarketingTaskDraft({ trayTaskId: '', type: 'pinned', targetWeekNum: '' });
+                setMarketingTaskDraft({ trayTaskId: '', type: 'pinned', targetWeekNum: '', estimatedHours: '' });
             }
         }
 
@@ -1702,41 +1767,97 @@ const updatePublicDataProps = (updates) => {
                                 
                                 <div className="bg-white p-4 rounded-2xl border border-stone-200">
                                     <label htmlFor="reportMemo" className="block text-xs font-bold text-stone-500 uppercase mb-2">MUISTIO</label>
-                                    <textarea id="reportMemo" value={editingMarketingPlan.evaluation} className="focus-visible:ring-2 focus-visible:ring-[#2f855a] focus-visible:outline-none" onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, evaluation: e.target.value})} placeholder="Vapaa muistio..." className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm font-medium h-24 outline-none"></textarea>
+                                    <textarea id="                                <div className="bg-white p-4 rounded-2xl border border-stone-200 mb-6">
+                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-3">LÄHTÖTILANNE JA POISTUMA</label>
+                                    <div className="flex gap-3">
+                                        <div className="flex-1">
+                                             <label className="block text-[10px] font-bold uppercase text-stone-400 mb-1">Lähtötaso (h)</label>
+                                             <input type="number" value={editingMarketingPlan.baseHours || ''} onChange={e => setEditingMarketingPlan({...editingMarketingPlan, baseHours: e.target.value})} className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" />
+                                        </div>
+                                        <div className="flex-1">
+                                             <label className="block text-[10px] font-bold uppercase text-stone-400 mb-1">Poistuma (h/kk)</label>
+                                             <input type="number" value={editingMarketingPlan.churnEstimate || ''} onChange={e => setEditingMarketingPlan({...editingMarketingPlan, churnEstimate: e.target.value})} className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" />
+                                        </div>
+                                        <div className="flex-1">
+                                             <label className="block text-[10px] font-bold uppercase text-stone-400 mb-1">Keskihinta (€)</label>
+                                             <input type="number" value={editingMarketingPlan.averageHourlyRate || ''} placeholder="39.90" onChange={e => setEditingMarketingPlan({...editingMarketingPlan, averageHourlyRate: e.target.value})} className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" />
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div className="bg-white p-4 rounded-2xl border border-stone-200">
-                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-3">Tavoite vs Toteuma (Tunnit)</label>
+                                <div className="bg-[#f8fafc] p-4 rounded-2xl border border-stone-200">
+                                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Tavoite vs Toteuma</label>
+                                    <p className="text-[10px] text-stone-400 font-medium mb-3 italic">Tavoitteet lasketaan automaattisesti lähtötason, poistuman ja toimenpiteiden arvioiden perusteella.</p>
                                     <div className="flex flex-col gap-3">
                                         {(() => {
                                             const rq = Number(editingMarketingPlan.quarter) || 1;
                                             const monthNames = rq === 1 ? ['Tam', 'Hel', 'Maa'] : rq === 2 ? ['Huh', 'Tou', 'Kes'] : rq === 3 ? ['Hei', 'Elo', 'Syy'] : ['Lok', 'Mar', 'Jou'];
                                             return (
                                                 <>
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-1.5">
                                                         <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest w-8">{monthNames[0]}</span>
-                                                        <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetMo1: e.target.value, targetRev1: e.target.value ? Math.round(Number(e.target.value) * 39.9) : ''})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
-                                                        <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo1: e.target.value, realizedRev1: e.target.value ? Math.round(Number(e.target.value) * 39.9) : ''})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
-                                                        <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetRev1: e.target.value})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
+                                                        <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo1} readOnly className="w-1/4 p-3 bg-stone-100/50 border border-stone-200 rounded-xl text-xs font-bold text-stone-500 outline-none cursor-not-allowed" />
+                                                        <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo1: e.target.value, realizedRev1: e.target.value ? Math.round(Number(e.target.value) * (Number(editingMarketingPlan.averageHourlyRate)||39.9)) : ''})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                                        <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev1} readOnly className="w-1/4 p-3 bg-stone-100/50 border border-stone-200 rounded-xl text-xs font-bold text-stone-500 outline-none cursor-not-allowed" />
                                                         <input type="number" placeholder="Tot (€)" value={editingMarketingPlan.realizedRev1} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedRev1: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
                                                     </div>
                                                     <div className="flex items-center gap-1.5 mt-1">
                                                         <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest w-8">{monthNames[1]}</span>
-                                                        <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetMo2: e.target.value, targetRev2: e.target.value ? Math.round(Number(e.target.value) * 39.9) : ''})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
-                                                        <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo2: e.target.value, realizedRev2: e.target.value ? Math.round(Number(e.target.value) * 39.9) : ''})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
-                                                        <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetRev2: e.target.value})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
+                                                        <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo2} readOnly className="w-1/4 p-3 bg-stone-100/50 border border-stone-200 rounded-xl text-xs font-bold text-stone-500 outline-none cursor-not-allowed" />
+                                                        <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo2: e.target.value, realizedRev2: e.target.value ? Math.round(Number(e.target.value) * (Number(editingMarketingPlan.averageHourlyRate)||39.9)) : ''})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                                        <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev2} readOnly className="w-1/4 p-3 bg-stone-100/50 border border-stone-200 rounded-xl text-xs font-bold text-stone-500 outline-none cursor-not-allowed" />
                                                         <input type="number" placeholder="Tot (€)" value={editingMarketingPlan.realizedRev2} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedRev2: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
                                                     </div>
                                                     <div className="flex items-center gap-1.5 mt-1">
                                                         <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest w-8">{monthNames[2]}</span>
-                                                        <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetMo3: e.target.value, targetRev3: e.target.value ? Math.round(Number(e.target.value) * 39.9) : ''})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
-                                                        <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo3: e.target.value, realizedRev3: e.target.value ? Math.round(Number(e.target.value) * 39.9) : ''})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
-                                                        <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, targetRev3: e.target.value})} className="w-1/4 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold outline-none" />
+                                                        <input type="number" placeholder="Tav (h)" value={editingMarketingPlan.targetMo3} readOnly className="w-1/4 p-3 bg-stone-100/50 border border-stone-200 rounded-xl text-xs font-bold text-stone-500 outline-none cursor-not-allowed" />
+                                                        <input type="number" placeholder="Tot (h)" value={editingMarketingPlan.realizedMo3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedMo3: e.target.value, realizedRev3: e.target.value ? Math.round(Number(e.target.value) * (Number(editingMarketingPlan.averageHourlyRate)||39.9)) : ''})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
+                                                        <input type="number" placeholder="Tav (€)" value={editingMarketingPlan.targetRev3} readOnly className="w-1/4 p-3 bg-stone-100/50 border border-stone-200 rounded-xl text-xs font-bold text-stone-500 outline-none cursor-not-allowed" />
                                                         <input type="number" placeholder="Tot (€)" value={editingMarketingPlan.realizedRev3} onChange={e=>setEditingMarketingPlan({...editingMarketingPlan, realizedRev3: e.target.value})} className="w-1/4 p-3 bg-[#f0fdf4] border border-[#dcfce7] text-[#2f855a] rounded-xl text-xs font-bold outline-none placeholder:text-[#2f855a]/50" />
                                                     </div>
                                                 </>
                                             );
                                         })()}
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-4 rounded-2xl border border-[#dcfce7] mb-6">
+                                    <h4 className="text-xs font-black text-[#2f855a] uppercase mb-1">Kertaluonteiset Kampanjat (Urakat)</h4>
+                                    <p className="text-[10px] text-stone-500 mb-3 leading-relaxed">Nämä eurot kilahtavat suoraan valitulle kuukaudelle kasvattaen vain kuukauden liikevaihtoa ilman pysyviä tunteja.</p>
+                                    
+                                    <div className="space-y-2 mb-3">
+                                        {(editingMarketingPlan.campaigns || []).map(c => (
+                                             <div key={c.id} className="flex justify-between items-center bg-stone-50 p-2 rounded-xl border border-stone-200 shadow-sm">
+                                                 <div>
+                                                     <p className="text-xs font-bold text-stone-800">{c.name}</p>
+                                                     <p className="text-[10px] text-stone-500">{c.desc}</p>
+                                                 </div>
+                                                 <div className="text-right flex items-center gap-3">
+                                                     <div className="text-[#2f855a] font-bold text-xs">+{c.targetRev} € <span className="text-stone-400 text-[9px] font-normal uppercase block">Kuukaudelle {c.targetMonth}</span></div>
+                                                     <button onClick={() => setEditingMarketingPlan(prev => ({...prev, campaigns: prev.campaigns.filter(cam => cam.id !== c.id)}))} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"><Trash2 size={14}/></button>
+                                                 </div>
+                                             </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                         <input type="text" placeholder="Kampanjan nimi (esim. Joulukoti)" value={campaignDraft.name} onChange={e => setCampaignDraft({...campaignDraft, name: e.target.value})} className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold outline-none text-stone-700" />
+                                         <input type="text" placeholder="Kuvaus / lisätieto" value={campaignDraft.desc} onChange={e => setCampaignDraft({...campaignDraft, desc: e.target.value})} className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold outline-none text-stone-700" />
+                                         <div className="flex gap-2">
+                                             <select value={campaignDraft.targetMonth} onChange={e => setCampaignDraft({...campaignDraft, targetMonth: e.target.value})} className="flex-1 p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold outline-none text-stone-700">
+                                                  <option value="">Kohdekuukausi...</option>
+                                                  <option value="1">Kuukausi 1</option>
+                                                  <option value="2">Kuukausi 2</option>
+                                                  <option value="3">Kuukausi 3</option>
+                                             </select>
+                                             <input type="number" placeholder="Tuottoarvio (€)" value={campaignDraft.targetRev} onChange={e => setCampaignDraft({...campaignDraft, targetRev: e.target.value})} className="flex-1 p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold outline-none text-stone-700" />
+                                         </div>
+                                         <button onClick={() => {
+                                              if (!campaignDraft.name || !campaignDraft.targetMonth || !campaignDraft.targetRev) return;
+                                              const nc = { id: 'cmp-'+Math.random().toString(36).substr(2,9), ...campaignDraft, targetMonth: Number(campaignDraft.targetMonth), targetRev: Number(campaignDraft.targetRev) };
+                                              setEditingMarketingPlan(prev => ({...prev, campaigns: [...(prev.campaigns || []), nc]}));
+                                              setCampaignDraft({ name: '', desc: '', targetMonth: '', targetRev: '' });
+                                         }} className="w-full bg-[#2f855a] text-white text-xs font-bold py-2.5 rounded-lg shadow-sm hover:bg-[#22543d] transition-colors">Lisää kampanja</button>
                                     </div>
                                 </div>
 
@@ -1760,7 +1881,7 @@ const updatePublicDataProps = (updates) => {
                                                     <div key={st.id} className="flex justify-between items-center bg-white p-2 rounded-xl border border-[#dcfce7] shadow-sm">
                                                         <div>
                                                             <p className="text-xs font-bold text-stone-800">{taskInfo.text}</p>
-                                                            <p className="text-[10px] text-stone-500 uppercase tracking-widest mt-0.5">{st.type === 'pinned' ? 'Pysyvä kiinnitys (koko Q)' : `Vko: ${st.targetWeekNum}`}</p>
+                                                            <p className="text-[10px] text-stone-500 uppercase tracking-widest mt-0.5">{st.type === 'pinned' ? 'Pysyvä kiinnitys (koko Q)' : `Vko: ${st.targetWeekNum}`} • {st.estimatedHours ? <span className="text-[#2f855a] font-bold">+{st.estimatedHours}h</span> : <span className="opacity-50">0h</span>}</p>
                                                         </div>
                                                         <button onClick={() => setEditingMarketingPlan(prev => ({...prev, selectedTasks: prev.selectedTasks.filter(tsk => tsk.id !== st.id)}))} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"><Trash2 size={14}/></button>
                                                     </div>
@@ -1788,6 +1909,11 @@ const updatePublicDataProps = (updates) => {
                                                 ))}
                                             </select>
                                         )}
+                                        
+                                        <div className="flex gap-2 mb-2 items-center">
+                                            <span className="text-[10px] font-bold text-stone-500 uppercase flex-1 shrink-0">Arvioitu vaikutus:</span>
+                                            <input type="number" placeholder="+ h/kk" value={marketingTaskDraft.estimatedHours} onChange={e => setMarketingTaskDraft({...marketingTaskDraft, estimatedHours: e.target.value})} className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" />
+                                        </div>
 
                                         <button onClick={() => {
                                             if (!marketingTaskDraft.trayTaskId) return showToast("Valitse tehtävä tarjottimelta!");
@@ -1796,10 +1922,11 @@ const updatePublicDataProps = (updates) => {
                                                 id: 'mkt-' + Math.random().toString(36).substr(2, 9),
                                                 trayTaskId: marketingTaskDraft.trayTaskId,
                                                 type: marketingTaskDraft.type,
-                                                targetWeekNum: marketingTaskDraft.targetWeekNum
+                                                targetWeekNum: marketingTaskDraft.targetWeekNum,
+                                                estimatedHours: marketingTaskDraft.estimatedHours
                                             };
                                             setEditingMarketingPlan(prev => ({...prev, selectedTasks: [...(prev.selectedTasks || []), newTaskObj]}));
-                                            setMarketingTaskDraft({ trayTaskId: '', type: 'pinned', targetWeekNum: '' });
+                                            setMarketingTaskDraft({ trayTaskId: '', type: 'pinned', targetWeekNum: '', estimatedHours: '' });
                                         }} className="w-full bg-[#2f855a] text-white text-xs font-bold py-2.5 rounded-lg shadow-sm hover:bg-[#22543d] transition-colors">Lisää toimi</button>
                                     </div>
                                 </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Compass, Mic, Globe, Home, TrendingUp, Briefcase, StickyNote, X, CheckCircle, Clock, UserPlus, List, ChevronLeft, ChevronRight, ChevronDown, Lightbulb, CalendarCheck, Pen, Check, Trash2, PlusCircle, Coins, ListTodo, Rocket, Paintbrush, Utensils, HeartPulse, Shirt, TreePine, Coffee, Leaf, Smartphone, Star, Headset, Quote, LogOut, Plus, MessageCircle, UserCheck, ArrowRight, ThumbsUp, Activity, HeartHandshake, ShoppingBag, Shield, HelpCircle, AlertTriangle, Calendar, Sparkles, Minus, Send, Loader2, User, Settings, Target, DownloadCloud, Heart, Pin, RefreshCw } from 'lucide-react';
+import { Compass, Mic, Globe, Home, TrendingUp, Briefcase, StickyNote, X, CheckCircle, Clock, UserPlus, List, ChevronLeft, ChevronRight, ChevronDown, Lightbulb, CalendarCheck, Pen, Check, Trash2, PlusCircle, Coins, ListTodo, Rocket, Paintbrush, Utensils, HeartPulse, Shirt, TreePine, Coffee, Leaf, Smartphone, Star, Headset, Quote, LogOut, Plus, MessageCircle, UserCheck, ArrowRight, ThumbsUp, History, Activity, HeartHandshake, ShoppingBag, Shield, HelpCircle, AlertTriangle, Calendar, Sparkles, Minus, Send, Loader2, User, Settings, Target, DownloadCloud, Heart, Pin, RefreshCw } from 'lucide-react';
 import { signInAnonymously, onAuthStateChanged, signInWithCustomToken, signInWithPopup, signOut } from 'firebase/auth';
 import { doc, setDoc, getDoc, onSnapshot, collection } from 'firebase/firestore';
 import { auth, db, appId, googleProvider } from './firebase';
@@ -2442,7 +2442,7 @@ const updatePublicDataProps = (updates) => {
                                         })()}
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-3 mt-6 mb-6">
+                                <div className="grid grid-cols-2 gap-3 mt-6 mb-4">
                                     <button onClick={() => setModals(prev => ({...prev, bonusEvent: true}))} className="col-span-1 flex flex-col items-center justify-center bg-white p-4 rounded-2xl border border-stone-200 shadow-sm active:scale-95 transition hover:shadow-md group h-24">
                                         <div className="w-10 h-10 rounded-full bg-[#f0fdf4] text-[#2f855a] flex items-center justify-center mb-2"><UserPlus size={18} /></div>
                                         <span className="text-[10px] font-bold text-stone-600 uppercase text-center leading-tight">+ Tapahtuma<br/>(Palkkio)</span>
@@ -2452,6 +2452,7 @@ const updatePublicDataProps = (updates) => {
                                         <span className="text-[10px] font-bold text-stone-600 uppercase text-center leading-tight">Lisä-<br/>palvelu</span>
                                     </button>
                                 </div>
+                                <button onClick={() => setModals(prev => ({...prev, activityHistory: fbUser.uid}))} className="w-full py-4 bg-stone-100 text-stone-500 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-stone-200 hover:bg-stone-200 transition-colors flex items-center justify-center gap-2 mb-6 shadow-sm"><History size={16} /> Selaa ja pura aiempia kirjauksia</button>
                             </div>
                         )}
 

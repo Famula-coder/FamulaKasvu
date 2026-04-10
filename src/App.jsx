@@ -965,8 +965,6 @@ const updatePublicDataProps = (updates) => {
 
     const submitSurvey = async () => {
         setSurveyState(prev => ({ ...prev, isSubmitting: true }));
-        const totalHours = surveyState.planHours + surveyState.oneOffHours;
-        const totalBonus = ((Math.min(surveyState.planHours, 2) * 39.95) + (surveyState.oneOffHours * 5.00)).toFixed(2);
         
         if (fbUser) {
             const myStat = allUserStats.find(s => s.id === fbUser.uid) || { hours: 0, customers: 0, npsSum: 0, npsCount: 0, myTasks: [] };
@@ -974,23 +972,19 @@ const updatePublicDataProps = (updates) => {
             const newLog = {
                 id: generateId(), timestamp: Date.now(), type: 'survey',
                 clientInitials: surveyState.clientInitials || '?',
-                hours: totalHours, 
-                planHours: surveyState.planHours || 0,
-                oneOffHours: surveyState.oneOffHours || 0,
+                hours: 0, planHours: 0, oneOffHours: 0, // Vanhat kentät nollina taaksepäinyhteensopivuuden/välttämiseksi
                 nps: npsVal, answers: surveyState.answers,
-                proposalStatus: surveyState.proposalStatus
+                proposalStatus: surveyState.proposalStatus === 'sold' ? 'redirected' : surveyState.proposalStatus
             };
             
             syncMyStats({
-                hours: myStat.hours + totalHours,
-                customers: surveyState.proposalStatus === 'sold' ? myStat.customers + 1 : myStat.customers,
                 npsSum: myStat.npsSum + npsVal,
                 npsCount: myStat.npsCount + (npsVal > 0 ? 1 : 0),
                 logs: [...(myStat.logs || []), newLog]
             });
         }
 
-        setTimeout(() => setSurveyState(prev => ({ ...prev, step: 'success', calculatedBonus: totalBonus, isSubmitting: false })), 800);
+        setTimeout(() => setSurveyState(prev => ({ ...prev, step: 'success', isSubmitting: false })), 800);
     };
 
     // --- RENDER VIEWS ---
@@ -4239,30 +4233,7 @@ const updatePublicDataProps = (updates) => {
                         </div>
                     </div>
 
-                    <div className={`bg-white rounded-[2rem] shadow-xl border border-stone-200 overflow-hidden relative transition-all ${!coach.isSalesRecommended ? '' : ''}`}>
-                        <div className="bg-[#132e21] p-5 border-b border-[#22543d] flex items-center gap-4"><div className="bg-white/10 p-3 rounded-xl text-white shadow-inner"><TrendingUp className="w-6 h-6"/></div><div><h3 className="font-extrabold text-white text-xl leading-none tracking-wide">Lisäpalvelu</h3><p className="text-[#dcfce7] text-xs mt-1.5 font-medium">Kirjaa sovitut työt</p></div></div>
-                        {!coach.isSalesRecommended && <div className="bg-[#fdf2f2] p-5 border-b border-[#fde8e8] text-[#9b2c2c] text-sm font-bold flex items-center gap-3"><AlertTriangle className="w-6 h-6 flex-shrink-0"/><span>Suositus: Keskity ensisijaisesti korjaamiseen. Myy vain, jos tilanne on purettu.</span></div>}
-                        <div className="p-6 space-y-6">
-                            <div className="bg-stone-50 rounded-2xl p-5 border border-stone-200 shadow-sm">
-                                <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-2"><Calendar className="text-[#2f855a] w-5 h-5"/><span className="text-sm font-black text-stone-800 uppercase tracking-wide">Jatkuva palvelu</span></div><span className="text-xs font-bold bg-white text-[#2f855a] px-3 py-1.5 rounded-lg border border-stone-200 shadow-sm">~40€ / h bonus</span></div>
-                                <div className="flex items-center bg-white rounded-xl p-1.5 shadow-sm border border-stone-200 w-full max-w-[200px]">
-                                    <button onClick={() => updateState({ planHours: Math.max(0, planHours - 0.5) })} className="w-10 h-10 rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 flex items-center justify-center transition-colors"><Minus className="w-5 h-5"/></button>
-                                    <div className="flex-1 text-center font-black text-2xl text-stone-800">{planHours} <span className="text-sm text-stone-400 font-bold">h</span></div>
-                                    <button onClick={() => updateState({ planHours: planHours + 0.5 })} className="w-10 h-10 rounded-lg bg-[#2f855a] text-white hover:bg-[#22543d] flex items-center justify-center transition-colors"><Plus className="w-5 h-5"/></button>
-                                </div>
-                            </div>
 
-                            <div className="bg-stone-50 rounded-2xl p-5 border border-stone-200 shadow-sm">
-                                <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-2"><Sparkles className="text-[#2f855a] w-5 h-5"/><span className="text-sm font-black text-stone-800 uppercase tracking-wide">Kertapalvelu</span></div><span className="text-xs font-bold bg-white text-[#2f855a] px-3 py-1.5 rounded-lg border border-stone-200 shadow-sm">5€ / h bonus</span></div>
-                                <div className="flex items-center bg-white rounded-xl p-1.5 shadow-sm border border-stone-200 w-full max-w-[200px]">
-                                    <button onClick={() => updateState({ oneOffHours: Math.max(0, oneOffHours - 0.5) })} className="w-10 h-10 rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 flex items-center justify-center transition-colors"><Minus className="w-5 h-5"/></button>
-                                    <div className="flex-1 text-center font-black text-2xl text-stone-800">{oneOffHours} <span className="text-sm text-stone-400 font-bold">h</span></div>
-                                    <button onClick={() => updateState({ oneOffHours: oneOffHours + 0.5 })} className="w-10 h-10 rounded-lg bg-[#2f855a] text-white hover:bg-[#22543d] flex items-center justify-center transition-colors"><Plus className="w-5 h-5"/></button>
-                                </div>
-                            </div>
-                            <input type="text" placeholder="Mitä sovittiin?" value={surveyState.salesNote} onChange={e => updateState({salesNote: e.target.value})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-base font-medium text-stone-800 placeholder-stone-400 focus:border-[#2f855a] outline-none shadow-inner" />
-                        </div>
-                    </div>
 
                     <button onClick={submitSurvey} disabled={surveyState.isSubmitting} className="w-full py-5 rounded-2xl font-black text-xl shadow-xl flex items-center justify-center gap-3 bg-[#2f855a] text-white hover:bg-[#22543d] active:scale-95 transition-all">
                         {surveyState.isSubmitting ? <><Loader2 className="w-6 h-6 animate-spin"/> Lähetetään...</> : <>Hyväksy & Lopeta <Send className="w-6 h-6"/></>}
@@ -4319,7 +4290,27 @@ const updatePublicDataProps = (updates) => {
                         )}
                         {step === 'customer' && renderSurveyCustomer()}
                         {step === 'worker' && renderSurveyWorker()}
-                        {step === 'success' && <div className="flex flex-col flex-1 items-center justify-center p-8 bg-[#486045] animate-fade-in text-center"><div className="w-full bg-[#f5f5f4] rounded-[2rem] shadow-2xl p-8"><button onClick={handleStartSurveyView} className="w-full py-4 bg-stone-900 text-white rounded-2xl font-bold shadow-lg mb-4">Uusi kirjaus</button><button onClick={()=>setCurrentView('portal')} className="w-full py-4 bg-white text-stone-900 rounded-2xl font-bold border border-stone-200 shadow-sm">Palaa portaaliin</button></div></div>}
+                        {step === 'success' && (
+                            <div className="flex flex-col flex-1 items-center justify-center p-8 bg-[#486045] animate-fade-in text-center">
+                                <div className="w-full bg-[#f5f5f4] rounded-[2rem] shadow-2xl p-8">
+                                    <div className="bg-[#f0fdf4] text-[#2f855a] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"><Check size={32}/></div>
+                                    <h2 className="text-2xl font-black text-stone-900 mb-2">Tallennettu!</h2>
+                                    {surveyState.proposalStatus === 'sold' ? (
+                                        <div className="mb-6">
+                                            <p className="text-stone-600 font-medium mb-4">Loistavaa työtä ristimyynnin kanssa! Käy lunastamassa palkkiosi Työpöydän "Myynti" -painikkeilla.</p>
+                                            <button onClick={() => { setCurrentView('portal'); setModals(prev => ({...prev, bonusEvent: true})); }} className="w-full py-4 bg-[#2f855a] text-white rounded-2xl font-black shadow-lg mb-3 hover:bg-[#22543d] transition-colors">Siirry kirjaamaan palkkio 💰</button>
+                                            <button onClick={() => setCurrentView('portal')} className="text-sm font-bold text-stone-500 hover:text-stone-700">Mene työpöydälle (ilman kirjausta)</button>
+                                        </div>
+                                    ) : (
+                                        <div className="mb-6">
+                                            <p className="text-stone-600 font-medium mb-4">Asiakkaan kuulumiset on raportoitu onnistuneesti.</p>
+                                            <button onClick={handleStartSurveyView} className="w-full py-4 bg-stone-900 text-white rounded-2xl font-bold shadow-lg mb-3">Tee uusi kysely</button>
+                                            <button onClick={() => setCurrentView('portal')} className="w-full py-4 bg-white text-stone-900 rounded-2xl font-bold border border-stone-200 shadow-sm">Palaa työpöydälle</button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

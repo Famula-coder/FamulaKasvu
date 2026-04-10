@@ -3129,7 +3129,7 @@ const updatePublicDataProps = (updates) => {
 
                                             // Construct tool string
                                             const topTools = comparingRegion.pinnedToolIds.map(id => unifiedTray.find(t=>t.id===id)?.text || '').filter(Boolean);
-                                            let toolsText = topTools.length > 0 ? ` He ovat kiinnittäneet työpöydälleen työkaluja kuten "${topTools[0]}"${topTools.length > 1 ? ` ja "${topTools[1]}"` : ''}.` : '';
+                                            let toolsText = topTools.length > 0 ? ` He ovat kiinnittäneet työpöydälleen työkaluja kuten "${topTools[0]}"${topTools.length > 1 ? ` ja "${topTools[1]}"` : ''}.` : ' Emme kuitenkaan voi vielä algoritmisesti erotella heidän menestyksensä syytä, sillä alueen rutiineihin ei ole riittävästi kiinnitetty markkinointitoimia tai dataa on liian vähän.';
                                             
                                             let insightMsg = '';
                                             if (isSuperAdmin) {

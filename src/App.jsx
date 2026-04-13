@@ -4589,7 +4589,7 @@ const updatePublicDataProps = (updates) => {
                                 </select>
                             </div>
                         </div>
-                        <button onClick={handleDelegateMarketingTask} disabled={!delegateModal.selectedWorkerId} className="w-full bg-[#2f855a] text-white py-4 rounded-xl font-bold text-sm shadow-md hover:bg-[#22543d] transition disabled:opacity-50">Tallenna delegointi</button>
+                        <button onClick={handleDelegateTask} disabled={!delegateModal.selectedWorkerId} className="w-full bg-[#2f855a] text-white py-4 rounded-xl font-bold text-sm shadow-md hover:bg-[#22543d] transition disabled:opacity-50">Tallenna delegointi</button>
                     </div>
                 </div>
             )}

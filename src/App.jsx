@@ -245,6 +245,8 @@ export default function App() {
     
     // Marketing Plans & Financial Statements State
     const [marketingModal, setMarketingModal] = useState(false);
+    const [delegateModal, setDelegateModal] = useState({ show: false, task: null, selectedWorkerId: '' });
+    const [rescheduleModal, setRescheduleModal] = useState({ show: false, task: null, newWeekNum: '' });
     const [financialModal, setFinancialModal] = useState(false);
     const [editingFinancialStatement, setEditingFinancialStatement] = useState(null);
     const [editingMarketingPlan, setEditingMarketingPlan] = useState({
@@ -1601,6 +1603,32 @@ const updatePublicDataProps = (updates) => {
         showToast("Markkinointisuunnitelma tallennettu!");
     };
 
+    const handleDelegateMarketingTask = async () => {
+        if (!delegateModal.task || !delegateModal.selectedWorkerId) return;
+        const plan = marketingPlans.find(p => p.id === delegateModal.task.marketingPlanId);
+        if (plan) {
+            const newTasks = (plan.selectedTasks || []).map(st => 
+                st.id === delegateModal.task.id ? {...st, assignedWorkerId: delegateModal.selectedWorkerId} : st
+            );
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_plans', plan.id), { ...plan, selectedTasks: newTasks }, { merge: true });
+            showToast("Tehtävä delegoitu hoitajalle!");
+        }
+        setDelegateModal({ show: false, task: null, selectedWorkerId: '' });
+    };
+
+    const handleRescheduleMarketingTask = async () => {
+        if (!rescheduleModal.task || !rescheduleModal.newWeekNum) return;
+        const plan = marketingPlans.find(p => p.id === rescheduleModal.task.marketingPlanId);
+        if (plan) {
+            const newTasks = (plan.selectedTasks || []).map(st => 
+                st.id === rescheduleModal.task.id ? {...st, targetWeekNum: rescheduleModal.newWeekNum} : st
+            );
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_plans', plan.id), { ...plan, selectedTasks: newTasks }, { merge: true });
+            showToast("Tehtävä siirretty uudelle viikolle!");
+        }
+        setRescheduleModal({ show: false, task: null, newWeekNum: '' });
+    };
+
     const saveFinancialStatement = async () => {
         if (!isAdmin) return;
         const targetRegion = (isSuperAdmin && globalScope.regionId !== 'all') ? globalScope.regionId : authSession?.regionId;
@@ -2513,13 +2541,17 @@ const updatePublicDataProps = (updates) => {
                                             };
                                             
                                             let augmentedTasks = [...myTasks];
-                                            if (isAdmin) {
-                                                const activePlan = marketingPlans.find(p => p.regionId === activeTrayRegion && Number(p.year) === todayInfo.year && Number(p.quarter) === Math.floor(todayInfo.monthIdx/3)+1);
-                                                const myStat = allUserStats.find(s => s.id === fbUser?.uid) || {};
-                                                const marketingTasksDone = myStat.marketingTasksDone || [];
-                                                
-                                                if (activePlan && activePlan.selectedTasks) {
-                                                    activePlan.selectedTasks.forEach(st => {
+                                            const checkRegionId = isAdmin && globalScope.regionId !== 'all' ? globalScope.regionId : authSession?.regionId;
+                                            const activePlan = marketingPlans.find(p => p.regionId === checkRegionId && Number(p.year) === todayInfo.year && Number(p.quarter) === Math.floor(todayInfo.monthIdx/3)+1);
+                                            const myStat = allUserStats.find(s => s.id === fbUser?.uid) || {};
+                                            const marketingTasksDone = myStat.marketingTasksDone || [];
+                                            
+                                            if (activePlan && activePlan.selectedTasks) {
+                                                activePlan.selectedTasks.forEach(st => {
+                                                    const isMyDelegatedTask = st.assignedWorkerId === fbUser?.uid;
+                                                    const isManagerTask = isAdmin && (!st.assignedWorkerId || st.assignedWorkerId === fbUser?.uid);
+                                                    
+                                                    if (isMyDelegatedTask || isManagerTask) {
                                                         const taskInfo = unifiedTray.find(t => t.id === st.trayTaskId);
                                                         if (taskInfo) {
                                                             const checkKeyPrefix = st.type === 'pinned' ? `${st.id}_` : st.id;
@@ -2529,13 +2561,14 @@ const updatePublicDataProps = (updates) => {
                                                                 type: st.type,
                                                                 targetWeekId: st.type === 'week' ? `${activePlan.year}-${st.targetWeekNum}` : undefined,
                                                                 isMarketingTask: true,
+                                                                marketingPlanId: activePlan.id,
                                                                 rawInfo: st,
                                                                 done: st.type !== 'pinned' ? marketingTasksDone.includes(st.id) : false,
                                                                 doneWeeks: st.type === 'pinned' ? marketingTasksDone.filter(d => d.startsWith(`${st.id}_`)).map(d => d.split('_')[1]) : []
                                                             });
                                                         }
-                                                    });
-                                                }
+                                                    }
+                                                });
                                             }
 
                                             const visibleTasks = augmentedTasks.filter(t => 
@@ -2565,7 +2598,7 @@ const updatePublicDataProps = (updates) => {
                                                         </div>
                                                         <span className={`text-sm font-medium flex-1 leading-snug flex items-center gap-2 ${isDone ? 'line-through text-stone-400' : 'text-stone-800'}`}>
                                                             {t.text}
-                                                            {t.isMarketingTask && <Shield className="w-3.5 h-3.5 text-[#2f855a] shrink-0" />}
+                                                            {t.isMarketingTask && <Shield className="w-3.5 h-3.5 text-[#2f855a] shrink-0" title="Aluelähtöinen markkinointitehtävä" />}
                                                             {t.type === 'pinned' && <Pin className={`w-3.5 h-3.5 ${isDone ? 'text-stone-300' : 'text-[#9b2c2c]'} shrink-0`} />}
                                                         </span>
                                                         <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity ml-2 bg-white">
@@ -2575,8 +2608,16 @@ const updatePublicDataProps = (updates) => {
                                                                     <button onClick={()=>deleteMyTask(t.id)} className="p-2 text-stone-400 hover:text-red-600 bg-stone-50 rounded-lg"><Trash2 size={14}/></button>
                                                                 </>
                                                             )}
-                                                            {t.isMarketingTask && (
-                                                                <span className="text-[10px] uppercase font-bold text-[#2f855a]">Alue</span>
+                                                            {t.isMarketingTask && isAdmin && (
+                                                                <>
+                                                                    <button onClick={() => setDelegateModal({ show: true, task: t, selectedWorkerId: t.rawInfo?.assignedWorkerId || '' })} className="p-2 text-stone-400 hover:text-[#2f855a] bg-stone-50 rounded-lg transition" title="Delegoi hoitajalle"><UserPlus size={14}/></button>
+                                                                    {t.type === 'week' && (
+                                                                        <button onClick={() => setRescheduleModal({ show: true, task: t, newWeekNum: t.rawInfo?.targetWeekNum || '' })} className="p-2 text-stone-400 hover:text-[#2f855a] bg-stone-50 rounded-lg transition" title="Muuta aikataulua"><Calendar size={14}/></button>
+                                                                    )}
+                                                                </>
+                                                            )}
+                                                            {t.isMarketingTask && !isAdmin && (
+                                                                <span className="text-[10px] uppercase font-bold text-[#2f855a] flex items-center px-1">Alue</span>
                                                             )}
                                                         </div>
                                                     </div>
@@ -4476,6 +4517,62 @@ const updatePublicDataProps = (updates) => {
                     </div>
                 </div>
             )}
+
+            {delegateModal.show && (
+                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center animate-fade-in p-4">
+                    <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setDelegateModal({ show: false, task: null, selectedWorkerId: '' })}></div>
+                    <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 relative shadow-2xl animate-slide-up">
+                        <button onClick={() => setDelegateModal({ show: false, task: null, selectedWorkerId: '' })} className="absolute top-4 right-4 p-2 bg-stone-100 text-stone-400 hover:text-stone-700 hover:bg-stone-200 rounded-xl transition"><X size={18}/></button>
+                        <h3 className="text-xl font-black text-stone-900 mb-2">Delegoi tehtävä</h3>
+                        <p className="text-sm text-stone-500 mb-6">Valitse kenelle hoitajalle tämä toimenpide ohjataan.</p>
+                        
+                        <div className="space-y-4 mb-6">
+                            <div>
+                                <label className="block text-[11px] font-bold text-stone-500 uppercase tracking-wider mb-2 ml-1">Hoitaja</label>
+                                <select 
+                                    className="w-full bg-stone-50 border-2 border-stone-100 rounded-xl px-4 py-3 text-sm font-bold text-stone-700 outline-none focus:border-[#2f855a] focus:bg-white transition"
+                                    value={delegateModal.selectedWorkerId}
+                                    onChange={(e) => setDelegateModal(prev => ({ ...prev, selectedWorkerId: e.target.value }))}
+                                >
+                                    <option value="" disabled>-- Valitse tekijä --</option>
+                                    <option value="unassigned">Avoimet tehtävät (Aluevetäjä hoitaa / Kaikkien vastuulla)</option>
+                                    {allUserStats.filter(s => s.regionId === (isAdmin && globalScope.regionId !== 'all' ? globalScope.regionId : authSession?.regionId) && s.role !== 'admin').map(w => (
+                                        <option key={w.id} value={w.id}>{w.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                        <button onClick={handleDelegateMarketingTask} disabled={!delegateModal.selectedWorkerId} className="w-full bg-[#2f855a] text-white py-4 rounded-xl font-bold text-sm shadow-md hover:bg-[#22543d] transition disabled:opacity-50">Tallenna delegointi</button>
+                    </div>
+                </div>
+            )}
+
+            {rescheduleModal.show && (
+                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center animate-fade-in p-4">
+                    <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setRescheduleModal({ show: false, task: null, newWeekNum: '' })}></div>
+                    <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 relative shadow-2xl animate-slide-up">
+                        <button onClick={() => setRescheduleModal({ show: false, task: null, newWeekNum: '' })} className="absolute top-4 right-4 p-2 bg-stone-100 text-stone-400 hover:text-stone-700 hover:bg-stone-200 rounded-xl transition"><X size={18}/></button>
+                        <h3 className="text-xl font-black text-stone-900 mb-2">Aikatauluta uusiksi</h3>
+                        <p className="text-sm text-stone-500 mb-6">Siirrä toimenpide toiselle viikolle.</p>
+                        
+                        <div className="space-y-4 mb-6">
+                            <div>
+                                <label className="block text-[11px] font-bold text-stone-500 uppercase tracking-wider mb-2 ml-1">Kohdeviikko</label>
+                                <input 
+                                    type="number" 
+                                    min="1" max="52"
+                                    className="w-full bg-stone-50 border-2 border-stone-100 rounded-xl px-4 py-3 text-xl font-black text-stone-900 outline-none focus:border-[#2f855a] focus:bg-white transition"
+                                    placeholder="Esim. 42"
+                                    value={rescheduleModal.newWeekNum}
+                                    onChange={(e) => setRescheduleModal(prev => ({ ...prev, newWeekNum: e.target.value }))}
+                                />
+                            </div>
+                        </div>
+                        <button onClick={handleRescheduleMarketingTask} disabled={!rescheduleModal.newWeekNum} className="w-full bg-[#2f855a] text-white py-4 rounded-xl font-bold text-sm shadow-md hover:bg-[#22543d] transition disabled:opacity-50">Tallenna siirto</button>
+                    </div>
+                </div>
+            )}
+
             {currentView === 'simulator_login' && renderSimulatorLogin()}
             {currentView === 'pending_access' && renderPendingAccess()}
             {currentView === 'portal' && renderPortal()}

@@ -579,10 +579,30 @@ export default function App() {
         syncMyStats({ myTasks: updatedTasks });
     };
 
-    const saveEditedMyTask = () => {
+    const saveEditedMyTask = async () => {
         if (editingTaskText.trim() === '') return;
-        const updatedTasks = myTasks.map(t => t.id === editingTaskIdx ? { ...t, text: editingTaskText } : t);
-        syncMyStats({ myTasks: updatedTasks });
+
+        let foundMarketingPlan = null;
+        let foundSelectedTask = null;
+        for (const plan of marketingPlans) {
+            const st = (plan.selectedTasks || []).find(x => x.id === editingTaskIdx);
+            if (st) {
+                foundMarketingPlan = plan;
+                foundSelectedTask = st;
+                break;
+            }
+        }
+
+        if (foundMarketingPlan && foundSelectedTask) {
+            const newTasks = foundMarketingPlan.selectedTasks.map(st => 
+                st.id === editingTaskIdx ? { ...st, customText: editingTaskText } : st
+            );
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_plans', foundMarketingPlan.id), { ...foundMarketingPlan, selectedTasks: newTasks }, { merge: true });
+        } else {
+            const updatedTasks = myTasks.map(t => t.id === editingTaskIdx ? { ...t, text: editingTaskText } : t);
+            syncMyStats({ myTasks: updatedTasks });
+        }
+
         setModals(prev => ({ ...prev, editTask: false }));
         setEditingTaskIdx(null);
         setEditingTaskText("");
@@ -1603,16 +1623,34 @@ const updatePublicDataProps = (updates) => {
         showToast("Markkinointisuunnitelma tallennettu!");
     };
 
-    const handleDelegateMarketingTask = async () => {
+    const handleDelegateTask = async () => {
         if (!delegateModal.task || !delegateModal.selectedWorkerId) return;
-        const plan = marketingPlans.find(p => p.id === delegateModal.task.marketingPlanId);
-        if (plan) {
-            const newTasks = (plan.selectedTasks || []).map(st => 
-                st.id === delegateModal.task.id ? {...st, assignedWorkerId: delegateModal.selectedWorkerId} : st
-            );
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_plans', plan.id), { ...plan, selectedTasks: newTasks }, { merge: true });
-            showToast("Tehtävä delegoitu hoitajalle!");
+
+        if (delegateModal.task.isMarketingTask) {
+            // Marketing Task Delegation
+            const plan = marketingPlans.find(p => p.id === delegateModal.task.marketingPlanId);
+            if (plan) {
+                const newTasks = (plan.selectedTasks || []).map(st => 
+                    st.id === delegateModal.task.id ? {...st, assignedWorkerId: delegateModal.selectedWorkerId} : st
+                );
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_plans', plan.id), { ...plan, selectedTasks: newTasks }, { merge: true });
+                showToast("Markkinointitehtävä delegoitu!");
+            }
+        } else {
+            // Normal MyTask Delegation
+            const targetWorkerStat = allUserStats.find(s => s.id === delegateModal.selectedWorkerId) || { myTasks: [] };
+            const cleanTaskToDelegate = { ...delegateModal.task };
+            const targetWorkerNewTasks = [...(targetWorkerStat.myTasks || []), cleanTaskToDelegate];
+            
+            // Remove from manager's list
+            const updatedMyTasks = myTasks.filter(t => t.id !== delegateModal.task.id);
+            
+            // Save to Target Worker and Manager
+            await setDoc(doc(db, 'artifacts', appId, 'users', delegateModal.selectedWorkerId, 'privateData', 'main'), { myTasks: targetWorkerNewTasks }, { merge: true });
+            syncMyStats({ myTasks: updatedMyTasks });
+            showToast("Oma tehtävä delegoitu eteenpäin!");
         }
+
         setDelegateModal({ show: false, task: null, selectedWorkerId: '' });
     };
 
@@ -2557,7 +2595,7 @@ const updatePublicDataProps = (updates) => {
                                                             const checkKeyPrefix = st.type === 'pinned' ? `${st.id}_` : st.id;
                                                             augmentedTasks.push({
                                                                 id: st.id,
-                                                                text: taskInfo.text,
+                                                                text: st.customText || taskInfo.text,
                                                                 type: st.type,
                                                                 targetWeekId: st.type === 'week' ? `${activePlan.year}-${st.targetWeekNum}` : undefined,
                                                                 isMarketingTask: true,
@@ -2602,20 +2640,21 @@ const updatePublicDataProps = (updates) => {
                                                             {t.type === 'pinned' && <Pin className={`w-3.5 h-3.5 ${isDone ? 'text-stone-300' : 'text-[#9b2c2c]'} shrink-0`} />}
                                                         </span>
                                                         <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity ml-2 bg-white">
-                                                            {!t.isMarketingTask && (
-                                                                <>
-                                                                    <button onClick={()=>{setEditingTaskIdx(t.id); setEditingTaskText(t.text); setModals(prev=>({...prev, editTask: true}))}} className="p-2 text-stone-400 hover:text-blue-600 bg-stone-50 rounded-lg"><Pen size={14}/></button>
-                                                                    <button onClick={()=>deleteMyTask(t.id)} className="p-2 text-stone-400 hover:text-red-600 bg-stone-50 rounded-lg"><Trash2 size={14}/></button>
-                                                                </>
+                                                            {(!t.isMarketingTask || isAdmin) && (
+                                                                <button onClick={()=>{setEditingTaskIdx(t.id); setEditingTaskText(t.text); setModals(prev=>({...prev, editTask: true}))}} className="p-2 text-stone-400 hover:text-blue-600 bg-stone-50 rounded-lg" title="Muokkaa tekstiä"><Pen size={14}/></button>
                                                             )}
-                                                            {t.isMarketingTask && isAdmin && (
+                                                            {!t.isMarketingTask && (
+                                                                <button onClick={()=>deleteMyTask(t.id)} className="p-2 text-stone-400 hover:text-red-600 bg-stone-50 rounded-lg" title="Poista"><Trash2 size={14}/></button>
+                                                            )}
+                                                            
+                                                            {isAdmin && (
                                                                 <>
                                                                     {t.rawInfo?.assignedWorkerId && t.rawInfo.assignedWorkerId !== 'unassigned' && (() => {
                                                                         const wu = allUserStats.find(s => s.id === t.rawInfo.assignedWorkerId);
-                                                                        return wu ? <span className="text-[10px] uppercase font-bold text-stone-400 bg-stone-100 rounded-lg px-2 py-1 mr-1 flex items-center">{wu.name.split(' ')[0]}</span> : null;
+                                                                        return wu ? <span className="text-[10px] uppercase font-bold text-[#2f855a] bg-[#f0fdf4] rounded-lg px-2 py-1 mr-1 flex items-center">{wu.name.split(' ')[0]}</span> : null;
                                                                     })()}
                                                                     <button onClick={() => setDelegateModal({ show: true, task: t, selectedWorkerId: t.rawInfo?.assignedWorkerId || '' })} className="p-2 text-stone-400 hover:text-[#2f855a] bg-stone-50 rounded-lg transition" title="Delegoi hoitajalle"><UserPlus size={14}/></button>
-                                                                    {t.type === 'week' && (
+                                                                    {t.type === 'week' && t.isMarketingTask && (
                                                                         <button onClick={() => setRescheduleModal({ show: true, task: t, newWeekNum: t.rawInfo?.targetWeekNum || '' })} className="p-2 text-stone-400 hover:text-[#2f855a] bg-stone-50 rounded-lg transition" title="Muuta aikataulua"><Calendar size={14}/></button>
                                                                     )}
                                                                 </>

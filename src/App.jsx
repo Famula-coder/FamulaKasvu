@@ -2549,7 +2549,7 @@ const updatePublicDataProps = (updates) => {
                                             if (activePlan && activePlan.selectedTasks) {
                                                 activePlan.selectedTasks.forEach(st => {
                                                     const isMyDelegatedTask = st.assignedWorkerId === fbUser?.uid;
-                                                    const isManagerTask = isAdmin && (!st.assignedWorkerId || st.assignedWorkerId === fbUser?.uid);
+                                                    const isManagerTask = isAdmin;
                                                     
                                                     if (isMyDelegatedTask || isManagerTask) {
                                                         const taskInfo = unifiedTray.find(t => t.id === st.trayTaskId);
@@ -2610,6 +2610,10 @@ const updatePublicDataProps = (updates) => {
                                                             )}
                                                             {t.isMarketingTask && isAdmin && (
                                                                 <>
+                                                                    {t.rawInfo?.assignedWorkerId && t.rawInfo.assignedWorkerId !== 'unassigned' && (() => {
+                                                                        const wu = allUserStats.find(s => s.id === t.rawInfo.assignedWorkerId);
+                                                                        return wu ? <span className="text-[10px] uppercase font-bold text-stone-400 bg-stone-100 rounded-lg px-2 py-1 mr-1 flex items-center">{wu.name.split(' ')[0]}</span> : null;
+                                                                    })()}
                                                                     <button onClick={() => setDelegateModal({ show: true, task: t, selectedWorkerId: t.rawInfo?.assignedWorkerId || '' })} className="p-2 text-stone-400 hover:text-[#2f855a] bg-stone-50 rounded-lg transition" title="Delegoi hoitajalle"><UserPlus size={14}/></button>
                                                                     {t.type === 'week' && (
                                                                         <button onClick={() => setRescheduleModal({ show: true, task: t, newWeekNum: t.rawInfo?.targetWeekNum || '' })} className="p-2 text-stone-400 hover:text-[#2f855a] bg-stone-50 rounded-lg transition" title="Muuta aikataulua"><Calendar size={14}/></button>
@@ -4536,9 +4540,13 @@ const updatePublicDataProps = (updates) => {
                                 >
                                     <option value="" disabled>-- Valitse tekijä --</option>
                                     <option value="unassigned">Avoimet tehtävät (Aluevetäjä hoitaa / Kaikkien vastuulla)</option>
-                                    {allUserStats.filter(s => s.regionId === (isAdmin && globalScope.regionId !== 'all' ? globalScope.regionId : authSession?.regionId) && s.role !== 'admin').map(w => (
-                                        <option key={w.id} value={w.id}>{w.name}</option>
-                                    ))}
+                                    {(() => {
+                                        const p = delegateModal.task ? marketingPlans.find(pl => pl.id === delegateModal.task.marketingPlanId) : null;
+                                        const taskRegId = p ? p.regionId : (isAdmin && globalScope.regionId !== 'all' ? globalScope.regionId : authSession?.regionId);
+                                        return allUserStats.filter(s => s.regionId === taskRegId && s.role !== 'admin' && s.role !== 'superadmin').map(w => (
+                                            <option key={w.id} value={w.id}>{w.name}</option>
+                                        ));
+                                    })()}
                                 </select>
                             </div>
                         </div>
